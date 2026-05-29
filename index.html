@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OfferMate AI 求职匹配 Demo</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="Demo overview">
+        <div>
+          <p class="eyebrow">AI 求职智能匹配智能体</p>
+          <h1>OfferMate</h1>
+          <p id="company-subtitle" class="top-subtitle"></p>
+        </div>
+        <div class="status-pill">
+          <span class="dot"></span>
+          同公司多岗位 Demo
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="profile-panel" aria-label="学生画像">
+          <div class="avatar-card">
+            <div class="avatar-visual" aria-hidden="true">
+              <span id="avatar-initial">陈</span>
+              <svg viewBox="0 0 160 90" role="img" aria-label="求职路径图">
+                <path d="M12 70 C38 18, 70 42, 92 28 S130 24, 148 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="12" cy="70" r="6"/>
+                <circle cx="92" cy="28" r="6"/>
+                <circle cx="148" cy="10" r="6"/>
+              </svg>
+            </div>
+            <div>
+              <h2 id="student-name"></h2>
+              <p id="student-headline"></p>
+            </div>
+          </div>
+
+          <div class="resume-toolbar">
+            <div>
+              <p class="eyebrow">示例简历</p>
+              <h3>求职者原始简历</h3>
+            </div>
+            <button id="parse-resume" class="primary-button compact-button" type="button">解析简历</button>
+          </div>
+          <div id="resume-document" class="resume-document" aria-label="示例简历"></div>
+
+          <div class="profile-block parse-card">
+            <h3>AI 已提取画像</h3>
+            <p id="parse-status">从示例简历中提取学生画像、技能标签和经历证据。</p>
+          </div>
+
+          <div class="profile-block">
+            <h3>技能标签</h3>
+            <div id="skill-list" class="tag-list"></div>
+          </div>
+
+          <div class="profile-block">
+            <h3>求职偏好</h3>
+            <p id="student-target"></p>
+          </div>
+        </aside>
+
+        <section class="job-panel" aria-label="岗位推荐">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" id="company-name"></p>
+              <h2>同公司岗位池</h2>
+            </div>
+            <span id="job-count"></span>
+          </div>
+          <div id="job-list" class="job-list"></div>
+
+          <form id="admin-form" class="admin-panel" aria-label="管理员添加岗位">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">管理员</p>
+                <h3>添加岗位 JD</h3>
+              </div>
+              <button class="secondary-button compact-button" type="submit">分析并添加</button>
+            </div>
+            <label>
+              岗位名称
+              <input id="admin-title" type="text" value="增长运营实习生">
+            </label>
+            <label>
+              工作地点
+              <input id="admin-city" type="text" value="上海">
+            </label>
+            <label>
+              岗位描述
+              <textarea id="admin-description" rows="6">负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。</textarea>
+            </label>
+            <p id="admin-result" class="admin-result">粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。</p>
+          </form>
+        </section>
+
+        <section class="insight-panel" aria-label="匹配分析">
+          <div class="score-card">
+            <div>
+              <p class="eyebrow">初筛命中率</p>
+              <h2 id="selected-job-title"></h2>
+            </div>
+            <div class="score-ring" id="score-ring">
+              <strong id="score-value"></strong>
+              <span>匹配分</span>
+            </div>
+          </div>
+
+          <div class="analysis-grid">
+            <div>
+              <h3>匹配原因</h3>
+              <ul id="reason-list"></ul>
+            </div>
+            <div>
+              <h3>关键词差距</h3>
+              <div id="gap-list" class="tag-list"></div>
+            </div>
+          </div>
+
+          <div class="advice-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">简历优化</p>
+                <h3 id="screening-signal"></h3>
+              </div>
+            </div>
+            <div id="rewrite-list"></div>
+          </div>
+
+          <div class="advice-card">
+            <h3>下一步动作</h3>
+            <ol id="next-actions"></ol>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
