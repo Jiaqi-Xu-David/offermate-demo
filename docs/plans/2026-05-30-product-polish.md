@@ -39,5 +39,5 @@
 
 - [x] Run `npm test`.
 - [x] Verify the local UI in browser: default state, mode switch, tailored snippet generation, admin job persistence.
-- [ ] Commit and push to `main`.
-- [ ] Confirm GitHub Pages loads the updated demo.
+- [x] Commit and push to `main`.
+- [x] Confirm GitHub Pages loads the updated demo.
