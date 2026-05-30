@@ -14,6 +14,7 @@ import {
   enrichJob,
   parseResumeText,
 } from './matcher.js';
+import { buildJobDetailUrl } from './job-navigation.js';
 
 const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
 
@@ -209,10 +210,11 @@ function renderProfile() {
 }
 
 function createJobCard(analysis) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
-  button.dataset.jobId = analysis.job.id;
+  const link = document.createElement('a');
+  link.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
+  link.dataset.jobId = analysis.job.id;
+  link.href = buildJobDetailUrl(analysis.job.id);
+  link.setAttribute('aria-label', `查看${analysis.job.company}${analysis.job.title}招聘详情`);
 
   const titleRow = document.createElement('div');
   titleRow.className = 'job-title-row';
@@ -251,17 +253,15 @@ function createJobCard(analysis) {
   level.className = 'job-level';
   level.textContent = analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level;
 
-  button.append(titleRow, description, requirementList, tagList, level);
-  button.addEventListener('click', () => {
-    state.selectedJobId = analysis.job.id;
-    render();
-  });
-  return button;
+  link.append(titleRow, description, requirementList, tagList, level);
+  return link;
 }
 
 function createAdminJobItem(job) {
-  const item = document.createElement('article');
+  const item = document.createElement('a');
   item.className = 'admin-job-item';
+  item.href = buildJobDetailUrl(job.id);
+  item.setAttribute('aria-label', `查看${job.company}${job.title}招聘详情`);
 
   const header = document.createElement('div');
   header.className = 'admin-item-header';

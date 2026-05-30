@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>岗位招聘详情 · OfferMate</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell job-detail-page">
+      <section class="topbar job-detail-topbar" aria-label="招聘详情页">
+        <div>
+          <p class="eyebrow">AI 求职智能匹配智能体</p>
+          <h1 id="detail-company">星河科技</h1>
+          <p id="detail-company-subtitle" class="top-subtitle"></p>
+        </div>
+        <span class="creator-watermark" aria-hidden="true">许家齐</span>
+        <div class="top-actions">
+          <a class="secondary-button compact-button nav-link-button" href="./index.html">返回岗位池</a>
+          <div class="status-pill">
+            <span class="dot"></span>
+            招聘详情页面
+          </div>
+        </div>
+      </section>
+
+      <section class="job-detail-hero">
+        <div>
+          <p class="eyebrow">公司岗位详情</p>
+          <h2 id="detail-title"></h2>
+          <p id="detail-meta" class="selected-job-meta"></p>
+        </div>
+        <div class="score-ring" id="detail-score-ring">
+          <strong id="detail-score-value"></strong>
+          <span>匹配分</span>
+        </div>
+      </section>
+
+      <section class="job-detail-layout">
+        <article class="job-detail-main">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">完整 JD</p>
+              <h3>岗位描述</h3>
+            </div>
+          </div>
+          <p id="detail-description" class="detail-description"></p>
+
+          <div class="detail-section-grid">
+            <section class="detail-card">
+              <h3>工作内容</h3>
+              <ul id="detail-responsibilities"></ul>
+            </section>
+            <section class="detail-card">
+              <h3>加分方向</h3>
+              <div id="detail-nice-to-have" class="tag-list"></div>
+            </section>
+          </div>
+
+          <section class="detail-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">JD 分析</p>
+                <h3>系统从岗位描述中抽取的要求</h3>
+              </div>
+            </div>
+            <div id="detail-jd-analysis" class="detail-analysis-grid"></div>
+          </section>
+        </article>
+
+        <aside class="job-detail-side">
+          <section class="detail-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">简历分析</p>
+                <h3 id="detail-student-name"></h3>
+              </div>
+            </div>
+            <p id="detail-student-meta" class="selected-job-meta"></p>
+            <div id="detail-resume-tags" class="tag-list"></div>
+          </section>
+
+          <section class="detail-card">
+            <p id="detail-score-formula" class="score-formula"></p>
+            <div id="detail-score-breakdown" class="breakdown-list detail-breakdown-list"></div>
+          </section>
+
+          <section class="detail-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">逐项解释</p>
+                <h3>这个分数怎么算出来</h3>
+              </div>
+            </div>
+            <div id="detail-skill-rows" class="skill-detail-list"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./src/job-detail.js"></script>
+  </body>
+</html>

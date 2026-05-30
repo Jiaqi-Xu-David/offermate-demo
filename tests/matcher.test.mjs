@@ -14,9 +14,11 @@ import {
   buildTailoredResumeSnippet,
   getSkillMatchDetails,
   getScoreBreakdown,
+  findJobById,
   parseJobDescription,
   parseResumeText,
 } from '../src/matcher.js';
+import { buildJobDetailUrl } from '../src/job-navigation.js';
 
 test('ranks a data analyst internship as the strongest fit', () => {
   const scoredJobs = JOBS.map((job) => analyzeJobFit(STUDENT_PROFILE, job))
@@ -72,6 +74,23 @@ test('grounds every seeded job in a complete job description', () => {
   assert.ok(JOBS.every((job) => job.softSkills.length >= 2));
   assert.ok(JOBS.every((job) => job.languageRequirements.length >= 1));
   assert.ok(JOBS.every((job) => job.description.includes(job.tags[0])));
+});
+
+test('builds stable company job detail links for every seeded job', () => {
+  const links = JOBS.map((job) => buildJobDetailUrl(job.id));
+
+  assert.ok(links.every((link) => link.startsWith('./job.html?id=')));
+  assert.ok(links.some((link) => link.includes('data-analyst-intern')));
+  assert.equal(new Set(links).size, JOBS.length);
+});
+
+test('finds a job by id with parsed JD fields preserved', () => {
+  const job = findJobById('data-analyst-intern', JOBS);
+
+  assert.equal(job.title, '数据分析实习生');
+  assert.equal(job.salary, '220-280元/天');
+  assert.ok(job.hardSkillRequirements.some((item) => item.name === 'SQL' && item.requiredLevel === '高级'));
+  assert.ok(job.softSkills.includes('跨部门沟通'));
 });
 
 test('parses JD text into compensation, hard skills, soft skills, and language requirements', () => {

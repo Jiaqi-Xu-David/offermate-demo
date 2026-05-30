@@ -335,6 +335,10 @@ const JOB_SEEDS = [
 
 export const JOBS = JOB_SEEDS.map(enrichJob);
 
+export function findJobById(jobId, jobs = JOBS) {
+  return jobs.find((job) => job.id === jobId) ?? null;
+}
+
 export const CANDIDATES = [
   {
     id: 'chen-yutong',
