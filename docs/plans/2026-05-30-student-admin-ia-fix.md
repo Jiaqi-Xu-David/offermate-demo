@@ -42,4 +42,4 @@
 - [x] Run `npm test`.
 - [x] Browser-check student mode: no admin form, all job cards include JD text.
 - [x] Browser-check admin mode: candidate list appears, selected candidate insight appears, no student advice text.
-- [ ] Commit, push, and confirm GitHub Pages contains the corrected view.
+- [x] Commit, push, and confirm GitHub Pages contains the corrected view.
