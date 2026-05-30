@@ -348,6 +348,10 @@ function renderScoreBreakdown(profile, job) {
     }),
   );
 
+  const softSkillHeading = document.createElement('div');
+  softSkillHeading.className = 'skill-detail-section-heading';
+  softSkillHeading.textContent = '软技能与活动经历加分';
+
   elements.skillDetailList.replaceChildren(
     ...explanation.skillDetails.map((detail) => {
       const row = document.createElement('article');
@@ -366,6 +370,32 @@ function renderScoreBreakdown(profile, job) {
       [
         ['JD要求', detail.jdRequirement],
         ['简历体现', detail.resumeLevel],
+        ['证据', detail.resumeEvidence],
+      ].forEach(([labelText, valueText]) => {
+        fields.append(createLabelValue('p', labelText, valueText));
+      });
+
+      row.append(title, fields);
+      return row;
+    }),
+    softSkillHeading,
+    ...explanation.softSkillDetails.map((detail) => {
+      const row = document.createElement('article');
+      row.className = detail.matched ? 'skill-detail-row soft-match' : 'skill-detail-row soft-gap';
+
+      const title = document.createElement('div');
+      title.className = 'skill-detail-title';
+      const name = document.createElement('strong');
+      name.textContent = detail.name;
+      const score = document.createElement('span');
+      score.textContent = detail.matched ? '已体现' : '待补充';
+      title.append(name, score);
+
+      const fields = document.createElement('div');
+      fields.className = 'skill-detail-fields soft-skill-fields';
+      [
+        ['JD要求', detail.jdRequirement],
+        ['匹配结论', detail.matched ? '简历中有对应体现' : '简历证据不足'],
         ['证据', detail.resumeEvidence],
       ].forEach(([labelText, valueText]) => {
         fields.append(createLabelValue('p', labelText, valueText));

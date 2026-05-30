@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   COMPANY,
   SAMPLE_RESUME_TEXT,
@@ -11,6 +12,7 @@ import {
   buildAdminCandidateInsight,
   buildScoreExplanation,
   buildResumeAdvice,
+  buildSoftSkillMatchDetails,
   buildTailoredResumeSnippet,
   getSkillMatchDetails,
   getScoreBreakdown,
@@ -148,6 +150,29 @@ test('explains individual skill scoring with JD requirement and resume evidence'
   assert.ok(tableau.resumeEvidence.includes('项目/技能区出现'));
   assert.ok(explanation.formula.includes('技能匹配 60/60'));
   assert.equal(explanation.skillDetails.length, targetJob.tags.length);
+});
+
+test('explains soft skill matches with resume and activity evidence', () => {
+  const targetJob = JOBS.find((job) => job.id === 'product-ops-intern');
+  const details = buildSoftSkillMatchDetails(STUDENT_PROFILE, targetJob);
+  const communication = details.find((item) => item.name === '跨部门沟通');
+  const projectPush = details.find((item) => item.name === '项目推进');
+
+  assert.equal(communication.matched, true);
+  assert.ok(communication.resumeEvidence.includes('软技能区'));
+  assert.equal(projectPush.matched, true);
+  assert.ok(projectPush.resumeEvidence.includes('组织 4 场数据分析工作坊'));
+  assert.ok(projectPush.resumeEvidence.includes('活动经历加分'));
+});
+
+test('keeps the company job detail page free of candidate scoring content', async () => {
+  const html = await readFile(new URL('../job.html', import.meta.url), 'utf8');
+
+  assert.ok(!html.includes('简历分析'));
+  assert.ok(!html.includes('简历画像'));
+  assert.ok(!html.includes('匹配分'));
+  assert.ok(!html.includes('detail-score-ring'));
+  assert.ok(!html.includes('detail-student-name'));
 });
 
 test('builds tailored resume snippets for different target roles', () => {

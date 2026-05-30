@@ -71,6 +71,19 @@ const SOFT_SKILL_DICTIONARY = [
   '自驱力',
 ];
 
+const SOFT_SKILL_EVIDENCE_RULES = {
+  跨部门沟通: ['跨部门沟通', '协助运营团队', '产品与运营团队', '产品经理'],
+  结构化表达: ['结构化表达', '拆分为', '形成产品优化建议', '输出', '汇报材料'],
+  主动学习: ['主动学习', '工作坊', '社团', '查阅', '学习'],
+  项目推进: ['项目推进', '组织 4 场数据分析工作坊', '运营负责人', '推动', '负责报名转化'],
+  业务敏感度: ['业务敏感度', '转化率', '复购', '业务指标', '策略判断'],
+  逻辑分析: ['逻辑分析', '归因', '拆解', '定位'],
+  沟通协作: ['沟通协作', '协助', '团队'],
+  结果导向: ['结果导向', '提升转化率', '优化建议'],
+  汇报表达: ['汇报表达', '汇报材料', '报告'],
+  自驱力: ['自驱力', '负责人', '主动学习'],
+};
+
 const LANGUAGE_RULES = [
   { name: '英语 CET-6', aliases: ['英语 CET-6', 'CET-6', '大学英语六级', '英语六级'] },
   { name: '英语 CET-4', aliases: ['英语 CET-4', 'CET-4', '大学英语四级', '英语四级'] },
@@ -464,6 +477,44 @@ export function getSkillMatchDetails(profile, job) {
   });
 }
 
+function getSoftSkillEvidence(profile, skill) {
+  const aliases = SOFT_SKILL_EVIDENCE_RULES[skill] ?? [skill];
+  const explicit = (profile.softSkills ?? []).includes(skill);
+  const experiences = profile.experiences ?? [];
+  const matchedExperiences = experiences.filter((experience) =>
+    aliases.some((alias) => experience.includes(alias)),
+  );
+  const evidence = [];
+
+  if (explicit) evidence.push('软技能区出现');
+  matchedExperiences.slice(0, 2).forEach((experience) => {
+    const label = /组织|负责|社团|活动|推动/.test(experience) ? '活动经历加分' : '经历证据';
+    evidence.push(`${label}：${experience}`);
+  });
+
+  return {
+    explicit,
+    matchedExperiences,
+    resumeEvidence: evidence.length > 0 ? evidence.join('；') : '简历暂未体现',
+  };
+}
+
+export function buildSoftSkillMatchDetails(profile, job) {
+  return (job.softSkills ?? []).map((skill) => {
+    const evidence = getSoftSkillEvidence(profile, skill);
+    const matched = evidence.explicit || evidence.matchedExperiences.length > 0;
+
+    return {
+      name: skill,
+      jdRequirement: '软技能要求',
+      matched,
+      resumeEvidence: evidence.resumeEvidence,
+      score: evidence.explicit && evidence.matchedExperiences.length > 0 ? 10 : matched ? 8 : 0,
+      max: 10,
+    };
+  });
+}
+
 function getMatchInputs(profile, job) {
   const profileText = [
     ...(profile.skills ?? []),
@@ -530,6 +581,7 @@ export function buildScoreExplanation(profile, job) {
     formula,
     breakdown,
     skillDetails: getSkillMatchDetails(profile, job),
+    softSkillDetails: buildSoftSkillMatchDetails(profile, job),
   };
 }
 

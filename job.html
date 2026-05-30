@@ -30,10 +30,6 @@
           <h2 id="detail-title"></h2>
           <p id="detail-meta" class="selected-job-meta"></p>
         </div>
-        <div class="score-ring" id="detail-score-ring">
-          <strong id="detail-score-value"></strong>
-          <span>匹配分</span>
-        </div>
       </section>
 
       <section class="job-detail-layout">
@@ -72,27 +68,31 @@
           <section class="detail-card">
             <div class="section-heading compact">
               <div>
-                <p class="eyebrow">简历分析</p>
-                <h3 id="detail-student-name"></h3>
+                <p class="eyebrow">岗位概要</p>
+                <h3>招聘信息</h3>
               </div>
             </div>
-            <p id="detail-student-meta" class="selected-job-meta"></p>
-            <div id="detail-resume-tags" class="tag-list"></div>
-          </section>
-
-          <section class="detail-card">
-            <p id="detail-score-formula" class="score-formula"></p>
-            <div id="detail-score-breakdown" class="breakdown-list detail-breakdown-list"></div>
+            <div id="detail-summary" class="detail-analysis-grid"></div>
           </section>
 
           <section class="detail-card">
             <div class="section-heading compact">
               <div>
-                <p class="eyebrow">逐项解释</p>
-                <h3>这个分数怎么算出来</h3>
+                <p class="eyebrow">任职要求</p>
+                <h3>能力标签</h3>
               </div>
             </div>
-            <div id="detail-skill-rows" class="skill-detail-list"></div>
+            <div id="detail-requirements" class="tag-list"></div>
+          </section>
+
+          <section class="detail-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">投递说明</p>
+                <h3>候选人准备方向</h3>
+              </div>
+            </div>
+            <ul id="detail-apply-notes"></ul>
           </section>
         </aside>
       </section>

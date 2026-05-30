@@ -846,6 +846,23 @@ ol {
   background: var(--panel-strong);
 }
 
+.skill-detail-section-heading {
+  margin-top: 4px;
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.skill-detail-row.soft-match {
+  border-color: rgba(30, 124, 100, 0.28);
+  background: #f5fbf7;
+}
+
+.skill-detail-row.soft-gap {
+  border-color: rgba(216, 111, 50, 0.28);
+  background: #fffaf6;
+}
+
 .skill-detail-title {
   display: flex;
   align-items: center;
