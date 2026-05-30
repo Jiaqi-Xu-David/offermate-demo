@@ -9,9 +9,12 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
+  buildScoreExplanation,
   buildResumeAdvice,
   buildTailoredResumeSnippet,
+  getSkillMatchDetails,
   getScoreBreakdown,
+  parseJobDescription,
   parseResumeText,
 } from '../src/matcher.js';
 
@@ -47,10 +50,14 @@ test('parses the realistic sample resume into a student profile', () => {
   const profile = parseResumeText(SAMPLE_RESUME_TEXT);
 
   assert.equal(profile.name, '陈雨桐');
+  assert.equal(profile.gender, '女');
   assert.ok(profile.skills.includes('SQL'));
   assert.ok(profile.skills.includes('Tableau'));
+  assert.ok(profile.languages.includes('英语 CET-6'));
+  assert.ok(profile.softSkills.includes('跨部门沟通'));
   assert.ok(profile.cityPreferences.includes('上海'));
   assert.ok(profile.experiences.some((item) => item.includes('10万+ 用户行为数据')));
+  assert.ok(profile.skillEvidence.SQL.count >= 2);
 });
 
 test('keeps all seeded jobs inside the same company', () => {
@@ -61,7 +68,20 @@ test('keeps all seeded jobs inside the same company', () => {
 test('grounds every seeded job in a complete job description', () => {
   assert.ok(JOBS.every((job) => job.description.length > 80));
   assert.ok(JOBS.every((job) => job.tags.length >= 4));
+  assert.ok(JOBS.every((job) => job.salary));
+  assert.ok(JOBS.every((job) => job.softSkills.length >= 2));
+  assert.ok(JOBS.every((job) => job.languageRequirements.length >= 1));
   assert.ok(JOBS.every((job) => job.description.includes(job.tags[0])));
+});
+
+test('parses JD text into compensation, hard skills, soft skills, and language requirements', () => {
+  const parsed = parseJobDescription(JOBS[0].description);
+  const sql = parsed.hardSkillRequirements.find((item) => item.name === 'SQL');
+
+  assert.equal(parsed.salary, '220-280元/天');
+  assert.equal(sql.requiredLevel, '高级');
+  assert.ok(parsed.softSkills.includes('跨部门沟通'));
+  assert.ok(parsed.languageRequirements.includes('英语 CET-6'));
 });
 
 test('analyzes an admin-added job description into required capabilities', () => {
@@ -91,6 +111,24 @@ test('breaks the match score into explainable dimensions', () => {
     ['技能匹配', '经历证据', '地点匹配', '兴趣方向'],
   );
   assert.ok(breakdown.every((item) => item.points <= item.max));
+});
+
+test('explains individual skill scoring with JD requirement and resume evidence', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const details = getSkillMatchDetails(STUDENT_PROFILE, targetJob);
+  const explanation = buildScoreExplanation(STUDENT_PROFILE, targetJob);
+  const sql = details.find((item) => item.name === 'SQL');
+  const python = details.find((item) => item.name === 'Python');
+  const tableau = details.find((item) => item.name === 'Tableau');
+
+  assert.equal(sql.jdRequirement, '高级');
+  assert.equal(sql.resumeLevel, '中级');
+  assert.equal(sql.score, 8);
+  assert.equal(python.resumeLevel, '高级');
+  assert.equal(python.score, 10);
+  assert.ok(tableau.resumeEvidence.includes('项目/技能区出现'));
+  assert.ok(explanation.formula.includes('技能匹配 60/60'));
+  assert.equal(explanation.skillDetails.length, targetJob.tags.length);
 });
 
 test('builds tailored resume snippets for different target roles', () => {

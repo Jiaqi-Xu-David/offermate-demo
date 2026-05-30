@@ -6,6 +6,7 @@ export const COMPANY = {
 export const SAMPLE_RESUME_TEXT = `陈雨桐
 求职意向：数据分析 / 产品运营 / 商业分析实习
 联系方式：yutong.chen@example.com · 138-0000-0000
+个人信息：女 · 英语 CET-6 · 每周可实习 4 天
 城市偏好：上海 / 杭州 / 远程
 
 教育背景
@@ -14,6 +15,11 @@ export const SAMPLE_RESUME_TEXT = `陈雨桐
 
 核心技能
 SQL、Python、Excel、Tableau、A/B测试、数据清洗、转化漏斗、问卷调研、用户访谈
+技能熟练度：Python（高级）、SQL（中级）、Tableau（项目熟练）、Excel（熟练）
+
+语言与软技能
+英语 CET-6，可阅读英文产品文档与数据工具文档
+跨部门沟通、结构化表达、主动学习、项目推进
 
 实习经历
 星云零售 数据分析实习生
@@ -52,6 +58,26 @@ const SKILL_DICTIONARY = [
   '数学建模',
 ];
 
+const SOFT_SKILL_DICTIONARY = [
+  '跨部门沟通',
+  '结构化表达',
+  '主动学习',
+  '项目推进',
+  '业务敏感度',
+  '逻辑分析',
+  '沟通协作',
+  '结果导向',
+  '汇报表达',
+  '自驱力',
+];
+
+const LANGUAGE_RULES = [
+  { name: '英语 CET-6', aliases: ['英语 CET-6', 'CET-6', '大学英语六级', '英语六级'] },
+  { name: '英语 CET-4', aliases: ['英语 CET-4', 'CET-4', '大学英语四级', '英语四级'] },
+  { name: '英文文档阅读', aliases: ['英文文档', '英文产品文档', '英文技术文档'] },
+  { name: '英语口语沟通', aliases: ['英语口语', '英文会议', '英语沟通'] },
+];
+
 const INTEREST_DICTIONARY = ['互联网', '消费', '数据产品', '用户增长', '零售', '商业分析'];
 
 const CITY_DICTIONARY = ['上海', '杭州', '北京', '深圳', '广州', '远程'];
@@ -74,16 +100,52 @@ const KEYWORD_ALIASES = {
   市场研究: ['用户调研', '问卷反馈'],
   活动复盘: ['活动数据复盘', '复盘新人优惠券活动'],
   用户分层: ['用户分群', '人群分层'],
+  转化漏斗: ['注册-激活-留存转化漏斗', '漏斗分析', '转化链路'],
+  'A/B测试': ['AB测试', 'A/B test', '实验分析'],
 };
 
 function unique(items) {
   return [...new Set(items.filter(Boolean))];
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function extractKnownTerms(text, dictionary) {
   return dictionary.filter((term) => {
     const aliases = KEYWORD_ALIASES[term] ?? [];
     return [term, ...aliases].some((candidate) => text.includes(candidate));
+  });
+}
+
+function extractAliasTerms(text, rules) {
+  return rules
+    .filter((rule) => rule.aliases.some((alias) => text.includes(alias)))
+    .map((rule) => rule.name);
+}
+
+function countTermOccurrences(text, term) {
+  const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
+  return aliases.reduce((sum, candidate) => {
+    const matches = text.match(new RegExp(escapeRegExp(candidate), 'gi'));
+    return sum + (matches?.length ?? 0);
+  }, 0);
+}
+
+function findTermWindows(text, term, radius = 18) {
+  const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
+  return aliases.flatMap((candidate) => {
+    const windows = [];
+    const pattern = new RegExp(escapeRegExp(candidate), 'gi');
+    let match = pattern.exec(text);
+    while (match) {
+      const start = Math.max(0, match.index - radius);
+      const end = Math.min(text.length, match.index + candidate.length + radius);
+      windows.push(text.slice(start, end));
+      match = pattern.exec(text);
+    }
+    return windows;
   });
 }
 
@@ -99,6 +161,62 @@ function hashText(text) {
   return [...text].reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0);
 }
 
+function extractExplicitSkillLevel(text, skill) {
+  const levels = '高级|项目熟练|熟练|中级|基础|初级|了解';
+  const afterPattern = new RegExp(`${escapeRegExp(skill)}\\s*[（(]?\\s*(${levels})\\s*[）)]?`, 'i');
+  const afterMatch = text.match(afterPattern);
+  if (afterMatch) return afterMatch[1];
+
+  const beforePattern = new RegExp(`(${levels})\\s*${escapeRegExp(skill)}`, 'i');
+  const beforeMatch = text.match(beforePattern);
+  return beforeMatch?.[1] ?? '';
+}
+
+function inferResumeSkillLevel(text, skill, count) {
+  const explicitLevel = extractExplicitSkillLevel(text, skill);
+  if (explicitLevel) return explicitLevel === '初级' ? '基础' : explicitLevel;
+
+  const windows = findTermWindows(text, skill, 8).join(' ');
+  if (/高级|精通|熟练掌握/.test(windows)) return '高级';
+  if (/项目熟练|熟练/.test(windows)) return '熟练';
+  if (/中级|较熟悉/.test(windows)) return '中级';
+  if (/初级|基础|了解/.test(windows)) return '基础';
+  if (count >= 4) return '高级';
+  if (count >= 2) return '中级';
+  if (count >= 1) return '基础';
+  return '未体现';
+}
+
+function buildSkillEvidence(text, skills = SKILL_DICTIONARY) {
+  return Object.fromEntries(
+    skills
+      .map((skill) => {
+        const count = countTermOccurrences(text, skill);
+        if (count === 0) return null;
+        const appearsInSkillSection = new RegExp(`核心技能[\\s\\S]{0,120}${escapeRegExp(skill)}`, 'i').test(text);
+        const appearsInProject = new RegExp(`(实习经历|项目经历|校园经历)[\\s\\S]*${escapeRegExp(skill)}`, 'i').test(text);
+        return [
+          skill,
+          {
+            count,
+            level: inferResumeSkillLevel(text, skill, count),
+            sources: unique([
+              appearsInSkillSection ? '技能区' : '',
+              appearsInProject ? '项目/经历' : '',
+            ]),
+          },
+        ];
+      })
+      .filter(Boolean),
+  );
+}
+
+function extractGender(text) {
+  const explicitGender = text.match(/(?:性别|个人信息)[：:\s·]*(男|女|非二元|不便透露)/);
+  if (explicitGender) return explicitGender[1];
+  return '未填写';
+}
+
 export function parseResumeText(text) {
   const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
   const name = lines[0] ?? '求职者';
@@ -106,16 +224,23 @@ export function parseResumeText(text) {
   const targetLine = lines.find((line) => line.startsWith('求职意向')) ?? '求职意向：数据分析相关实习';
   const target = targetLine.replace('求职意向：', '');
   const skills = extractKnownTerms(text, SKILL_DICTIONARY);
+  const skillEvidence = buildSkillEvidence(text, skills);
   const interests = unique([...extractKnownTerms(text, INTEREST_DICTIONARY), ...target.split(/[ /、]+/).filter(Boolean)]);
   const cityPreferences = extractKnownTerms(text, CITY_DICTIONARY);
+  const languages = extractAliasTerms(text, LANGUAGE_RULES);
+  const softSkills = extractKnownTerms(text, SOFT_SKILL_DICTIONARY);
   const experiences = extractBulletExperiences(text);
 
   return {
     name,
+    gender: extractGender(text),
     headline: educationLine.replace('教育背景', '').trim(),
     target,
     cityPreferences,
     skills,
+    languages,
+    softSkills,
+    skillEvidence,
     interests,
     experiences,
     rawResume: text,
@@ -124,14 +249,51 @@ export function parseResumeText(text) {
 
 export const STUDENT_PROFILE = parseResumeText(SAMPLE_RESUME_TEXT);
 
-export const JOBS = [
+function detectRequirementLevel(text, skill) {
+  const windows = findTermWindows(text, skill, 12).join(' ');
+  if (/高级|精通|复杂/.test(windows)) return '高级';
+  if (/必须|必备|必要|硬性/.test(windows)) return '必须';
+  if (/熟练|熟练掌握/.test(windows)) return '熟练';
+  if (/中级|较熟悉/.test(windows)) return '中级';
+  if (/熟悉|理解|掌握/.test(windows)) return '熟悉';
+  if (/了解/.test(windows)) return '了解';
+  return '需具备';
+}
+
+export function parseJobDescription(description) {
+  const salaryMatch = description.match(/薪资[：:\s]*([0-9]+(?:\s*-\s*[0-9]+)?\s*(?:元\/天|元\/日|\/天|k\/月|K\/月|K|k))/);
+  const hardSkillRequirements = extractKnownTerms(description, SKILL_DICTIONARY).map((name) => ({
+    name,
+    requiredLevel: detectRequirementLevel(description, name),
+  }));
+
+  return {
+    salary: salaryMatch ? salaryMatch[1].replace(/\s+/g, '') : '',
+    hardSkillRequirements,
+    softSkills: extractKnownTerms(description, SOFT_SKILL_DICTIONARY),
+    languageRequirements: extractAliasTerms(description, LANGUAGE_RULES),
+  };
+}
+
+export function enrichJob(job) {
+  const parsed = parseJobDescription(job.description ?? '');
+  return {
+    ...job,
+    salary: job.salary || parsed.salary || '待补充',
+    hardSkillRequirements: job.hardSkillRequirements ?? parsed.hardSkillRequirements,
+    softSkills: unique([...(job.softSkills ?? []), ...parsed.softSkills]),
+    languageRequirements: unique([...(job.languageRequirements ?? []), ...parsed.languageRequirements]),
+  };
+}
+
+const JOB_SEEDS = [
   {
     id: 'data-analyst-intern',
     title: '数据分析实习生',
     company: COMPANY.name,
     city: '上海',
     description:
-      '参与星河科技用户增长与交易业务的数据分析工作，使用 SQL 和 Python 清洗用户行为数据，搭建 Tableau 指标看板，分析注册、激活、留存、转化漏斗和 A/B测试结果，向产品与运营团队输出可执行的数据洞察。',
+      '薪资：220-280元/天。参与星河科技用户增长与交易业务的数据分析工作，要求高级 SQL、高级 Python，必须会 Tableau 搭建指标看板，理解转化漏斗和 A/B测试结果分析，向产品与运营团队输出可执行的数据洞察。软技能要求跨部门沟通、结构化表达、业务敏感度；语言要求英语 CET-6，可阅读英文数据工具文档。',
     tags: ['SQL', 'Python', 'Tableau', '转化漏斗', 'A/B测试'],
     responsibilities: ['业务数据分析', '指标看板建设', '用户转化诊断'],
     niceToHave: ['互联网', '数据产品', '用户增长'],
@@ -142,7 +304,7 @@ export const JOBS = [
     company: COMPANY.name,
     city: '上海',
     description:
-      '支持星河科技校园产品的新用户运营，围绕 SQL 数据分析、用户分层、活动复盘、问卷调研和转化漏斗诊断，协助产品经理定位用户路径问题，并推动内容、权益和触达策略优化。',
+      '薪资：180-220元/天。支持星河科技校园产品的新用户运营，熟练使用 SQL 做用户分层和转化漏斗诊断，参与活动复盘、问卷调研和内容触达策略优化，协助产品经理定位用户路径问题。软技能要求跨部门沟通、项目推进、结果导向；语言要求英语 CET-4，能阅读基础英文产品资料。',
     tags: ['SQL', '用户分层', '活动复盘', '问卷调研', '转化漏斗'],
     responsibilities: ['用户运营', '活动数据复盘', '需求洞察'],
     niceToHave: ['消费', '互联网', '用户增长'],
@@ -153,7 +315,7 @@ export const JOBS = [
     company: COMPANY.name,
     city: '杭州',
     description:
-      '参与星河科技商业化团队的经营分析与市场研究，使用 Excel、SQL 和数据看板整理业务指标，完成商业分析、市场研究、竞品观察和管理层汇报材料，支持业务策略判断。',
+      '薪资：200-260元/天。参与星河科技商业化团队的经营分析与市场研究，要求熟练 Excel、SQL 和数据看板整理业务指标，完成商业分析、市场研究、竞品观察和管理层汇报材料，支持业务策略判断。软技能要求结构化表达、业务敏感度、汇报表达；语言要求英语 CET-6，能整理英文行业资料。',
     tags: ['Excel', 'SQL', '商业分析', '市场研究', '数据看板'],
     responsibilities: ['行业研究', '经营数据分析', '报告撰写'],
     niceToHave: ['消费', '数据产品'],
@@ -164,12 +326,14 @@ export const JOBS = [
     company: COMPANY.name,
     city: '上海',
     description:
-      '参与星河科技推荐系统和智能匹配算法实验，使用机器学习、深度学习和 PyTorch 完成样本处理、模型训练、数学建模和离线评估，协助优化推荐系统效果，并记录实验结论。',
+      '薪资：260-320元/天。参与星河科技推荐系统和智能匹配算法实验，要求高级 Python，熟悉机器学习、深度学习和 PyTorch，完成样本处理、模型训练、数学建模和离线评估，协助优化推荐系统效果。软技能要求逻辑分析、主动学习、结构化表达；语言要求英文文档阅读，能查阅英文技术文档。',
     tags: ['机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
     responsibilities: ['模型训练', '推荐策略优化', '实验评估'],
     niceToHave: ['科研论文', '算法竞赛'],
   },
 ];
+
+export const JOBS = JOB_SEEDS.map(enrichJob);
 
 export const CANDIDATES = [
   {
@@ -188,10 +352,13 @@ export const CANDIDATES = [
     submittedJobIds: ['algorithm-intern'],
     profile: {
       name: '王子昂',
+      gender: '男',
       headline: '上海交通大学 计算机科学 本科 2026届',
       target: '算法工程 / 推荐系统实习',
       cityPreferences: ['上海', '北京'],
       skills: ['Python', '机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
+      languages: ['英文文档阅读'],
+      softSkills: ['逻辑分析', '主动学习'],
       interests: ['算法竞赛', '数据产品'],
       experiences: [
         '使用 PyTorch 训练点击率预估模型，完成样本清洗、特征构造和离线 AUC 评估',
@@ -207,10 +374,13 @@ export const CANDIDATES = [
     submittedJobIds: ['business-analyst-intern'],
     profile: {
       name: '李若涵',
+      gender: '女',
       headline: '浙江大学 工商管理 本科 2026届',
       target: '商业分析 / 产品运营实习',
       cityPreferences: ['杭州', '上海'],
       skills: ['Excel', 'SQL', '商业分析', '市场研究', '数据看板', '问卷调研'],
+      languages: ['英语 CET-6'],
+      softSkills: ['结构化表达', '汇报表达'],
       interests: ['消费', '互联网', '商业分析'],
       experiences: [
         '使用 Excel 和 SQL 整理消费行业经营数据，制作数据看板并输出月度分析报告',
@@ -227,16 +397,79 @@ const hasTextMatch = (items, keyword) => {
 
 const clampScore = (score) => Math.max(0, Math.min(100, score));
 
+function profileToSearchText(profile) {
+  return [
+    ...(profile.skills ?? []),
+    ...(profile.interests ?? []),
+    ...(profile.experiences ?? []),
+    ...(profile.cityPreferences ?? []),
+    ...(profile.softSkills ?? []),
+    ...(profile.languages ?? []),
+    profile.rawResume ?? '',
+  ].join('\n');
+}
+
+function getProfileSkillEvidence(profile, skill) {
+  const existingEvidence = profile.skillEvidence?.[skill];
+  if (existingEvidence) return existingEvidence;
+
+  const profileText = profileToSearchText(profile);
+  const count = countTermOccurrences(profileText, skill);
+  return {
+    count,
+    level: count > 0 ? inferResumeSkillLevel(profileText, skill, count) : '未体现',
+    sources: count > 0 ? ['技能/经历'] : [],
+  };
+}
+
+function getJobRequirement(job, skill) {
+  const requirements = job.hardSkillRequirements ?? parseJobDescription(job.description ?? '').hardSkillRequirements;
+  return requirements.find((item) => item.name === skill)?.requiredLevel ?? '需具备';
+}
+
+function scoreSkillDetail(jdRequirement, resumeLevel, count) {
+  if (count === 0 || resumeLevel === '未体现') return 0;
+  if (jdRequirement === '高级') {
+    if (resumeLevel === '高级') return 10;
+    if (resumeLevel === '中级' || resumeLevel === '熟练' || resumeLevel === '项目熟练') return 8;
+    return 6;
+  }
+  if (jdRequirement === '必须') return 10;
+  if (resumeLevel === '高级') return 10;
+  if (resumeLevel === '熟练' || resumeLevel === '项目熟练' || resumeLevel === '中级') return 9;
+  return 7;
+}
+
+export function getSkillMatchDetails(profile, job) {
+  return (job.tags ?? []).map((skill) => {
+    const evidence = getProfileSkillEvidence(profile, skill);
+    const jdRequirement = getJobRequirement(job, skill);
+    const resumeEvidence =
+      evidence.count > 0
+        ? `项目/技能区出现 ${evidence.count} 次${evidence.sources?.length ? `，来源：${evidence.sources.join('、')}` : ''}`
+        : '未在简历中出现';
+
+    return {
+      name: skill,
+      jdRequirement,
+      resumeLevel: evidence.level,
+      resumeEvidence,
+      score: scoreSkillDetail(jdRequirement, evidence.level, evidence.count),
+      max: 10,
+    };
+  });
+}
+
 function getMatchInputs(profile, job) {
   const profileText = [
-    ...profile.skills,
-    ...profile.interests,
-    ...profile.experiences,
-    ...profile.cityPreferences,
+    ...(profile.skills ?? []),
+    ...(profile.interests ?? []),
+    ...(profile.experiences ?? []),
+    ...(profile.cityPreferences ?? []),
   ];
-  const matchedTags = job.tags.filter((tag) => hasTextMatch(profileText, tag));
-  const matchedNiceToHave = job.niceToHave.filter((tag) => hasTextMatch(profileText, tag));
-  const cityMatch = profile.cityPreferences.includes(job.city) || job.city === '远程';
+  const matchedTags = (job.tags ?? []).filter((tag) => hasTextMatch(profileText, tag));
+  const matchedNiceToHave = (job.niceToHave ?? []).filter((tag) => hasTextMatch(profileText, tag));
+  const cityMatch = (profile.cityPreferences ?? []).includes(job.city) || job.city === '远程';
 
   return {
     matchedTags,
@@ -247,8 +480,9 @@ function getMatchInputs(profile, job) {
 
 export function getScoreBreakdown(profile, job) {
   const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
-  const skillScore = Math.round((matchedTags.length / job.tags.length) * 60);
-  const interestScore = Math.round((matchedNiceToHave.length / Math.max(job.niceToHave.length, 1)) * 20);
+  const tagCount = Math.max((job.tags ?? []).length, 1);
+  const skillScore = Math.round((matchedTags.length / tagCount) * 60);
+  const interestScore = Math.round((matchedNiceToHave.length / Math.max((job.niceToHave ?? []).length, 1)) * 20);
   const cityScore = cityMatch ? 10 : 0;
   const evidenceScore = matchedTags.length >= 3 ? 10 : matchedTags.length >= 2 ? 6 : 2;
 
@@ -257,7 +491,7 @@ export function getScoreBreakdown(profile, job) {
       label: '技能匹配',
       points: skillScore,
       max: 60,
-      detail: `${matchedTags.length}/${job.tags.length} 个核心能力匹配`,
+      detail: `${matchedTags.length}/${tagCount} 个核心能力匹配`,
     },
     {
       label: '经历证据',
@@ -280,6 +514,21 @@ export function getScoreBreakdown(profile, job) {
   ];
 }
 
+export function buildScoreExplanation(profile, job) {
+  const breakdown = getScoreBreakdown(profile, job);
+  const total = breakdown.reduce((sum, item) => sum + item.points, 0);
+  const formula = `总分 ${total} = ${breakdown
+    .map((item) => `${item.label} ${item.points}/${item.max}`)
+    .join(' + ')}`;
+
+  return {
+    total,
+    formula,
+    breakdown,
+    skillDetails: getSkillMatchDetails(profile, job),
+  };
+}
+
 export function analyzeJobFit(profile, job) {
   const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
   const score = clampScore(getScoreBreakdown(profile, job).reduce((sum, item) => sum + item.points, 0));
@@ -294,9 +543,9 @@ export function analyzeJobFit(profile, job) {
     level,
     matchedTags,
     matchedNiceToHave,
-    gaps: job.tags.filter((tag) => !matchedTags.includes(tag)),
+    gaps: (job.tags ?? []).filter((tag) => !matchedTags.includes(tag)),
     reasons: [
-      `${matchedTags.length}/${job.tags.length} 个核心关键词已被简历证据覆盖`,
+      `${matchedTags.length}/${(job.tags ?? []).length} 个核心关键词已被简历证据覆盖`,
       cityMatch ? `地点偏好包含 ${job.city}` : `地点 ${job.city} 不在当前偏好中`,
       matchedNiceToHave.length > 0
         ? `兴趣方向与 ${matchedNiceToHave.join('、')} 有交集`
@@ -313,7 +562,8 @@ export function rankJobs(profile, jobs = JOBS) {
 
 export function analyzeJobDescription({ title, city, description, company = COMPANY.name }) {
   const sourceText = `${title}\n${city}\n${description}`;
-  const tags = extractKnownTerms(sourceText, SKILL_DICTIONARY);
+  const parsed = parseJobDescription(sourceText);
+  const tags = parsed.hardSkillRequirements.map((item) => item.name);
   const responsibilities = unique(
     RESPONSIBILITY_RULES
       .filter(([keyword]) => sourceText.includes(keyword))
@@ -321,17 +571,21 @@ export function analyzeJobDescription({ title, city, description, company = COMP
   );
   const niceToHave = unique([...extractKnownTerms(sourceText, INTEREST_DICTIONARY), '互联网']);
 
-  return {
+  return enrichJob({
     id: `admin-${Math.abs(hashText(sourceText))}`,
     title: title.trim() || '新增实习岗位',
     company,
     city: city.trim() || '上海',
-    tags: (tags.length > 0 ? tags : ['沟通协作', '学习能力', '数据敏感度']).slice(0, 6),
+    tags: (tags.length > 0 ? tags : ['SQL', '用户调研', '数据看板']).slice(0, 6),
     responsibilities: (responsibilities.length > 0 ? responsibilities : ['岗位任务执行', '跨团队协作']).slice(0, 4),
     niceToHave: niceToHave.slice(0, 4),
     description,
+    salary: parsed.salary,
+    hardSkillRequirements: parsed.hardSkillRequirements,
+    softSkills: parsed.softSkills,
+    languageRequirements: parsed.languageRequirements,
     source: 'admin',
-  };
+  });
 }
 
 export function buildAdminCandidateInsight(candidate, jobs = JOBS) {

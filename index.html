@@ -14,6 +14,7 @@
           <h1>OfferMate</h1>
           <p id="company-subtitle" class="top-subtitle"></p>
         </div>
+        <span class="creator-watermark" aria-hidden="true">许家齐</span>
         <div class="top-actions">
           <div class="mode-switch" role="tablist" aria-label="视角切换">
             <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">学生视角</button>
@@ -41,6 +42,7 @@
             <div>
               <h2 id="student-name"></h2>
               <p id="student-headline"></p>
+              <p id="student-meta" class="student-meta"></p>
             </div>
           </div>
 
@@ -61,6 +63,17 @@
           <div class="profile-block">
             <h3>技能标签</h3>
             <div id="skill-list" class="tag-list"></div>
+          </div>
+
+          <div class="profile-meta-grid">
+            <div class="profile-block">
+              <h3>语言能力</h3>
+              <div id="language-list" class="tag-list"></div>
+            </div>
+            <div class="profile-block">
+              <h3>软技能</h3>
+              <div id="soft-skill-list" class="tag-list"></div>
+            </div>
           </div>
 
           <div class="profile-block">
@@ -85,6 +98,7 @@
             <div>
               <p class="eyebrow">初筛命中率</p>
               <h2 id="selected-job-title"></h2>
+              <p id="selected-job-meta" class="selected-job-meta"></p>
             </div>
             <div class="score-ring" id="score-ring">
               <strong id="score-value"></strong>
@@ -110,7 +124,9 @@
                 <h3>评分维度拆解</h3>
               </div>
             </div>
+            <p id="score-formula" class="score-formula"></p>
             <div id="score-breakdown" class="breakdown-list"></div>
+            <div id="skill-detail-list" class="skill-detail-list"></div>
           </div>
 
           <div class="advice-card">
@@ -175,7 +191,7 @@
             </label>
             <label>
               岗位描述
-              <textarea id="admin-description" rows="6">负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。</textarea>
+              <textarea id="admin-description" rows="6">薪资：180-230元/天。负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。软技能要求跨部门沟通、项目推进；语言要求英语 CET-4。</textarea>
             </label>
             <p id="admin-result" class="admin-result">粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。</p>
           </form>

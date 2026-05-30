@@ -9,8 +9,9 @@ import {
   analyzeJobDescription,
   buildAdminCandidateInsight,
   buildResumeAdvice,
+  buildScoreExplanation,
   buildTailoredResumeSnippet,
-  getScoreBreakdown,
+  enrichJob,
   parseResumeText,
 } from './matcher.js';
 
@@ -19,7 +20,7 @@ const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
 function loadAdminJobs() {
   try {
     const parsedJobs = JSON.parse(localStorage.getItem(ADMIN_JOBS_STORAGE_KEY) ?? '[]');
-    return Array.isArray(parsedJobs) ? parsedJobs : [];
+    return Array.isArray(parsedJobs) ? parsedJobs.map(enrichJob) : [];
   } catch {
     return [];
   }
@@ -56,11 +57,14 @@ const elements = {
   avatarInitial: document.querySelector('#avatar-initial'),
   studentName: document.querySelector('#student-name'),
   studentHeadline: document.querySelector('#student-headline'),
+  studentMeta: document.querySelector('#student-meta'),
   studentTarget: document.querySelector('#student-target'),
   resumeDocument: document.querySelector('#resume-document'),
   parseResume: document.querySelector('#parse-resume'),
   parseStatus: document.querySelector('#parse-status'),
   skillList: document.querySelector('#skill-list'),
+  languageList: document.querySelector('#language-list'),
+  softSkillList: document.querySelector('#soft-skill-list'),
   jobCount: document.querySelector('#job-count'),
   jobList: document.querySelector('#job-list'),
   adminForm: document.querySelector('#admin-form'),
@@ -79,11 +83,14 @@ const elements = {
   routingRecommendation: document.querySelector('#routing-recommendation'),
   suggestedJobList: document.querySelector('#suggested-job-list'),
   selectedJobTitle: document.querySelector('#selected-job-title'),
+  selectedJobMeta: document.querySelector('#selected-job-meta'),
   scoreRing: document.querySelector('#score-ring'),
   scoreValue: document.querySelector('#score-value'),
   reasonList: document.querySelector('#reason-list'),
   gapList: document.querySelector('#gap-list'),
+  scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
+  skillDetailList: document.querySelector('#skill-detail-list'),
   screeningSignal: document.querySelector('#screening-signal'),
   rewriteList: document.querySelector('#rewrite-list'),
   generateSnippet: document.querySelector('#generate-snippet'),
@@ -101,6 +108,14 @@ function renderTags(container, tags, variant = '') {
       return span;
     }),
   );
+}
+
+function createLabelValue(tagName, labelText, valueText) {
+  const item = document.createElement(tagName);
+  const label = document.createElement('strong');
+  label.textContent = labelText;
+  item.append(label, document.createTextNode(valueText));
+  return item;
 }
 
 function appendResumeLine(section, line) {
@@ -122,26 +137,27 @@ function appendResumeLine(section, line) {
 }
 
 function renderResumeDocument() {
-  const sectionNames = new Set(['教育背景', '核心技能', '实习经历', '项目经历', '校园经历']);
+  const sectionNames = new Set(['教育背景', '核心技能', '语言与软技能', '实习经历', '项目经历', '校园经历']);
   const lines = SAMPLE_RESUME_TEXT.split('\n').map((line) => line.trim()).filter(Boolean);
   const header = document.createElement('div');
   header.className = 'resume-header';
+  const firstSectionIndex = lines.findIndex((line) => sectionNames.has(line));
+  const headerLines = firstSectionIndex > -1 ? lines.slice(0, firstSectionIndex) : lines.slice(0, 4);
 
   const name = document.createElement('h2');
-  name.textContent = lines[0];
-  const target = document.createElement('p');
-  target.textContent = lines[1];
-  const contact = document.createElement('p');
-  contact.textContent = lines[2];
-  const city = document.createElement('p');
-  city.textContent = lines[3];
-  header.append(name, target, contact, city);
+  name.textContent = headerLines[0];
+  header.append(name);
+  headerLines.slice(1).forEach((line) => {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = line;
+    header.append(paragraph);
+  });
 
   const body = document.createElement('div');
   body.className = 'resume-body';
   let currentSection;
 
-  lines.slice(4).forEach((line) => {
+  lines.slice(firstSectionIndex > -1 ? firstSectionIndex : 4).forEach((line) => {
     if (sectionNames.has(line)) {
       currentSection = document.createElement('section');
       currentSection.className = 'resume-section';
@@ -184,9 +200,12 @@ function renderProfile() {
   elements.avatarInitial.textContent = state.profile.name.slice(0, 1);
   elements.studentName.textContent = state.profile.name;
   elements.studentHeadline.textContent = state.profile.headline;
+  elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${(state.profile.cityPreferences ?? []).join(' / ')}`;
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
   renderTags(elements.skillList, state.profile.skills);
+  renderTags(elements.languageList, state.profile.languages ?? ['未解析到语言要求']);
+  renderTags(elements.softSkillList, state.profile.softSkills ?? ['未解析到软技能']);
 }
 
 function createJobCard(analysis) {
@@ -202,7 +221,7 @@ function createJobCard(analysis) {
   title.textContent = analysis.job.title;
   const meta = document.createElement('p');
   meta.className = 'job-meta';
-  meta.textContent = `${analysis.job.company} · ${analysis.job.city}`;
+  meta.textContent = `${analysis.job.company} · ${analysis.job.city} · ${analysis.job.salary}`;
   titleBlock.append(title, meta);
 
   const score = document.createElement('span');
@@ -214,6 +233,16 @@ function createJobCard(analysis) {
   tagList.className = 'tag-list';
   renderTags(tagList, analysis.job.tags.slice(0, 4));
 
+  const requirementList = document.createElement('div');
+  requirementList.className = 'job-requirement-grid';
+  [
+    ['核心技能', analysis.job.tags.slice(0, 3).join('、')],
+    ['软技能', (analysis.job.softSkills ?? []).slice(0, 2).join('、') || '待补充'],
+    ['语言', (analysis.job.languageRequirements ?? []).slice(0, 1).join('、') || '待补充'],
+  ].forEach(([labelText, valueText]) => {
+    requirementList.append(createLabelValue('span', labelText, valueText));
+  });
+
   const description = document.createElement('p');
   description.className = 'job-description';
   description.textContent = analysis.job.description;
@@ -222,7 +251,7 @@ function createJobCard(analysis) {
   level.className = 'job-level';
   level.textContent = analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level;
 
-  button.append(titleRow, description, tagList, level);
+  button.append(titleRow, description, requirementList, tagList, level);
   button.addEventListener('click', () => {
     state.selectedJobId = analysis.job.id;
     render();
@@ -239,7 +268,7 @@ function createAdminJobItem(job) {
   const title = document.createElement('h3');
   title.textContent = job.title;
   const meta = document.createElement('span');
-  meta.textContent = `${job.company} · ${job.city}`;
+  meta.textContent = `${job.company} · ${job.city} · ${job.salary}`;
   header.append(title, meta);
 
   const description = document.createElement('p');
@@ -249,7 +278,17 @@ function createAdminJobItem(job) {
   tagList.className = 'tag-list';
   renderTags(tagList, job.tags);
 
-  item.append(header, description, tagList);
+  const detailGrid = document.createElement('div');
+  detailGrid.className = 'admin-job-detail-grid';
+  [
+    ['核心技能', job.hardSkillRequirements?.map((skill) => `${skill.name}：${skill.requiredLevel}`).join('、') || job.tags.join('、')],
+    ['软技能', (job.softSkills ?? []).join('、') || '待补充'],
+    ['语言', (job.languageRequirements ?? []).join('、') || '待补充'],
+  ].forEach(([labelText, valueText]) => {
+    detailGrid.append(createLabelValue('p', labelText, valueText));
+  });
+
+  item.append(header, description, detailGrid, tagList);
   return item;
 }
 
@@ -266,7 +305,7 @@ function createCandidateCard(candidate) {
   const name = document.createElement('h3');
   name.textContent = candidate.name;
   const meta = document.createElement('p');
-  meta.textContent = `${candidate.school} · ${candidate.major}`;
+  meta.textContent = `${candidate.profile.gender ?? '未填写'} · ${candidate.school} · ${candidate.major}`;
   const submitted = document.createElement('p');
   submitted.className = 'candidate-submitted';
   submitted.textContent = `已提交：${submittedJobs.join('、')}`;
@@ -279,7 +318,9 @@ function createCandidateCard(candidate) {
 }
 
 function renderScoreBreakdown(profile, job) {
-  const breakdown = getScoreBreakdown(profile, job);
+  const explanation = buildScoreExplanation(profile, job);
+  const breakdown = explanation.breakdown;
+  elements.scoreFormula.textContent = explanation.formula;
   elements.scoreBreakdown.replaceChildren(
     ...breakdown.map((item) => {
       const row = document.createElement('div');
@@ -303,6 +344,34 @@ function renderScoreBreakdown(profile, job) {
       detail.textContent = item.detail;
 
       row.append(header, bar, detail);
+      return row;
+    }),
+  );
+
+  elements.skillDetailList.replaceChildren(
+    ...explanation.skillDetails.map((detail) => {
+      const row = document.createElement('article');
+      row.className = 'skill-detail-row';
+
+      const title = document.createElement('div');
+      title.className = 'skill-detail-title';
+      const name = document.createElement('strong');
+      name.textContent = detail.name;
+      const score = document.createElement('span');
+      score.textContent = `${detail.score}/${detail.max}`;
+      title.append(name, score);
+
+      const fields = document.createElement('div');
+      fields.className = 'skill-detail-fields';
+      [
+        ['JD要求', detail.jdRequirement],
+        ['简历体现', detail.resumeLevel],
+        ['证据', detail.resumeEvidence],
+      ].forEach(([labelText, valueText]) => {
+        fields.append(createLabelValue('p', labelText, valueText));
+      });
+
+      row.append(title, fields);
       return row;
     }),
   );
@@ -342,7 +411,7 @@ function renderAdminInsight() {
   state.selectedCandidateId = candidate.id;
   const insight = buildAdminCandidateInsight(candidate, state.jobs);
 
-  elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.school}`;
+  elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.profile.gender ?? '未填写'} · ${candidate.school}`;
   elements.adminCandidateStatus.textContent = `${candidate.submittedJobIds.length} 个已投岗位`;
   elements.submittedJobList.replaceChildren(...insight.submittedJobs.map(createMatchItem));
   elements.screeningRecommendation.textContent = insight.screeningRecommendation;
@@ -385,6 +454,7 @@ function renderAnalysis() {
   const snippet = buildTailoredResumeSnippet(state.profile, selectedJob);
 
   elements.selectedJobTitle.textContent = `${selectedJob.title} · ${selectedJob.company}`;
+  elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary} · ${(selectedJob.languageRequirements ?? []).join('、') || '语言待补充'}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
   elements.reasonList.replaceChildren(
@@ -465,7 +535,7 @@ elements.adminForm.addEventListener('submit', (event) => {
   });
   state.jobs = [newJob, ...state.jobs.filter((job) => job.id !== newJob.id)];
   state.mode = 'admin';
-  state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}。`;
+  state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}；薪资：${newJob.salary}。`;
   saveAdminJobs(state.jobs);
   render();
 });
