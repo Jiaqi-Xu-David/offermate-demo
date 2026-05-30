@@ -14,14 +14,20 @@
           <h1>OfferMate</h1>
           <p id="company-subtitle" class="top-subtitle"></p>
         </div>
-        <div class="status-pill">
-          <span class="dot"></span>
-          同公司多岗位 Demo
+        <div class="top-actions">
+          <div class="mode-switch" role="tablist" aria-label="视角切换">
+            <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">学生视角</button>
+            <button id="admin-mode" class="mode-button" type="button" role="tab" aria-selected="false">管理员视角</button>
+          </div>
+          <div class="status-pill">
+            <span class="dot"></span>
+            同公司多岗位 Demo
+          </div>
         </div>
       </section>
 
       <section class="workspace">
-        <aside class="profile-panel" aria-label="学生画像">
+        <aside class="profile-panel student-only" aria-label="学生画像">
           <div class="avatar-card">
             <div class="avatar-visual" aria-hidden="true">
               <span id="avatar-initial">陈</span>
@@ -123,6 +129,16 @@
           <div class="advice-card">
             <div class="section-heading compact">
               <div>
+                <p class="eyebrow">可解释评分</p>
+                <h3>评分维度拆解</h3>
+              </div>
+            </div>
+            <div id="score-breakdown" class="breakdown-list"></div>
+          </div>
+
+          <div class="advice-card">
+            <div class="section-heading compact">
+              <div>
                 <p class="eyebrow">简历优化</p>
                 <h3 id="screening-signal"></h3>
               </div>
@@ -131,8 +147,24 @@
           </div>
 
           <div class="advice-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">定制简历片段</p>
+                <h3>针对当前岗位生成</h3>
+              </div>
+              <button id="generate-snippet" class="secondary-button compact-button" type="button">生成片段</button>
+            </div>
+            <p id="tailored-snippet" class="snippet-box"></p>
+          </div>
+
+          <div class="advice-card">
             <h3>下一步动作</h3>
             <ol id="next-actions"></ol>
+          </div>
+
+          <div class="advice-card">
+            <h3>求职建议报告</h3>
+            <div id="final-report" class="report-grid"></div>
           </div>
         </section>
       </section>

@@ -170,7 +170,7 @@ const hasTextMatch = (items, keyword) => {
 
 const clampScore = (score) => Math.max(0, Math.min(100, score));
 
-export function analyzeJobFit(profile, job) {
+function getMatchInputs(profile, job) {
   const profileText = [
     ...profile.skills,
     ...profile.interests,
@@ -180,11 +180,52 @@ export function analyzeJobFit(profile, job) {
   const matchedTags = job.tags.filter((tag) => hasTextMatch(profileText, tag));
   const matchedNiceToHave = job.niceToHave.filter((tag) => hasTextMatch(profileText, tag));
   const cityMatch = profile.cityPreferences.includes(job.city) || job.city === '远程';
+
+  return {
+    matchedTags,
+    matchedNiceToHave,
+    cityMatch,
+  };
+}
+
+export function getScoreBreakdown(profile, job) {
+  const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
   const skillScore = Math.round((matchedTags.length / job.tags.length) * 60);
   const interestScore = Math.round((matchedNiceToHave.length / Math.max(job.niceToHave.length, 1)) * 20);
   const cityScore = cityMatch ? 10 : 0;
   const evidenceScore = matchedTags.length >= 3 ? 10 : matchedTags.length >= 2 ? 6 : 2;
-  const score = clampScore(skillScore + interestScore + cityScore + evidenceScore);
+
+  return [
+    {
+      label: '技能匹配',
+      points: skillScore,
+      max: 60,
+      detail: `${matchedTags.length}/${job.tags.length} 个核心能力匹配`,
+    },
+    {
+      label: '经历证据',
+      points: evidenceScore,
+      max: 10,
+      detail: matchedTags.length >= 3 ? '简历有多条相关经历支撑' : '需要补充更直接的经历证据',
+    },
+    {
+      label: '地点匹配',
+      points: cityScore,
+      max: 10,
+      detail: cityMatch ? `${job.city} 符合求职偏好` : `${job.city} 不在当前偏好中`,
+    },
+    {
+      label: '兴趣方向',
+      points: interestScore,
+      max: 20,
+      detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '行业/方向兴趣证据较弱',
+    },
+  ];
+}
+
+export function analyzeJobFit(profile, job) {
+  const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
+  const score = clampScore(getScoreBreakdown(profile, job).reduce((sum, item) => sum + item.points, 0));
 
   let level = '暂缓';
   if (score >= 80) level = '优先投递';
@@ -266,4 +307,30 @@ export function buildResumeAdvice(profile, job) {
       '投递前准备 30 秒岗位匹配自我介绍',
     ],
   };
+}
+
+export function buildTailoredResumeSnippet(profile, job) {
+  const dataExperience = profile.experiences.find((item) => item.includes('Python') || item.includes('SQL')) ?? profile.experiences[0];
+  const researchExperience = profile.experiences.find((item) => item.includes('问卷')) ?? profile.experiences[1] ?? dataExperience;
+  const activityExperience = profile.experiences.find((item) => item.includes('活动')) ?? profile.experiences[2] ?? dataExperience;
+  const titleText = `${job.title} ${job.tags.join(' ')} ${job.responsibilities.join(' ')}`;
+
+  if (titleText.includes('运营') || titleText.includes('增长') || titleText.includes('用户分层')) {
+    return [
+      '校园 App 新用户体验研究与活动复盘',
+      `${researchExperience}；结合 ${activityExperience}，围绕用户分层、问卷洞察和活动复盘沉淀可执行优化建议，支撑增长运营岗位所需的用户理解与转化分析能力。`,
+    ].join('：');
+  }
+
+  if (titleText.includes('商业分析') || titleText.includes('市场研究')) {
+    return [
+      '商业数据分析与用户研究项目',
+      `${dataExperience}；结合问卷与访谈反馈，将业务问题拆解为数据指标、用户行为和市场机会三类，形成可复用的数据看板和分析结论。`,
+    ].join('：');
+  }
+
+  return [
+    '用户行为数据分析项目',
+    `${dataExperience}；使用 SQL 与 Tableau 制作指标看板，围绕注册、激活、留存链路定位转化漏斗中的关键流失节点，并输出面向业务团队的优化建议。`,
+  ].join('：');
 }

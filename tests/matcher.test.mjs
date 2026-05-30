@@ -8,6 +8,8 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildResumeAdvice,
+  buildTailoredResumeSnippet,
+  getScoreBreakdown,
   parseResumeText,
 } from '../src/matcher.js';
 
@@ -67,4 +69,31 @@ test('analyzes an admin-added job description into required capabilities', () =>
   assert.ok(job.tags.includes('用户分层'));
   assert.ok(job.tags.includes('A/B测试'));
   assert.ok(job.responsibilities.includes('用户增长'));
+});
+
+test('breaks the match score into explainable dimensions', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const analysis = analyzeJobFit(STUDENT_PROFILE, targetJob);
+  const breakdown = getScoreBreakdown(STUDENT_PROFILE, targetJob);
+  const total = breakdown.reduce((sum, item) => sum + item.points, 0);
+
+  assert.equal(total, analysis.score);
+  assert.deepEqual(
+    breakdown.map((item) => item.label),
+    ['技能匹配', '经历证据', '地点匹配', '兴趣方向'],
+  );
+  assert.ok(breakdown.every((item) => item.points <= item.max));
+});
+
+test('builds tailored resume snippets for different target roles', () => {
+  const dataJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const productJob = JOBS.find((job) => job.id === 'product-ops-intern');
+  const dataSnippet = buildTailoredResumeSnippet(STUDENT_PROFILE, dataJob);
+  const productSnippet = buildTailoredResumeSnippet(STUDENT_PROFILE, productJob);
+
+  assert.ok(dataSnippet.includes('转化漏斗'));
+  assert.ok(dataSnippet.includes('Tableau'));
+  assert.ok(productSnippet.includes('问卷'));
+  assert.ok(productSnippet.includes('活动复盘'));
+  assert.notEqual(dataSnippet, productSnippet);
 });

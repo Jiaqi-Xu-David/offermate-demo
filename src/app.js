@@ -7,19 +7,45 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildResumeAdvice,
+  buildTailoredResumeSnippet,
+  getScoreBreakdown,
   parseResumeText,
 } from './matcher.js';
 
+const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
+
+function loadAdminJobs() {
+  try {
+    const parsedJobs = JSON.parse(localStorage.getItem(ADMIN_JOBS_STORAGE_KEY) ?? '[]');
+    return Array.isArray(parsedJobs) ? parsedJobs : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminJobs(jobs) {
+  const adminJobs = jobs.filter((job) => job.source === 'admin');
+  localStorage.setItem(ADMIN_JOBS_STORAGE_KEY, JSON.stringify(adminJobs));
+}
+
+const savedAdminJobs = loadAdminJobs();
+
 const state = {
+  mode: 'student',
   profile: STUDENT_PROFILE,
-  jobs: [...JOBS],
-  selectedJobId: 'data-analyst-intern',
+  jobs: [...savedAdminJobs, ...JOBS],
+  selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   rankings: rankJobs(STUDENT_PROFILE, JOBS),
   parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 个技能标签、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
-  adminResult: '粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。',
+  adminResult:
+    savedAdminJobs.length > 0
+      ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
+      : '粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。',
 };
 
 const elements = {
+  studentMode: document.querySelector('#student-mode'),
+  adminMode: document.querySelector('#admin-mode'),
   companySubtitle: document.querySelector('#company-subtitle'),
   companyName: document.querySelector('#company-name'),
   avatarInitial: document.querySelector('#avatar-initial'),
@@ -42,9 +68,13 @@ const elements = {
   scoreValue: document.querySelector('#score-value'),
   reasonList: document.querySelector('#reason-list'),
   gapList: document.querySelector('#gap-list'),
+  scoreBreakdown: document.querySelector('#score-breakdown'),
   screeningSignal: document.querySelector('#screening-signal'),
   rewriteList: document.querySelector('#rewrite-list'),
+  generateSnippet: document.querySelector('#generate-snippet'),
+  tailoredSnippet: document.querySelector('#tailored-snippet'),
   nextActions: document.querySelector('#next-actions'),
+  finalReport: document.querySelector('#final-report'),
 };
 
 function renderTags(container, tags, variant = '') {
@@ -127,6 +157,11 @@ function renderResumeDocument() {
 }
 
 function renderProfile() {
+  document.body.dataset.mode = state.mode;
+  elements.studentMode.classList.toggle('active', state.mode === 'student');
+  elements.adminMode.classList.toggle('active', state.mode === 'admin');
+  elements.studentMode.setAttribute('aria-selected', String(state.mode === 'student'));
+  elements.adminMode.setAttribute('aria-selected', String(state.mode === 'admin'));
   elements.companySubtitle.textContent = `${COMPANY.name} · ${COMPANY.subtitle}`;
   elements.companyName.textContent = COMPANY.name;
   elements.avatarInitial.textContent = state.profile.name.slice(0, 1);
@@ -174,6 +209,36 @@ function createJobCard(analysis) {
   return button;
 }
 
+function renderScoreBreakdown(profile, job) {
+  const breakdown = getScoreBreakdown(profile, job);
+  elements.scoreBreakdown.replaceChildren(
+    ...breakdown.map((item) => {
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+
+      const header = document.createElement('div');
+      header.className = 'breakdown-header';
+      const label = document.createElement('strong');
+      label.textContent = item.label;
+      const score = document.createElement('span');
+      score.textContent = `${item.points}/${item.max}`;
+      header.append(label, score);
+
+      const bar = document.createElement('div');
+      bar.className = 'breakdown-bar';
+      const fill = document.createElement('span');
+      fill.style.width = `${Math.round((item.points / item.max) * 100)}%`;
+      bar.append(fill);
+
+      const detail = document.createElement('p');
+      detail.textContent = item.detail;
+
+      row.append(header, bar, detail);
+      return row;
+    }),
+  );
+}
+
 function renderJobs() {
   state.rankings = rankJobs(state.profile, state.jobs);
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
@@ -181,11 +246,35 @@ function renderJobs() {
   elements.adminResult.textContent = state.adminResult;
 }
 
+function renderFinalReport(analysis, selectedJob) {
+  const topJob = state.rankings[0];
+  const reportItems = [
+    ['最适合岗位', topJob ? `${topJob.job.title} (${topJob.score}分)` : selectedJob.title],
+    ['当前投递建议', `${analysis.level}：${analysis.score >= 80 ? '优先投递并准备面试讲述' : analysis.score >= 65 ? '补强关键词后投递' : '先补项目证据再投递'}`],
+    ['主要短板', analysis.gaps.length ? analysis.gaps.join('、') : '暂无明显关键词缺口'],
+    ['面试准备', `围绕 ${selectedJob.responsibilities.slice(0, 2).join('、')} 准备 2 个项目故事`],
+  ];
+
+  elements.finalReport.replaceChildren(
+    ...reportItems.map(([label, value]) => {
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      const title = document.createElement('span');
+      title.textContent = label;
+      const body = document.createElement('strong');
+      body.textContent = value;
+      item.append(title, body);
+      return item;
+    }),
+  );
+}
+
 function renderAnalysis() {
   const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
   state.selectedJobId = selectedJob.id;
   const analysis = analyzeJobFit(state.profile, selectedJob);
   const advice = buildResumeAdvice(state.profile, selectedJob);
+  const snippet = buildTailoredResumeSnippet(state.profile, selectedJob);
 
   elements.selectedJobTitle.textContent = `${selectedJob.title} · ${selectedJob.company}`;
   elements.scoreValue.textContent = analysis.score;
@@ -198,6 +287,7 @@ function renderAnalysis() {
     }),
   );
   renderTags(elements.gapList, analysis.gaps.length ? analysis.gaps : ['暂无明显关键词缺口'], analysis.gaps.length ? 'gap' : '');
+  renderScoreBreakdown(state.profile, selectedJob);
 
   elements.screeningSignal.textContent = advice.screeningSignal;
   elements.rewriteList.replaceChildren(
@@ -215,6 +305,7 @@ function renderAnalysis() {
       return item;
     }),
   );
+  elements.tailoredSnippet.textContent = snippet;
   elements.nextActions.replaceChildren(
     ...advice.nextActions.map((action) => {
       const item = document.createElement('li');
@@ -222,6 +313,7 @@ function renderAnalysis() {
       return item;
     }),
   );
+  renderFinalReport(analysis, selectedJob);
 }
 
 function render() {
@@ -236,6 +328,23 @@ elements.parseResume.addEventListener('click', () => {
   render();
 });
 
+elements.studentMode.addEventListener('click', () => {
+  state.mode = 'student';
+  render();
+});
+
+elements.adminMode.addEventListener('click', () => {
+  state.mode = 'admin';
+  render();
+});
+
+elements.generateSnippet.addEventListener('click', () => {
+  const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
+  elements.tailoredSnippet.textContent = buildTailoredResumeSnippet(state.profile, selectedJob);
+  elements.tailoredSnippet.classList.add('pulse');
+  window.setTimeout(() => elements.tailoredSnippet.classList.remove('pulse'), 500);
+});
+
 elements.adminForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const newJob = analyzeJobDescription({
@@ -245,7 +354,9 @@ elements.adminForm.addEventListener('submit', (event) => {
   });
   state.jobs = [newJob, ...state.jobs.filter((job) => job.id !== newJob.id)];
   state.selectedJobId = newJob.id;
+  state.mode = 'student';
   state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}。`;
+  saveAdminJobs(state.jobs);
   render();
 });
 
