@@ -190,6 +190,7 @@ h3 {
 .profile-panel,
 .job-panel,
 .insight-panel > .score-card,
+.workflow-card,
 .analysis-grid,
 .advice-card {
   border: 1px solid var(--line);
@@ -697,6 +698,19 @@ a.admin-job-item:focus-visible {
   font-weight: 800;
 }
 
+.job-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.job-detail-hint {
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .admin-status-pill {
   display: inline-flex;
   align-items: center;
@@ -728,6 +742,52 @@ a.admin-job-item:focus-visible {
   justify-content: space-between;
   gap: 20px;
   padding: 20px;
+}
+
+.workflow-card {
+  padding: 16px;
+}
+
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workflow-step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-strong);
+}
+
+.workflow-index {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(30, 124, 100, 0.12);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.workflow-step strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.workflow-step p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .score-ring {
@@ -1094,6 +1154,10 @@ ol {
   .breakdown-list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .workflow-steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1115,6 +1179,7 @@ ol {
   .analysis-grid,
   .report-grid,
   .breakdown-list,
+  .workflow-steps,
   .detail-analysis-grid,
   .job-requirement-grid,
   .admin-job-detail-grid,

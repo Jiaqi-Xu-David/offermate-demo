@@ -13,6 +13,7 @@ import {
   buildScoreExplanation,
   buildResumeAdvice,
   buildSoftSkillMatchDetails,
+  buildStudentWorkflowSummary,
   buildTailoredResumeSnippet,
   getSkillMatchDetails,
   getScoreBreakdown,
@@ -163,6 +164,16 @@ test('explains soft skill matches with resume and activity evidence', () => {
   assert.equal(projectPush.matched, true);
   assert.ok(projectPush.resumeEvidence.includes('组织 4 场数据分析工作坊'));
   assert.ok(projectPush.resumeEvidence.includes('活动经历加分'));
+});
+
+test('summarizes the student-facing AI workflow from parsed resume and JD data', () => {
+  const summary = buildStudentWorkflowSummary(STUDENT_PROFILE, JOBS);
+
+  assert.equal(summary.steps.length, 3);
+  assert.ok(summary.steps[0].value.includes(`${STUDENT_PROFILE.skills.length}`));
+  assert.ok(summary.steps[1].value.includes(`${JOBS.length}`));
+  assert.ok(summary.steps[2].value.includes('硬技能'));
+  assert.ok(summary.bestFit.includes('数据分析实习生'));
 });
 
 test('keeps the company job detail page free of candidate scoring content', async () => {

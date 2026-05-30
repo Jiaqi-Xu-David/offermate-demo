@@ -10,6 +10,7 @@ import {
   buildAdminCandidateInsight,
   buildResumeAdvice,
   buildScoreExplanation,
+  buildStudentWorkflowSummary,
   buildTailoredResumeSnippet,
   enrichJob,
   parseResumeText,
@@ -83,6 +84,8 @@ const elements = {
   screeningRecommendation: document.querySelector('#screening-recommendation'),
   routingRecommendation: document.querySelector('#routing-recommendation'),
   suggestedJobList: document.querySelector('#suggested-job-list'),
+  workflowBestFit: document.querySelector('#workflow-best-fit'),
+  workflowSteps: document.querySelector('#workflow-steps'),
   selectedJobTitle: document.querySelector('#selected-job-title'),
   selectedJobMeta: document.querySelector('#selected-job-meta'),
   scoreRing: document.querySelector('#score-ring'),
@@ -117,6 +120,31 @@ function createLabelValue(tagName, labelText, valueText) {
   label.textContent = labelText;
   item.append(label, document.createTextNode(valueText));
   return item;
+}
+
+function renderWorkflowSummary() {
+  const summary = buildStudentWorkflowSummary(state.profile, state.jobs);
+  elements.workflowBestFit.textContent = `系统推荐：${summary.bestFit}`;
+  elements.workflowSteps.replaceChildren(
+    ...summary.steps.map((step, index) => {
+      const item = document.createElement('div');
+      item.className = 'workflow-step';
+
+      const indexNode = document.createElement('span');
+      indexNode.className = 'workflow-index';
+      indexNode.textContent = String(index + 1).padStart(2, '0');
+
+      const body = document.createElement('div');
+      const label = document.createElement('strong');
+      label.textContent = step.label;
+      const value = document.createElement('p');
+      value.textContent = step.value;
+      body.append(label, value);
+
+      item.append(indexNode, body);
+      return item;
+    }),
+  );
 }
 
 function appendResumeLine(section, line) {
@@ -253,7 +281,14 @@ function createJobCard(analysis) {
   level.className = 'job-level';
   level.textContent = analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level;
 
-  link.append(titleRow, description, requirementList, tagList, level);
+  const footer = document.createElement('div');
+  footer.className = 'job-card-footer';
+  const detailHint = document.createElement('span');
+  detailHint.className = 'job-detail-hint';
+  detailHint.textContent = '查看公司招聘详情';
+  footer.append(level, detailHint);
+
+  link.append(titleRow, description, requirementList, tagList, footer);
   return link;
 }
 
@@ -412,6 +447,7 @@ function renderJobs() {
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
   elements.jobList.replaceChildren(...state.rankings.map(createJobCard));
   elements.adminResult.textContent = state.adminResult;
+  renderWorkflowSummary();
 }
 
 function renderAdminJobs() {

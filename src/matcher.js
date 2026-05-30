@@ -616,6 +616,31 @@ export function rankJobs(profile, jobs = JOBS) {
     .sort((a, b) => b.score - a.score);
 }
 
+export function buildStudentWorkflowSummary(profile, jobs = JOBS) {
+  const rankedJobs = rankJobs(profile, jobs);
+  const best = rankedJobs[0];
+  const parsedHardSkillCount = jobs.reduce((sum, job) => sum + (job.hardSkillRequirements?.length ?? 0), 0);
+  const parsedSoftSkillCount = jobs.reduce((sum, job) => sum + (job.softSkills?.length ?? 0), 0);
+
+  return {
+    bestFit: best ? `${best.job.title} ${best.score}分` : '暂无岗位',
+    steps: [
+      {
+        label: '简历解析',
+        value: `${profile.skills.length} 技能 · ${profile.experiences.length} 经历 · ${(profile.softSkills ?? []).length} 软技能`,
+      },
+      {
+        label: 'JD 解析',
+        value: `${jobs.length} 个岗位 · ${parsedHardSkillCount} 硬技能要求 · ${parsedSoftSkillCount} 软技能要求`,
+      },
+      {
+        label: '匹配解释',
+        value: '硬技能分项 · 软技能证据 · 活动经历加分',
+      },
+    ],
+  };
+}
+
 export function analyzeJobDescription({ title, city, description, company = COMPANY.name }) {
   const sourceText = `${title}\n${city}\n${description}`;
   const parsed = parseJobDescription(sourceText);
