@@ -126,12 +126,17 @@ test('breaks the match score into explainable dimensions', () => {
   const analysis = analyzeJobFit(STUDENT_PROFILE, targetJob);
   const breakdown = getScoreBreakdown(STUDENT_PROFILE, targetJob);
   const total = breakdown.reduce((sum, item) => sum + item.points, 0);
+  const softSkill = breakdown.find((item) => item.label === '软技能匹配');
+  const language = breakdown.find((item) => item.label === '语言要求');
 
   assert.equal(total, analysis.score);
   assert.deepEqual(
     breakdown.map((item) => item.label),
-    ['技能匹配', '经历证据', '地点匹配', '兴趣方向'],
+    ['硬技能匹配', '软技能匹配', '语言要求', '经历证据', '地点匹配', '兴趣方向'],
   );
+  assert.ok(softSkill.points > 0);
+  assert.equal(language.points, 5);
+  assert.equal(language.max, 5);
   assert.ok(breakdown.every((item) => item.points <= item.max));
 });
 
@@ -149,7 +154,8 @@ test('explains individual skill scoring with JD requirement and resume evidence'
   assert.equal(python.resumeLevel, '高级');
   assert.equal(python.score, 10);
   assert.ok(tableau.resumeEvidence.includes('项目/技能区出现'));
-  assert.ok(explanation.formula.includes('技能匹配 60/60'));
+  assert.ok(explanation.formula.includes('硬技能匹配'));
+  assert.ok(explanation.formula.includes('软技能匹配'));
   assert.equal(explanation.skillDetails.length, targetJob.tags.length);
 });
 

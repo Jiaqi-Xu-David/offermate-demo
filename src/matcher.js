@@ -533,20 +533,103 @@ function getMatchInputs(profile, job) {
   };
 }
 
+function scaleScore(points, max, weight) {
+  if (max <= 0) return weight;
+  return Math.round((points / max) * weight);
+}
+
+function scoreSoftSkillDimension(profile, job) {
+  const details = buildSoftSkillMatchDetails(profile, job);
+  if (details.length === 0) {
+    return {
+      points: 15,
+      matchedSkills: [],
+      detail: 'JD 未列出软技能硬性要求',
+    };
+  }
+
+  const rawScore = details.reduce((sum, item) => sum + item.score, 0);
+  const maxScore = details.length * 10;
+  const matchedSkills = details.filter((item) => item.matched).map((item) => item.name);
+
+  return {
+    points: scaleScore(rawScore, maxScore, 15),
+    matchedSkills,
+    detail:
+      matchedSkills.length > 0
+        ? `${matchedSkills.length}/${details.length} 项软技能有简历或活动证据`
+        : '软技能证据不足，需要补充活动或协作经历',
+  };
+}
+
+function satisfiesLanguageRequirement(profileLanguages = [], requirement) {
+  if (profileLanguages.includes(requirement)) return true;
+  if (requirement === '英语 CET-4' && profileLanguages.includes('英语 CET-6')) return true;
+  if (
+    requirement === '英文文档阅读' &&
+    profileLanguages.some((language) => ['英语 CET-6', '英语 CET-4', '英文文档阅读'].includes(language))
+  ) {
+    return true;
+  }
+  if (requirement === '英语口语沟通' && profileLanguages.includes('英语 CET-6')) return true;
+  return false;
+}
+
+function scoreLanguageDimension(profile, job) {
+  const requirements = job.languageRequirements ?? [];
+  if (requirements.length === 0) {
+    return {
+      points: 5,
+      matchedLanguages: [],
+      detail: 'JD 未列出语言硬性要求',
+    };
+  }
+
+  const matchedLanguages = requirements.filter((requirement) =>
+    satisfiesLanguageRequirement(profile.languages ?? [], requirement),
+  );
+
+  return {
+    points: matchedLanguages.length === requirements.length ? 5 : matchedLanguages.length > 0 ? 3 : 0,
+    matchedLanguages,
+    detail:
+      matchedLanguages.length > 0
+        ? `满足 ${matchedLanguages.join('、')}`
+        : `简历未体现 ${requirements.join('、')}`,
+  };
+}
+
 export function getScoreBreakdown(profile, job) {
   const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
+  const skillDetails = getSkillMatchDetails(profile, job);
   const tagCount = Math.max((job.tags ?? []).length, 1);
-  const skillScore = Math.round((matchedTags.length / tagCount) * 60);
-  const interestScore = Math.round((matchedNiceToHave.length / Math.max((job.niceToHave ?? []).length, 1)) * 20);
+  const skillRawScore = skillDetails.reduce((sum, item) => sum + item.score, 0);
+  const skillMaxScore = Math.max(skillDetails.length * 10, 1);
+  const skillScore = scaleScore(skillRawScore, skillMaxScore, 50);
+  const softSkillScore = scoreSoftSkillDimension(profile, job);
+  const languageScore = scoreLanguageDimension(profile, job);
+  const interestScore = Math.round((matchedNiceToHave.length / Math.max((job.niceToHave ?? []).length, 1)) * 10);
   const cityScore = cityMatch ? 10 : 0;
   const evidenceScore = matchedTags.length >= 3 ? 10 : matchedTags.length >= 2 ? 6 : 2;
 
   return [
     {
-      label: '技能匹配',
+      label: '硬技能匹配',
       points: skillScore,
-      max: 60,
-      detail: `${matchedTags.length}/${tagCount} 个核心能力匹配`,
+      max: 50,
+      detail: `${matchedTags.length}/${tagCount} 个核心能力覆盖，分项证据 ${skillRawScore}/${skillMaxScore}`,
+    },
+    {
+      label: '软技能匹配',
+      points: softSkillScore.points,
+      max: 15,
+      detail: softSkillScore.detail,
+    },
+    {
+      label: '语言要求',
+      points: languageScore.points,
+      max: 5,
+      detail: languageScore.detail,
     },
     {
       label: '经历证据',
@@ -563,7 +646,7 @@ export function getScoreBreakdown(profile, job) {
     {
       label: '兴趣方向',
       points: interestScore,
-      max: 20,
+      max: 10,
       detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '行业/方向兴趣证据较弱',
     },
   ];
@@ -602,6 +685,8 @@ export function analyzeJobFit(profile, job) {
     gaps: (job.tags ?? []).filter((tag) => !matchedTags.includes(tag)),
     reasons: [
       `${matchedTags.length}/${(job.tags ?? []).length} 个核心关键词已被简历证据覆盖`,
+      scoreSoftSkillDimension(profile, job).detail,
+      scoreLanguageDimension(profile, job).detail,
       cityMatch ? `地点偏好包含 ${job.city}` : `地点 ${job.city} 不在当前偏好中`,
       matchedNiceToHave.length > 0
         ? `兴趣方向与 ${matchedNiceToHave.join('、')} 有交集`
