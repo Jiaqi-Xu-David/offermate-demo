@@ -46,7 +46,7 @@ const state = {
   adminResult:
     savedAdminJobs.length > 0
       ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
-      : '粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。',
+      : '粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。',
 };
 
 const elements = {
@@ -124,7 +124,7 @@ function createLabelValue(tagName, labelText, valueText) {
 
 function renderWorkflowSummary() {
   const summary = buildStudentWorkflowSummary(state.profile, state.jobs);
-  elements.workflowBestFit.textContent = `系统推荐：${summary.bestFit}`;
+  elements.workflowBestFit.textContent = `推荐结果：${summary.bestFit}`;
   elements.workflowSteps.replaceChildren(
     ...summary.steps.map((step, index) => {
       const item = document.createElement('div');

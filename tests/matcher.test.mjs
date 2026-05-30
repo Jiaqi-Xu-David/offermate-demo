@@ -184,12 +184,17 @@ test('summarizes the student-facing AI workflow from parsed resume and JD data',
 
 test('keeps the company job detail page free of candidate scoring content', async () => {
   const html = await readFile(new URL('../job.html', import.meta.url), 'utf8');
+  const productSystemWord = ['系', '统'].join('');
 
   assert.ok(!html.includes('简历分析'));
   assert.ok(!html.includes('简历画像'));
   assert.ok(!html.includes('匹配分'));
   assert.ok(!html.includes('detail-score-ring'));
   assert.ok(!html.includes('detail-student-name'));
+  assert.ok(!html.includes('AI 求职智能匹配智能体'));
+  assert.ok(!html.includes(productSystemWord));
+  assert.ok(!html.includes('JD 分析'));
+  assert.ok(!html.includes('detail-jd-analysis'));
 });
 
 test('builds tailored resume snippets for different target roles', () => {

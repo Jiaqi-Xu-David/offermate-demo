@@ -54,7 +54,7 @@ const SKILL_DICTIONARY = [
   '机器学习',
   '深度学习',
   'PyTorch',
-  '推荐系统',
+  '推荐算法',
   '数学建模',
 ];
 
@@ -339,8 +339,8 @@ const JOB_SEEDS = [
     company: COMPANY.name,
     city: '上海',
     description:
-      '薪资：260-320元/天。参与星河科技推荐系统和智能匹配算法实验，要求高级 Python，熟悉机器学习、深度学习和 PyTorch，完成样本处理、模型训练、数学建模和离线评估，协助优化推荐系统效果。软技能要求逻辑分析、主动学习、结构化表达；语言要求英文文档阅读，能查阅英文技术文档。',
-    tags: ['机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
+      '薪资：260-320元/天。参与星河科技推荐算法和智能匹配实验，要求高级 Python，熟悉机器学习、深度学习和 PyTorch，完成样本处理、模型训练、数学建模和离线评估，协助优化推荐效果。软技能要求逻辑分析、主动学习、结构化表达；语言要求英文文档阅读，能查阅英文技术文档。',
+    tags: ['机器学习', '深度学习', 'PyTorch', '推荐算法', '数学建模'],
     responsibilities: ['模型训练', '推荐策略优化', '实验评估'],
     niceToHave: ['科研论文', '算法竞赛'],
   },
@@ -371,15 +371,15 @@ export const CANDIDATES = [
       name: '王子昂',
       gender: '男',
       headline: '上海交通大学 计算机科学 本科 2026届',
-      target: '算法工程 / 推荐系统实习',
+      target: '算法工程 / 推荐算法实习',
       cityPreferences: ['上海', '北京'],
-      skills: ['Python', '机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
+      skills: ['Python', '机器学习', '深度学习', 'PyTorch', '推荐算法', '数学建模'],
       languages: ['英文文档阅读'],
       softSkills: ['逻辑分析', '主动学习'],
       interests: ['算法竞赛', '数据产品'],
       experiences: [
         '使用 PyTorch 训练点击率预估模型，完成样本清洗、特征构造和离线 AUC 评估',
-        '参与课程推荐系统项目，实现召回和排序模块并进行实验评估',
+        '参与课程推荐算法项目，实现召回和排序模块并进行实验评估',
       ],
     },
   },
@@ -794,7 +794,7 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
 
   const routingRecommendation =
     bestSuggested && (!bestSubmitted || bestSuggested.score > bestSubmitted.score + 5)
-      ? `建议转推荐至 ${bestSuggested.title}：系统匹配度 ${bestSuggested.score} 分，高于当前投递岗位。`
+      ? `建议转推荐至 ${bestSuggested.title}：匹配度 ${bestSuggested.score} 分，高于当前投递岗位。`
       : '当前投递方向基本匹配，可按原岗位推进筛选。';
 
   return {
