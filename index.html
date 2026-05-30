@@ -26,8 +26,8 @@
         </div>
       </section>
 
-      <section class="workspace">
-        <aside class="profile-panel student-only" aria-label="学生画像">
+      <section id="student-workspace" class="workspace student-workspace">
+        <aside class="profile-panel" aria-label="学生画像">
           <div class="avatar-card">
             <div class="avatar-visual" aria-hidden="true">
               <span id="avatar-initial">陈</span>
@@ -78,32 +78,9 @@
             <span id="job-count"></span>
           </div>
           <div id="job-list" class="job-list"></div>
-
-          <form id="admin-form" class="admin-panel" aria-label="管理员添加岗位">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">管理员</p>
-                <h3>添加岗位 JD</h3>
-              </div>
-              <button class="secondary-button compact-button" type="submit">分析并添加</button>
-            </div>
-            <label>
-              岗位名称
-              <input id="admin-title" type="text" value="增长运营实习生">
-            </label>
-            <label>
-              工作地点
-              <input id="admin-city" type="text" value="上海">
-            </label>
-            <label>
-              岗位描述
-              <textarea id="admin-description" rows="6">负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。</textarea>
-            </label>
-            <p id="admin-result" class="admin-result">粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。</p>
-          </form>
         </section>
 
-        <section class="insight-panel" aria-label="匹配分析">
+        <section class="insight-panel student-insight-panel" aria-label="匹配分析">
           <div class="score-card">
             <div>
               <p class="eyebrow">初筛命中率</p>
@@ -165,6 +142,79 @@
           <div class="advice-card">
             <h3>求职建议报告</h3>
             <div id="final-report" class="report-grid"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-workspace" class="workspace admin-workspace" hidden>
+        <section class="job-panel" aria-label="岗位管理">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">岗位管理</p>
+              <h2>岗位 JD 与能力标签</h2>
+            </div>
+            <span id="admin-job-count"></span>
+          </div>
+          <div id="admin-job-list" class="admin-job-list"></div>
+
+          <form id="admin-form" class="admin-panel" aria-label="管理员添加岗位">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">新增岗位</p>
+                <h3>添加岗位 JD</h3>
+              </div>
+              <button class="secondary-button compact-button" type="submit">分析并添加</button>
+            </div>
+            <label>
+              岗位名称
+              <input id="admin-title" type="text" value="增长运营实习生">
+            </label>
+            <label>
+              工作地点
+              <input id="admin-city" type="text" value="上海">
+            </label>
+            <label>
+              岗位描述
+              <textarea id="admin-description" rows="6">负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。</textarea>
+            </label>
+            <p id="admin-result" class="admin-result">粘贴 JD 后，系统会自动抽取岗位能力标签并加入岗位池。</p>
+          </form>
+        </section>
+
+        <section class="job-panel" aria-label="候选人提交">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">候选人池</p>
+              <h2>已提交候选人</h2>
+            </div>
+            <span id="candidate-count"></span>
+          </div>
+          <div id="candidate-list" class="candidate-list"></div>
+        </section>
+
+        <section class="insight-panel admin-insight-panel" aria-label="候选人适配分析">
+          <div class="score-card admin-summary-card">
+            <div>
+              <p class="eyebrow">候选人适配分析</p>
+              <h2 id="admin-candidate-name"></h2>
+            </div>
+            <span id="admin-candidate-status" class="admin-status-pill"></span>
+          </div>
+
+          <div class="advice-card">
+            <h3>已投岗位</h3>
+            <div id="submitted-job-list" class="admin-match-list"></div>
+          </div>
+
+          <div class="advice-card">
+            <h3>系统建议</h3>
+            <p id="screening-recommendation" class="admin-recommendation"></p>
+            <p id="routing-recommendation" class="admin-recommendation"></p>
+          </div>
+
+          <div class="advice-card">
+            <h3>可转推荐岗位</h3>
+            <div id="suggested-job-list" class="admin-match-list"></div>
           </div>
         </section>
       </section>

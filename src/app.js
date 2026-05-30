@@ -3,9 +3,11 @@ import {
   SAMPLE_RESUME_TEXT,
   STUDENT_PROFILE,
   JOBS,
+  CANDIDATES,
   rankJobs,
   analyzeJobFit,
   analyzeJobDescription,
+  buildAdminCandidateInsight,
   buildResumeAdvice,
   buildTailoredResumeSnippet,
   getScoreBreakdown,
@@ -35,6 +37,7 @@ const state = {
   profile: STUDENT_PROFILE,
   jobs: [...savedAdminJobs, ...JOBS],
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
+  selectedCandidateId: 'chen-yutong',
   rankings: rankJobs(STUDENT_PROFILE, JOBS),
   parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 个技能标签、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
   adminResult:
@@ -44,6 +47,8 @@ const state = {
 };
 
 const elements = {
+  studentWorkspace: document.querySelector('#student-workspace'),
+  adminWorkspace: document.querySelector('#admin-workspace'),
   studentMode: document.querySelector('#student-mode'),
   adminMode: document.querySelector('#admin-mode'),
   companySubtitle: document.querySelector('#company-subtitle'),
@@ -63,6 +68,16 @@ const elements = {
   adminCity: document.querySelector('#admin-city'),
   adminDescription: document.querySelector('#admin-description'),
   adminResult: document.querySelector('#admin-result'),
+  adminJobCount: document.querySelector('#admin-job-count'),
+  adminJobList: document.querySelector('#admin-job-list'),
+  candidateCount: document.querySelector('#candidate-count'),
+  candidateList: document.querySelector('#candidate-list'),
+  adminCandidateName: document.querySelector('#admin-candidate-name'),
+  adminCandidateStatus: document.querySelector('#admin-candidate-status'),
+  submittedJobList: document.querySelector('#submitted-job-list'),
+  screeningRecommendation: document.querySelector('#screening-recommendation'),
+  routingRecommendation: document.querySelector('#routing-recommendation'),
+  suggestedJobList: document.querySelector('#suggested-job-list'),
   selectedJobTitle: document.querySelector('#selected-job-title'),
   scoreRing: document.querySelector('#score-ring'),
   scoreValue: document.querySelector('#score-value'),
@@ -158,6 +173,8 @@ function renderResumeDocument() {
 
 function renderProfile() {
   document.body.dataset.mode = state.mode;
+  elements.studentWorkspace.hidden = state.mode !== 'student';
+  elements.adminWorkspace.hidden = state.mode !== 'admin';
   elements.studentMode.classList.toggle('active', state.mode === 'student');
   elements.adminMode.classList.toggle('active', state.mode === 'admin');
   elements.studentMode.setAttribute('aria-selected', String(state.mode === 'student'));
@@ -197,13 +214,65 @@ function createJobCard(analysis) {
   tagList.className = 'tag-list';
   renderTags(tagList, analysis.job.tags.slice(0, 4));
 
+  const description = document.createElement('p');
+  description.className = 'job-description';
+  description.textContent = analysis.job.description;
+
   const level = document.createElement('span');
   level.className = 'job-level';
   level.textContent = analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level;
 
-  button.append(titleRow, tagList, level);
+  button.append(titleRow, description, tagList, level);
   button.addEventListener('click', () => {
     state.selectedJobId = analysis.job.id;
+    render();
+  });
+  return button;
+}
+
+function createAdminJobItem(job) {
+  const item = document.createElement('article');
+  item.className = 'admin-job-item';
+
+  const header = document.createElement('div');
+  header.className = 'admin-item-header';
+  const title = document.createElement('h3');
+  title.textContent = job.title;
+  const meta = document.createElement('span');
+  meta.textContent = `${job.company} · ${job.city}`;
+  header.append(title, meta);
+
+  const description = document.createElement('p');
+  description.textContent = job.description;
+
+  const tagList = document.createElement('div');
+  tagList.className = 'tag-list';
+  renderTags(tagList, job.tags);
+
+  item.append(header, description, tagList);
+  return item;
+}
+
+function createCandidateCard(candidate) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = candidate.id === state.selectedCandidateId ? 'candidate-card active' : 'candidate-card';
+  button.dataset.candidateId = candidate.id;
+
+  const submittedJobs = candidate.submittedJobIds
+    .map((jobId) => state.jobs.find((job) => job.id === jobId)?.title)
+    .filter(Boolean);
+
+  const name = document.createElement('h3');
+  name.textContent = candidate.name;
+  const meta = document.createElement('p');
+  meta.textContent = `${candidate.school} · ${candidate.major}`;
+  const submitted = document.createElement('p');
+  submitted.className = 'candidate-submitted';
+  submitted.textContent = `已提交：${submittedJobs.join('、')}`;
+  button.append(name, meta, submitted);
+  button.addEventListener('click', () => {
+    state.selectedCandidateId = candidate.id;
     render();
   });
   return button;
@@ -244,6 +313,45 @@ function renderJobs() {
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
   elements.jobList.replaceChildren(...state.rankings.map(createJobCard));
   elements.adminResult.textContent = state.adminResult;
+}
+
+function renderAdminJobs() {
+  elements.adminJobCount.textContent = `${state.jobs.length} 个岗位`;
+  elements.adminJobList.replaceChildren(...state.jobs.map(createAdminJobItem));
+  elements.adminResult.textContent = state.adminResult;
+}
+
+function renderCandidates() {
+  elements.candidateCount.textContent = `${CANDIDATES.length} 人`;
+  elements.candidateList.replaceChildren(...CANDIDATES.map(createCandidateCard));
+}
+
+function createMatchItem(match) {
+  const item = document.createElement('article');
+  item.className = 'admin-match-item';
+  const title = document.createElement('strong');
+  title.textContent = `${match.title} · ${match.score}分`;
+  const meta = document.createElement('p');
+  meta.textContent = `地点：${match.city}；匹配能力：${match.matchedTags.join('、') || '暂无明显匹配'}`;
+  item.append(title, meta);
+  return item;
+}
+
+function renderAdminInsight() {
+  const candidate = CANDIDATES.find((item) => item.id === state.selectedCandidateId) ?? CANDIDATES[0];
+  state.selectedCandidateId = candidate.id;
+  const insight = buildAdminCandidateInsight(candidate, state.jobs);
+
+  elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.school}`;
+  elements.adminCandidateStatus.textContent = `${candidate.submittedJobIds.length} 个已投岗位`;
+  elements.submittedJobList.replaceChildren(...insight.submittedJobs.map(createMatchItem));
+  elements.screeningRecommendation.textContent = insight.screeningRecommendation;
+  elements.routingRecommendation.textContent = insight.routingRecommendation;
+  elements.suggestedJobList.replaceChildren(
+    ...(insight.suggestedJobs.length
+      ? insight.suggestedJobs.map(createMatchItem)
+      : [Object.assign(document.createElement('p'), { textContent: '暂无更合适的转推荐岗位。' })]),
+  );
 }
 
 function renderFinalReport(analysis, selectedJob) {
@@ -320,6 +428,9 @@ function render() {
   renderProfile();
   renderJobs();
   renderAnalysis();
+  renderAdminJobs();
+  renderCandidates();
+  renderAdminInsight();
 }
 
 elements.parseResume.addEventListener('click', () => {
@@ -353,8 +464,7 @@ elements.adminForm.addEventListener('submit', (event) => {
     description: elements.adminDescription.value,
   });
   state.jobs = [newJob, ...state.jobs.filter((job) => job.id !== newJob.id)];
-  state.selectedJobId = newJob.id;
-  state.mode = 'student';
+  state.mode = 'admin';
   state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}。`;
   saveAdminJobs(state.jobs);
   render();

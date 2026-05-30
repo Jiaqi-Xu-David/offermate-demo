@@ -5,8 +5,10 @@ import {
   SAMPLE_RESUME_TEXT,
   STUDENT_PROFILE,
   JOBS,
+  CANDIDATES,
   analyzeJobFit,
   analyzeJobDescription,
+  buildAdminCandidateInsight,
   buildResumeAdvice,
   buildTailoredResumeSnippet,
   getScoreBreakdown,
@@ -56,6 +58,12 @@ test('keeps all seeded jobs inside the same company', () => {
   assert.deepEqual(new Set(JOBS.map((job) => job.company)), new Set([COMPANY.name]));
 });
 
+test('grounds every seeded job in a complete job description', () => {
+  assert.ok(JOBS.every((job) => job.description.length > 80));
+  assert.ok(JOBS.every((job) => job.tags.length >= 4));
+  assert.ok(JOBS.every((job) => job.description.includes(job.tags[0])));
+});
+
 test('analyzes an admin-added job description into required capabilities', () => {
   const job = analyzeJobDescription({
     title: '增长运营实习生',
@@ -96,4 +104,22 @@ test('builds tailored resume snippets for different target roles', () => {
   assert.ok(productSnippet.includes('问卷'));
   assert.ok(productSnippet.includes('活动复盘'));
   assert.notEqual(dataSnippet, productSnippet);
+});
+
+test('builds recruiter-facing candidate routing insights', () => {
+  const candidate = CANDIDATES.find((item) => item.id === 'chen-yutong');
+  const insight = buildAdminCandidateInsight(candidate, JOBS);
+  const combinedText = [
+    insight.screeningRecommendation,
+    insight.routingRecommendation,
+    ...insight.submittedJobs.map((item) => item.title),
+    ...insight.suggestedJobs.map((item) => item.title),
+  ].join(' ');
+
+  assert.ok(insight.submittedJobs.length >= 2);
+  assert.ok(insight.suggestedJobs.length >= 1);
+  assert.ok(insight.screeningRecommendation.includes('初筛'));
+  assert.ok(combinedText.includes('数据分析实习生'));
+  assert.ok(!combinedText.includes('优先投递'));
+  assert.ok(!combinedText.includes('简历优化'));
 });

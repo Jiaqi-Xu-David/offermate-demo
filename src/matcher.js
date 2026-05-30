@@ -130,6 +130,8 @@ export const JOBS = [
     title: '数据分析实习生',
     company: COMPANY.name,
     city: '上海',
+    description:
+      '参与星河科技用户增长与交易业务的数据分析工作，使用 SQL 和 Python 清洗用户行为数据，搭建 Tableau 指标看板，分析注册、激活、留存、转化漏斗和 A/B测试结果，向产品与运营团队输出可执行的数据洞察。',
     tags: ['SQL', 'Python', 'Tableau', '转化漏斗', 'A/B测试'],
     responsibilities: ['业务数据分析', '指标看板建设', '用户转化诊断'],
     niceToHave: ['互联网', '数据产品', '用户增长'],
@@ -139,6 +141,8 @@ export const JOBS = [
     title: '产品运营实习生',
     company: COMPANY.name,
     city: '上海',
+    description:
+      '支持星河科技校园产品的新用户运营，围绕 SQL 数据分析、用户分层、活动复盘、问卷调研和转化漏斗诊断，协助产品经理定位用户路径问题，并推动内容、权益和触达策略优化。',
     tags: ['SQL', '用户分层', '活动复盘', '问卷调研', '转化漏斗'],
     responsibilities: ['用户运营', '活动数据复盘', '需求洞察'],
     niceToHave: ['消费', '互联网', '用户增长'],
@@ -148,6 +152,8 @@ export const JOBS = [
     title: '商业分析实习生',
     company: COMPANY.name,
     city: '杭州',
+    description:
+      '参与星河科技商业化团队的经营分析与市场研究，使用 Excel、SQL 和数据看板整理业务指标，完成商业分析、市场研究、竞品观察和管理层汇报材料，支持业务策略判断。',
     tags: ['Excel', 'SQL', '商业分析', '市场研究', '数据看板'],
     responsibilities: ['行业研究', '经营数据分析', '报告撰写'],
     niceToHave: ['消费', '数据产品'],
@@ -157,9 +163,60 @@ export const JOBS = [
     title: '算法工程实习生',
     company: COMPANY.name,
     city: '上海',
+    description:
+      '参与星河科技推荐系统和智能匹配算法实验，使用机器学习、深度学习和 PyTorch 完成样本处理、模型训练、数学建模和离线评估，协助优化推荐系统效果，并记录实验结论。',
     tags: ['机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
     responsibilities: ['模型训练', '推荐策略优化', '实验评估'],
     niceToHave: ['科研论文', '算法竞赛'],
+  },
+];
+
+export const CANDIDATES = [
+  {
+    id: 'chen-yutong',
+    name: '陈雨桐',
+    school: '复旦大学',
+    major: '统计学',
+    submittedJobIds: ['data-analyst-intern', 'product-ops-intern'],
+    profile: STUDENT_PROFILE,
+  },
+  {
+    id: 'wang-ziang',
+    name: '王子昂',
+    school: '上海交通大学',
+    major: '计算机科学',
+    submittedJobIds: ['algorithm-intern'],
+    profile: {
+      name: '王子昂',
+      headline: '上海交通大学 计算机科学 本科 2026届',
+      target: '算法工程 / 推荐系统实习',
+      cityPreferences: ['上海', '北京'],
+      skills: ['Python', '机器学习', '深度学习', 'PyTorch', '推荐系统', '数学建模'],
+      interests: ['算法竞赛', '数据产品'],
+      experiences: [
+        '使用 PyTorch 训练点击率预估模型，完成样本清洗、特征构造和离线 AUC 评估',
+        '参与课程推荐系统项目，实现召回和排序模块并进行实验评估',
+      ],
+    },
+  },
+  {
+    id: 'li-ruohan',
+    name: '李若涵',
+    school: '浙江大学',
+    major: '工商管理',
+    submittedJobIds: ['business-analyst-intern'],
+    profile: {
+      name: '李若涵',
+      headline: '浙江大学 工商管理 本科 2026届',
+      target: '商业分析 / 产品运营实习',
+      cityPreferences: ['杭州', '上海'],
+      skills: ['Excel', 'SQL', '商业分析', '市场研究', '数据看板', '问卷调研'],
+      interests: ['消费', '互联网', '商业分析'],
+      experiences: [
+        '使用 Excel 和 SQL 整理消费行业经营数据，制作数据看板并输出月度分析报告',
+        '完成 3 个竞品市场研究案例，拆解用户画像、定价策略和增长渠道',
+      ],
+    },
   },
 ];
 
@@ -274,6 +331,58 @@ export function analyzeJobDescription({ title, city, description, company = COMP
     niceToHave: niceToHave.slice(0, 4),
     description,
     source: 'admin',
+  };
+}
+
+export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
+  const rankedJobs = rankJobs(candidate.profile, jobs);
+  const submittedJobs = candidate.submittedJobIds
+    .map((jobId) => {
+      const analysis = rankedJobs.find((item) => item.job.id === jobId);
+      if (!analysis) return null;
+      return {
+        id: analysis.job.id,
+        title: analysis.job.title,
+        city: analysis.job.city,
+        score: analysis.score,
+        matchedTags: analysis.matchedTags,
+        gaps: analysis.gaps,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score);
+  const submittedIds = new Set(candidate.submittedJobIds);
+  const suggestedJobs = rankedJobs
+    .filter((analysis) => !submittedIds.has(analysis.job.id) && analysis.score >= 60)
+    .slice(0, 2)
+    .map((analysis) => ({
+      id: analysis.job.id,
+      title: analysis.job.title,
+      city: analysis.job.city,
+      score: analysis.score,
+      matchedTags: analysis.matchedTags,
+    }));
+  const bestSubmitted = submittedJobs[0];
+  const bestSuggested = suggestedJobs[0];
+
+  let screeningRecommendation = '建议人工复核：当前投递岗位证据不完整。';
+  if (bestSubmitted?.score >= 75) {
+    screeningRecommendation = `建议进入初筛：${candidate.name} 与 ${bestSubmitted.title} 匹配度 ${bestSubmitted.score} 分。`;
+  } else if (bestSubmitted?.score < 60) {
+    screeningRecommendation = `暂不建议进入初筛：当前投递岗位最高匹配度 ${bestSubmitted.score} 分。`;
+  }
+
+  const routingRecommendation =
+    bestSuggested && (!bestSubmitted || bestSuggested.score > bestSubmitted.score + 5)
+      ? `建议转推荐至 ${bestSuggested.title}：系统匹配度 ${bestSuggested.score} 分，高于当前投递岗位。`
+      : '当前投递方向基本匹配，可按原岗位推进筛选。';
+
+  return {
+    candidate,
+    submittedJobs,
+    suggestedJobs,
+    screeningRecommendation,
+    routingRecommendation,
   };
 }
 
