@@ -49,5 +49,5 @@
 
 - [x] Run `npm test`.
 - [x] Browser-check student mode and admin mode.
-- [ ] Commit and push to GitHub.
-- [ ] Confirm GitHub Pages contains the updated parser/scoring UI.
+- [x] Commit and push to GitHub.
+- [x] Confirm GitHub Pages contains the updated parser/scoring UI.
