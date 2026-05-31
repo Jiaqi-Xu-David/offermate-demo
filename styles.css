@@ -340,15 +340,20 @@ h3 {
   padding-top: 14px;
 }
 
+.resume-section {
+  display: grid;
+  gap: 6px;
+}
+
 .resume-section h4 {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--brand-dark);
   font-size: 13px;
   letter-spacing: 0;
 }
 
 .resume-section p {
-  margin-bottom: 6px;
+  margin: 0;
   color: var(--ink);
   font-size: 12px;
   font-weight: 700;
@@ -356,6 +361,7 @@ h3 {
 }
 
 .resume-section ul {
+  margin: 0;
   padding-left: 18px;
   font-size: 12px;
   line-height: 1.55;
@@ -365,6 +371,10 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.resume-skill-row + .resume-skill-row {
+  margin-top: 0;
 }
 
 .resume-skill-row span {
@@ -574,7 +584,8 @@ textarea:focus {
 }
 
 a.admin-job-item {
-  display: block;
+  display: grid;
+  gap: 10px;
   color: inherit;
   text-decoration: none;
   transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
@@ -593,7 +604,7 @@ a.admin-job-item:focus-visible {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .admin-item-header h3,
@@ -769,6 +780,95 @@ a.admin-job-item:focus-visible {
 
 .admin-recommendation:last-child {
   margin-bottom: 0;
+}
+
+.admin-resume-document {
+  display: grid;
+  gap: 12px;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fffefa;
+}
+
+.admin-resume-header {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-resume-header h4 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.admin-resume-header p,
+.admin-resume-section p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.admin-resume-section {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-resume-section > strong {
+  color: var(--brand-dark);
+  font-size: 13px;
+}
+
+.admin-resume-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tight-tags {
+  gap: 6px;
+}
+
+.admin-breakdown-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-breakdown-row {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-strong);
+}
+
+.admin-breakdown-row div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-breakdown-row strong,
+.admin-breakdown-row span {
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.admin-breakdown-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .score-card {
@@ -1180,7 +1280,11 @@ ol {
 .job-detail-main,
 .job-detail-side {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+}
+
+.job-detail-main > .section-heading.compact {
+  margin-bottom: 0;
 }
 
 .detail-description {
@@ -1342,6 +1446,7 @@ ol {
   .analysis-grid,
   .report-grid,
   .breakdown-list,
+  .admin-breakdown-list,
   .workflow-steps,
   .detail-analysis-grid,
   .job-requirement-grid,

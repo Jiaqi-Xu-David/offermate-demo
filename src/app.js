@@ -82,6 +82,10 @@ const elements = {
   candidateList: document.querySelector('#candidate-list'),
   adminCandidateName: document.querySelector('#admin-candidate-name'),
   adminCandidateStatus: document.querySelector('#admin-candidate-status'),
+  adminResumeDocument: document.querySelector('#admin-resume-document'),
+  adminMatchTitle: document.querySelector('#admin-match-title'),
+  adminMatchFormula: document.querySelector('#admin-match-formula'),
+  adminMatchBreakdown: document.querySelector('#admin-match-breakdown'),
   submittedJobList: document.querySelector('#submitted-job-list'),
   screeningRecommendation: document.querySelector('#screening-recommendation'),
   routingRecommendation: document.querySelector('#routing-recommendation'),
@@ -360,6 +364,84 @@ function createCandidateCard(candidate) {
   return button;
 }
 
+function createTagGroup(labelText, tags) {
+  const section = document.createElement('div');
+  section.className = 'admin-resume-section';
+  const label = document.createElement('strong');
+  label.textContent = labelText;
+  const tagList = document.createElement('div');
+  tagList.className = 'tag-list tight-tags';
+  renderTags(tagList, tags.length ? tags : ['未填写']);
+  section.append(label, tagList);
+  return section;
+}
+
+function renderAdminResume(candidate) {
+  const { profile } = candidate;
+
+  const header = document.createElement('div');
+  header.className = 'admin-resume-header';
+  const name = document.createElement('h4');
+  name.textContent = profile.name;
+  const headline = document.createElement('p');
+  headline.textContent = `${profile.gender ?? '未填写'} · ${profile.headline}`;
+  const target = document.createElement('p');
+  target.textContent = `求职意向：${profile.target}`;
+  header.append(name, headline, target);
+
+  const experienceSection = document.createElement('div');
+  experienceSection.className = 'admin-resume-section';
+  const experienceTitle = document.createElement('strong');
+  experienceTitle.textContent = '经历证据';
+  const experienceList = document.createElement('ul');
+  (profile.experiences ?? []).slice(0, 3).forEach((experience) => {
+    const item = document.createElement('li');
+    item.textContent = experience;
+    experienceList.append(item);
+  });
+  experienceSection.append(experienceTitle, experienceList);
+
+  elements.adminResumeDocument.replaceChildren(
+    header,
+    createTagGroup('技能标签', profile.skills ?? []),
+    createTagGroup('语言能力', profile.languages ?? []),
+    createTagGroup('软技能', profile.softSkills ?? []),
+    experienceSection,
+  );
+}
+
+function renderAdminMatchReview(candidate, insight) {
+  const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+  const bestJob = bestMatch ? state.jobs.find((job) => job.id === bestMatch.id) : null;
+
+  if (!bestJob) {
+    elements.adminMatchTitle.textContent = '暂无可评分岗位';
+    elements.adminMatchFormula.textContent = '候选人尚未提交可分析岗位。';
+    elements.adminMatchBreakdown.replaceChildren();
+    return;
+  }
+
+  const explanation = buildScoreExplanation(candidate.profile, bestJob);
+  elements.adminMatchTitle.textContent = `${bestJob.title} · ${explanation.total}分`;
+  elements.adminMatchFormula.textContent = explanation.formula;
+  elements.adminMatchBreakdown.replaceChildren(
+    ...explanation.breakdown.map((item) => {
+      const row = document.createElement('div');
+      row.className = 'admin-breakdown-row';
+      const header = document.createElement('div');
+      const label = document.createElement('strong');
+      label.textContent = item.label;
+      const score = document.createElement('span');
+      score.textContent = item.points;
+      header.append(label, score);
+      const detail = document.createElement('p');
+      detail.textContent = item.detail;
+      row.append(header, detail);
+      return row;
+    }),
+  );
+}
+
 function renderScoreBreakdown(profile, job) {
   const explanation = buildScoreExplanation(profile, job);
   const breakdown = explanation.breakdown;
@@ -489,6 +571,8 @@ function renderAdminInsight() {
 
   elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.profile.gender ?? '未填写'} · ${candidate.school}`;
   elements.adminCandidateStatus.textContent = `${candidate.submittedJobIds.length} 个已投岗位`;
+  renderAdminResume(candidate);
+  renderAdminMatchReview(candidate, insight);
   elements.submittedJobList.replaceChildren(...insight.submittedJobs.map(createMatchItem));
   elements.screeningRecommendation.textContent = insight.screeningRecommendation;
   elements.routingRecommendation.textContent = insight.routingRecommendation;

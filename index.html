@@ -19,8 +19,8 @@
         </div>
         <div class="top-actions">
           <div class="mode-switch" role="tablist" aria-label="视角切换">
-            <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">学生视角</button>
-            <button id="admin-mode" class="mode-button" type="button" role="tab" aria-selected="false">管理员视角</button>
+            <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">求职者视角</button>
+            <button id="admin-mode" class="mode-button" type="button" role="tab" aria-selected="false">HR 视角</button>
           </div>
           <div class="status-pill">
             <span class="dot"></span>
@@ -201,6 +201,27 @@
               <h2 id="admin-candidate-name"></h2>
             </div>
             <span id="admin-candidate-status" class="admin-status-pill"></span>
+          </div>
+
+          <div class="advice-card admin-resume-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">候选人简历</p>
+                <h3>简历摘要</h3>
+              </div>
+            </div>
+            <div id="admin-resume-document" class="admin-resume-document"></div>
+          </div>
+
+          <div class="advice-card admin-match-review-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">匹配结果与评分</p>
+                <h3 id="admin-match-title"></h3>
+              </div>
+            </div>
+            <p id="admin-match-formula" class="score-formula"></p>
+            <div id="admin-match-breakdown" class="admin-breakdown-list"></div>
           </div>
 
           <div class="advice-card">

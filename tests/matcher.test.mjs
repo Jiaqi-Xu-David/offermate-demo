@@ -80,6 +80,10 @@ test('uses the final demo branding in static pages', async () => {
   assert.ok(indexHtml.includes('./assets/avatar-davide.jpeg'));
   assert.ok(indexHtml.includes('id="open-admin-modal"'));
   assert.ok(indexHtml.includes('id="admin-job-dialog"'));
+  assert.ok(indexHtml.includes('求职者视角'));
+  assert.ok(indexHtml.includes('HR 视角'));
+  assert.ok(!indexHtml.includes('学生视角'));
+  assert.ok(!indexHtml.includes('管理员视角'));
   assert.match(indexHtml, />\s*demo\s*</);
   assert.ok(!indexHtml.includes('许家齐'));
   assert.ok(!indexHtml.includes('同公司多岗位 Demo'));
@@ -97,6 +101,26 @@ test('defines a mobile-first dashboard reading flow', async () => {
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.job-panel[\s\S]*order: 1/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.profile-panel[\s\S]*order: 2/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.insight-panel[\s\S]*order: 3/);
+});
+
+test('supports HR candidate resume and match review in static markup', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('id="admin-resume-document"'));
+  assert.ok(indexHtml.includes('id="admin-match-title"'));
+  assert.ok(indexHtml.includes('id="admin-match-formula"'));
+  assert.ok(indexHtml.includes('id="admin-match-breakdown"'));
+  assert.ok(indexHtml.includes('候选人简历'));
+  assert.ok(indexHtml.includes('匹配结果与评分'));
+});
+
+test('tightens repeated tag blocks and job detail spacing', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /\.resume-section\s*\{[\s\S]*gap: 6px/);
+  assert.match(css, /\.resume-skill-row \+ \.resume-skill-row\s*\{[\s\S]*margin-top: 0/);
+  assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
+  assert.match(css, /\.job-detail-main > \.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
 });
 
 test('grounds every seeded job in a complete job description', () => {
