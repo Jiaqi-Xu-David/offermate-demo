@@ -36,7 +36,7 @@
 - Modify: `src/app.js`
 - Modify: `styles.css`
 
-- [x] Add top watermark with `许家齐`.
+- [x] Add top watermark with `@大卫德哈哈哈`.
 - [x] Add gender to candidate/resume displays.
 - [x] Show salary, soft skills, and language requirements on job cards and admin job cards.
 - [x] Add detailed scoring table showing JD requirement, resume evidence, and item score.

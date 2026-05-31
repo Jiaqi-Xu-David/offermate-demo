@@ -54,8 +54,9 @@ test('treats adjacent product operations evidence as a viable role match', () =>
 test('parses the realistic sample resume into a student profile', () => {
   const profile = parseResumeText(SAMPLE_RESUME_TEXT);
 
-  assert.equal(profile.name, '陈雨桐');
-  assert.equal(profile.gender, '女');
+  assert.equal(profile.name, '大卫德');
+  assert.equal(profile.gender, '男');
+  assert.ok(profile.headline.includes('慕尼黑工业大学'));
   assert.ok(profile.skills.includes('SQL'));
   assert.ok(profile.skills.includes('Tableau'));
   assert.ok(profile.languages.includes('英语 CET-6'));
@@ -66,8 +67,22 @@ test('parses the realistic sample resume into a student profile', () => {
 });
 
 test('keeps all seeded jobs inside the same company', () => {
+  assert.equal(COMPANY.name, '大卫德科技');
   assert.ok(JOBS.length >= 4);
   assert.deepEqual(new Set(JOBS.map((job) => job.company)), new Set([COMPANY.name]));
+});
+
+test('uses the final demo branding in static pages', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const jobHtml = await readFile(new URL('../job.html', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('@大卫德哈哈哈'));
+  assert.match(indexHtml, />\s*demo\s*</);
+  assert.ok(!indexHtml.includes('许家齐'));
+  assert.ok(!indexHtml.includes('同公司多岗位 Demo'));
+  assert.ok(jobHtml.includes('大卫德科技岗位招聘详情'));
+  assert.ok(jobHtml.includes('大卫德科技校园招聘'));
+  assert.ok(!jobHtml.includes('星河科技'));
 });
 
 test('grounds every seeded job in a complete job description', () => {
@@ -211,7 +226,7 @@ test('builds tailored resume snippets for different target roles', () => {
 });
 
 test('builds recruiter-facing candidate routing insights', () => {
-  const candidate = CANDIDATES.find((item) => item.id === 'chen-yutong');
+  const candidate = CANDIDATES.find((item) => item.id === 'davide');
   const insight = buildAdminCandidateInsight(candidate, JOBS);
   const combinedText = [
     insight.screeningRecommendation,

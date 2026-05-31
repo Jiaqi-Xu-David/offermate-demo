@@ -40,7 +40,7 @@ const state = {
   profile: STUDENT_PROFILE,
   jobs: [...savedAdminJobs, ...JOBS],
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
-  selectedCandidateId: 'chen-yutong',
+  selectedCandidateId: 'davide',
   rankings: rankJobs(STUDENT_PROFILE, JOBS),
   parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 个技能标签、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
   adminResult:

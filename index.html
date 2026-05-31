@@ -6,15 +6,17 @@
     <title>OfferMate AI 求职匹配 Demo</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
-  <body>
+  <body class="dashboard-page">
     <main class="app-shell">
       <section class="topbar" aria-label="Demo overview">
         <div>
           <p class="eyebrow">AI 求职智能匹配智能体</p>
-          <h1>OfferMate</h1>
+          <div class="brand-title-row">
+            <h1>OfferMate</h1>
+            <span class="creator-watermark">@大卫德哈哈哈</span>
+          </div>
           <p id="company-subtitle" class="top-subtitle"></p>
         </div>
-        <span class="creator-watermark" aria-hidden="true">许家齐</span>
         <div class="top-actions">
           <div class="mode-switch" role="tablist" aria-label="视角切换">
             <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">学生视角</button>
@@ -22,7 +24,7 @@
           </div>
           <div class="status-pill">
             <span class="dot"></span>
-            同公司多岗位 Demo
+            demo
           </div>
         </div>
       </section>
@@ -31,7 +33,7 @@
         <aside class="profile-panel" aria-label="学生画像">
           <div class="avatar-card">
             <div class="avatar-visual" aria-hidden="true">
-              <span id="avatar-initial">陈</span>
+              <span id="avatar-initial">大</span>
               <svg viewBox="0 0 160 90" role="img" aria-label="求职路径图">
                 <path d="M12 70 C38 18, 70 42, 92 28 S130 24, 148 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
                 <circle cx="12" cy="70" r="6"/>
