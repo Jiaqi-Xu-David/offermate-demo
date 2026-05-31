@@ -262,31 +262,17 @@ h3 {
   place-items: center;
   height: 92px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #dff1e9, #f8dfcc);
+  border: 1px solid rgba(30, 124, 100, 0.16);
+  background: #dff0fb;
   color: var(--brand-dark);
   overflow: hidden;
 }
 
-.avatar-visual span {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--ink);
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.avatar-visual svg {
-  position: absolute;
-  inset: 10px 6px auto;
-  width: 132px;
-  height: 72px;
-  opacity: 0.38;
+.avatar-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-card h2 {
@@ -467,6 +453,10 @@ textarea:focus {
   margin-top: 18px;
 }
 
+.profile-block h3 {
+  margin-bottom: 10px;
+}
+
 .profile-meta-grid {
   display: grid;
   gap: 12px;
@@ -487,7 +477,7 @@ textarea:focus {
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px 12px;
 }
 
 .tag {
@@ -532,7 +522,7 @@ textarea:focus {
 .admin-panel {
   display: grid;
   gap: 12px;
-  margin-top: 18px;
+  margin: 0;
   border: 2px solid rgba(216, 111, 50, 0.5);
   border-radius: 8px;
   padding: 16px;
@@ -566,6 +556,12 @@ textarea:focus {
 .admin-match-list {
   display: grid;
   gap: 12px;
+}
+
+.admin-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .admin-job-item,
@@ -798,6 +794,7 @@ a.admin-job-item:focus-visible {
   grid-template-columns: 34px 1fr;
   gap: 10px;
   min-width: 0;
+  min-height: 112px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px;
@@ -822,17 +819,22 @@ a.admin-job-item:focus-visible {
   font-size: 13px;
 }
 
-.workflow-step p {
-  margin-bottom: 0;
+.workflow-value {
+  display: grid;
+  gap: 3px;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
 }
 
+.workflow-line {
+  display: block;
+}
+
 .score-ring {
   --score: 0;
-  display: grid;
-  place-items: center;
+  position: relative;
+  display: block;
   width: 118px;
   height: 118px;
   flex: 0 0 auto;
@@ -843,13 +845,23 @@ a.admin-job-item:focus-visible {
 }
 
 .score-ring strong {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 30px;
   line-height: 1;
 }
 
 .score-ring span {
+  position: absolute;
+  bottom: 22%;
+  left: 50%;
+  transform: translateX(-50%);
   color: var(--muted);
   font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .analysis-grid {
@@ -857,6 +869,16 @@ a.admin-job-item:focus-visible {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding: 16px;
+}
+
+.analysis-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.analysis-grid h3 {
+  margin-bottom: 0;
 }
 
 ul,
@@ -983,7 +1005,7 @@ ol {
 .skill-detail-fields {
   display: grid;
   grid-template-columns: 0.8fr 0.8fr 1.4fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .skill-detail-fields p {
@@ -997,6 +1019,43 @@ ol {
   display: block;
   margin-bottom: 3px;
   color: var(--ink);
+}
+
+.skill-detail-fields .source-field {
+  grid-column: 1 / -1;
+}
+
+.modal-dialog {
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(820px, calc(100vh - 48px));
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.modal-dialog::backdrop {
+  background: rgba(24, 33, 29, 0.32);
+  backdrop-filter: blur(3px);
+}
+
+.modal-panel {
+  max-height: min(820px, calc(100vh - 48px));
+  overflow: auto;
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.modal-header h3 {
+  margin-bottom: 0;
+  font-size: 24px;
 }
 
 .rewrite-item {
@@ -1396,6 +1455,7 @@ ol {
 
   .workflow-step {
     grid-template-columns: 30px 1fr;
+    min-height: auto;
     padding: 9px;
   }
 
@@ -1423,6 +1483,7 @@ ol {
   }
 
   .score-ring span {
+    bottom: 13%;
     font-size: 11px;
   }
 
@@ -1442,6 +1503,20 @@ ol {
 
   .admin-panel {
     padding: 14px;
+  }
+
+  .admin-heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .modal-dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .modal-panel {
+    max-height: calc(100vh - 24px);
   }
 
   .job-detail-page {

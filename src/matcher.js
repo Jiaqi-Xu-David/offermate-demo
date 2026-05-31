@@ -463,14 +463,16 @@ export function getSkillMatchDetails(profile, job) {
     const jdRequirement = getJobRequirement(job, skill);
     const resumeEvidence =
       evidence.count > 0
-        ? `项目/技能区出现 ${evidence.count} 次${evidence.sources?.length ? `，来源：${evidence.sources.join('、')}` : ''}`
+        ? `项目/技能区出现 ${evidence.count} 次`
         : '未在简历中出现';
+    const sourceText = evidence.sources?.length ? evidence.sources.join('、') : '暂无明确来源';
 
     return {
       name: skill,
       jdRequirement,
       resumeLevel: evidence.level,
       resumeEvidence,
+      sourceText,
       score: scoreSkillDetail(jdRequirement, evidence.level, evidence.count),
       max: 10,
     };
@@ -558,7 +560,7 @@ function scoreSoftSkillDimension(profile, job) {
     detail:
       matchedSkills.length > 0
         ? `${matchedSkills.length}/${details.length} 项软技能有简历或活动证据`
-        : '软技能证据不足，需要补充活动或协作经历',
+        : '可补充活动或协作经历来体现软技能',
   };
 }
 
@@ -617,7 +619,7 @@ export function getScoreBreakdown(profile, job) {
       label: '硬技能匹配',
       points: skillScore,
       max: 50,
-      detail: `${matchedTags.length}/${tagCount} 个核心能力覆盖，分项证据 ${skillRawScore}/${skillMaxScore}`,
+      detail: `${matchedTags.length}/${tagCount} 个核心能力覆盖，分项证据 ${skillRawScore} 分`,
     },
     {
       label: '软技能匹配',
@@ -647,7 +649,7 @@ export function getScoreBreakdown(profile, job) {
       label: '兴趣方向',
       points: interestScore,
       max: 10,
-      detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '行业/方向兴趣证据较弱',
+      detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '兴趣方向暂未与岗位加分项形成明显交集',
     },
   ];
 }
@@ -656,7 +658,7 @@ export function buildScoreExplanation(profile, job) {
   const breakdown = getScoreBreakdown(profile, job);
   const total = breakdown.reduce((sum, item) => sum + item.points, 0);
   const formula = `总分 ${total} = ${breakdown
-    .map((item) => `${item.label} ${item.points}/${item.max}`)
+    .map((item) => `${item.label} ${item.points}`)
     .join(' + ')}`;
 
   return {
@@ -690,7 +692,7 @@ export function analyzeJobFit(profile, job) {
       cityMatch ? `地点偏好包含 ${job.city}` : `地点 ${job.city} 不在当前偏好中`,
       matchedNiceToHave.length > 0
         ? `兴趣方向与 ${matchedNiceToHave.join('、')} 有交集`
-        : '行业兴趣证据较弱',
+        : '兴趣方向暂未与岗位加分项形成明显交集',
     ],
   };
 }

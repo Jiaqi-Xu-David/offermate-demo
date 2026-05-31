@@ -56,7 +56,6 @@ const elements = {
   adminMode: document.querySelector('#admin-mode'),
   companySubtitle: document.querySelector('#company-subtitle'),
   companyName: document.querySelector('#company-name'),
-  avatarInitial: document.querySelector('#avatar-initial'),
   studentName: document.querySelector('#student-name'),
   studentHeadline: document.querySelector('#student-headline'),
   studentMeta: document.querySelector('#student-meta'),
@@ -69,6 +68,9 @@ const elements = {
   softSkillList: document.querySelector('#soft-skill-list'),
   jobCount: document.querySelector('#job-count'),
   jobList: document.querySelector('#job-list'),
+  openAdminModal: document.querySelector('#open-admin-modal'),
+  closeAdminModal: document.querySelector('#close-admin-modal'),
+  adminDialog: document.querySelector('#admin-job-dialog'),
   adminForm: document.querySelector('#admin-form'),
   adminTitle: document.querySelector('#admin-title'),
   adminCity: document.querySelector('#admin-city'),
@@ -114,8 +116,9 @@ function renderTags(container, tags, variant = '') {
   );
 }
 
-function createLabelValue(tagName, labelText, valueText) {
+function createLabelValue(tagName, labelText, valueText, className = '') {
   const item = document.createElement(tagName);
+  if (className) item.className = className;
   const label = document.createElement('strong');
   label.textContent = labelText;
   item.append(label, document.createTextNode(valueText));
@@ -137,8 +140,14 @@ function renderWorkflowSummary() {
       const body = document.createElement('div');
       const label = document.createElement('strong');
       label.textContent = step.label;
-      const value = document.createElement('p');
-      value.textContent = step.value;
+      const value = document.createElement('div');
+      value.className = 'workflow-value';
+      step.value.split(' · ').forEach((line) => {
+        const lineNode = document.createElement('span');
+        lineNode.className = 'workflow-line';
+        lineNode.textContent = line;
+        value.append(lineNode);
+      });
       body.append(label, value);
 
       item.append(indexNode, body);
@@ -226,7 +235,6 @@ function renderProfile() {
   elements.adminMode.setAttribute('aria-selected', String(state.mode === 'admin'));
   elements.companySubtitle.textContent = `${COMPANY.name} · ${COMPANY.subtitle}`;
   elements.companyName.textContent = COMPANY.name;
-  elements.avatarInitial.textContent = state.profile.name.slice(0, 1);
   elements.studentName.textContent = state.profile.name;
   elements.studentHeadline.textContent = state.profile.headline;
   elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${(state.profile.cityPreferences ?? []).join(' / ')}`;
@@ -366,7 +374,7 @@ function renderScoreBreakdown(profile, job) {
       const label = document.createElement('strong');
       label.textContent = item.label;
       const score = document.createElement('span');
-      score.textContent = `${item.points}/${item.max}`;
+      score.textContent = item.points;
       header.append(label, score);
 
       const bar = document.createElement('div');
@@ -397,17 +405,19 @@ function renderScoreBreakdown(profile, job) {
       const name = document.createElement('strong');
       name.textContent = detail.name;
       const score = document.createElement('span');
-      score.textContent = `${detail.score}/${detail.max}`;
+      score.textContent = detail.score;
       title.append(name, score);
 
       const fields = document.createElement('div');
       fields.className = 'skill-detail-fields';
-      [
+      const fieldRows = [
         ['JD要求', detail.jdRequirement],
         ['简历体现', detail.resumeLevel],
         ['证据', detail.resumeEvidence],
-      ].forEach(([labelText, valueText]) => {
-        fields.append(createLabelValue('p', labelText, valueText));
+        ['来源', detail.sourceText],
+      ];
+      fieldRows.forEach(([labelText, valueText]) => {
+        fields.append(createLabelValue('p', labelText, valueText, labelText === '来源' ? 'source-field' : ''));
       });
 
       row.append(title, fields);
@@ -430,7 +440,7 @@ function renderScoreBreakdown(profile, job) {
       fields.className = 'skill-detail-fields soft-skill-fields';
       [
         ['JD要求', detail.jdRequirement],
-        ['匹配结论', detail.matched ? '简历中有对应体现' : '简历证据不足'],
+        ['匹配结论', detail.matched ? '简历中有对应体现' : '简历中暂未看到对应体现'],
         ['证据', detail.resumeEvidence],
       ].forEach(([labelText, valueText]) => {
         fields.append(createLabelValue('p', labelText, valueText));
@@ -592,6 +602,24 @@ elements.generateSnippet.addEventListener('click', () => {
   window.setTimeout(() => elements.tailoredSnippet.classList.remove('pulse'), 500);
 });
 
+elements.openAdminModal.addEventListener('click', () => {
+  if (typeof elements.adminDialog.showModal === 'function') {
+    elements.adminDialog.showModal();
+    return;
+  }
+  elements.adminDialog.setAttribute('open', '');
+});
+
+elements.closeAdminModal.addEventListener('click', () => {
+  elements.adminDialog.close();
+});
+
+elements.adminDialog.addEventListener('click', (event) => {
+  if (event.target === elements.adminDialog) {
+    elements.adminDialog.close();
+  }
+});
+
 elements.adminForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const newJob = analyzeJobDescription({
@@ -604,6 +632,7 @@ elements.adminForm.addEventListener('submit', (event) => {
   state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}；薪资：${newJob.salary}。`;
   saveAdminJobs(state.jobs);
   render();
+  elements.adminDialog.close();
 });
 
 renderResumeDocument();

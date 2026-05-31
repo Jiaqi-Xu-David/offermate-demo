@@ -33,13 +33,7 @@
         <aside class="profile-panel" aria-label="学生画像">
           <div class="avatar-card">
             <div class="avatar-visual" aria-hidden="true">
-              <span id="avatar-initial">大</span>
-              <svg viewBox="0 0 160 90" role="img" aria-label="求职路径图">
-                <path d="M12 70 C38 18, 70 42, 92 28 S130 24, 148 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
-                <circle cx="12" cy="70" r="6"/>
-                <circle cx="92" cy="28" r="6"/>
-                <circle cx="148" cy="10" r="6"/>
-              </svg>
+              <img src="./assets/avatar-davide.jpeg" alt="大卫德头像">
             </div>
             <div>
               <h2 id="student-name"></h2>
@@ -181,32 +175,12 @@
               <p class="eyebrow">岗位管理</p>
               <h2>岗位 JD 与能力标签</h2>
             </div>
-            <span id="admin-job-count"></span>
+            <div class="admin-heading-actions">
+              <span id="admin-job-count"></span>
+              <button id="open-admin-modal" class="secondary-button compact-button" type="button">新增岗位</button>
+            </div>
           </div>
           <div id="admin-job-list" class="admin-job-list"></div>
-
-          <form id="admin-form" class="admin-panel" aria-label="管理员添加岗位">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">新增岗位</p>
-                <h3>添加岗位 JD</h3>
-              </div>
-              <button class="secondary-button compact-button" type="submit">分析并添加</button>
-            </div>
-            <label>
-              岗位名称
-              <input id="admin-title" type="text" value="增长运营实习生">
-            </label>
-            <label>
-              工作地点
-              <input id="admin-city" type="text" value="上海">
-            </label>
-            <label>
-              岗位描述
-              <textarea id="admin-description" rows="6">薪资：180-230元/天。负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。软技能要求跨部门沟通、项目推进；语言要求英语 CET-4。</textarea>
-            </label>
-            <p id="admin-result" class="admin-result">粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。</p>
-          </form>
         </section>
 
         <section class="job-panel" aria-label="候选人提交">
@@ -247,6 +221,32 @@
         </section>
       </section>
     </main>
+
+    <dialog id="admin-job-dialog" class="modal-dialog" aria-labelledby="admin-dialog-title">
+      <form id="admin-form" class="admin-panel modal-panel" aria-label="管理员添加岗位">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">新增岗位</p>
+            <h3 id="admin-dialog-title">添加岗位 JD</h3>
+          </div>
+          <button id="close-admin-modal" class="secondary-button compact-button" type="button">关闭</button>
+        </div>
+        <label>
+          岗位名称
+          <input id="admin-title" type="text" value="增长运营实习生">
+        </label>
+        <label>
+          工作地点
+          <input id="admin-city" type="text" value="上海">
+        </label>
+        <label>
+          岗位描述
+          <textarea id="admin-description" rows="6">薪资：180-230元/天。负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。软技能要求跨部门沟通、项目推进；语言要求英语 CET-4。</textarea>
+        </label>
+        <p id="admin-result" class="admin-result">粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。</p>
+        <button class="primary-button" type="submit">分析并添加</button>
+      </form>
+    </dialog>
 
     <script type="module" src="./src/app.js"></script>
   </body>

@@ -77,6 +77,9 @@ test('uses the final demo branding in static pages', async () => {
   const jobHtml = await readFile(new URL('../job.html', import.meta.url), 'utf8');
 
   assert.ok(indexHtml.includes('@大卫德哈哈哈'));
+  assert.ok(indexHtml.includes('./assets/avatar-davide.jpeg'));
+  assert.ok(indexHtml.includes('id="open-admin-modal"'));
+  assert.ok(indexHtml.includes('id="admin-job-dialog"'));
   assert.match(indexHtml, />\s*demo\s*</);
   assert.ok(!indexHtml.includes('许家齐'));
   assert.ok(!indexHtml.includes('同公司多岗位 Demo'));
@@ -180,9 +183,27 @@ test('explains individual skill scoring with JD requirement and resume evidence'
   assert.equal(python.resumeLevel, '高级');
   assert.equal(python.score, 10);
   assert.ok(tableau.resumeEvidence.includes('项目/技能区出现'));
+  assert.ok(tableau.sourceText.includes('技能区'));
+  assert.ok(tableau.sourceText.includes('项目/经历'));
   assert.ok(explanation.formula.includes('硬技能匹配'));
   assert.ok(explanation.formula.includes('软技能匹配'));
+  assert.ok(!explanation.formula.includes('/50'));
+  assert.ok(!explanation.formula.includes('/10'));
   assert.equal(explanation.skillDetails.length, targetJob.tags.length);
+});
+
+test('uses gentler match language without weak-evidence wording', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const analysis = analyzeJobFit(STUDENT_PROFILE, targetJob);
+  const explanation = buildScoreExplanation(STUDENT_PROFILE, targetJob);
+  const combinedText = [
+    ...analysis.reasons,
+    ...explanation.breakdown.map((item) => item.detail),
+  ].join(' ');
+
+  assert.ok(!combinedText.includes('证据较弱'));
+  assert.ok(!combinedText.includes('证据不足'));
+  assert.ok(!combinedText.includes('分项证据 50/50'));
 });
 
 test('explains soft skill matches with resume and activity evidence', () => {
