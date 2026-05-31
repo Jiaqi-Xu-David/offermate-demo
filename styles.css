@@ -463,6 +463,10 @@ textarea:focus {
   margin-top: 18px;
 }
 
+.profile-meta-grid + .profile-block {
+  margin-top: 18px;
+}
+
 .profile-block h3 {
   margin-bottom: 10px;
 }

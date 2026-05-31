@@ -119,6 +119,7 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
 
   assert.match(css, /\.resume-section\s*\{[\s\S]*gap: 6px/);
   assert.match(css, /\.resume-skill-row \+ \.resume-skill-row\s*\{[\s\S]*margin-top: 0/);
+  assert.match(css, /\.profile-meta-grid \+ \.profile-block\s*\{[\s\S]*margin-top: 18px/);
   assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
   assert.match(css, /\.job-detail-main > \.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
 });
