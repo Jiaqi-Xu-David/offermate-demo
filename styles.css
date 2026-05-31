@@ -216,6 +216,7 @@ h3 {
   min-width: 0;
   max-height: calc(100vh - 158px);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dashboard-page .profile-panel,
@@ -1206,17 +1207,75 @@ ol {
 }
 
 @media (max-width: 760px) {
+  body.dashboard-page {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
   .app-shell {
-    padding: 16px;
+    padding: 14px;
+  }
+
+  .dashboard-page .app-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .topbar {
+    gap: 12px;
+    min-height: auto;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    overflow: visible;
+  }
+
+  .brand-title-row {
+    gap: 8px;
+  }
+
+  h1 {
+    margin-bottom: 0;
+    font-size: 34px;
+  }
+
+  h2 {
+    font-size: 21px;
+  }
+
+  h3 {
+    font-size: 15px;
   }
 
   .topbar,
   .top-actions,
-  .score-card,
   .job-detail-hero,
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .mode-switch {
+    width: 100%;
+  }
+
+  .mode-button {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .status-pill {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    white-space: normal;
   }
 
   .workspace,
@@ -1232,12 +1291,31 @@ ol {
     grid-template-columns: 1fr;
   }
 
-  .workspace,
-  .profile-panel,
-  .job-panel,
-  .insight-panel {
+  .dashboard-page .workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     min-height: auto;
+    overflow: visible;
+  }
+
+  .dashboard-page .profile-panel,
+  .dashboard-page .job-panel,
+  .dashboard-page .insight-panel {
     max-height: none;
+    overflow: visible;
+  }
+
+  .student-workspace .job-panel {
+    order: 1;
+  }
+
+  .student-workspace .profile-panel {
+    order: 2;
+  }
+
+  .student-workspace .insight-panel {
+    order: 3;
   }
 
   .avatar-card,
@@ -1245,8 +1323,154 @@ ol {
     grid-template-columns: 1fr;
   }
 
-  .status-pill {
-    white-space: normal;
+  .profile-panel,
+  .job-panel,
+  .workflow-card,
+  .analysis-grid,
+  .advice-card,
+  .insight-panel > .score-card,
+  .detail-card,
+  .detail-description,
+  .job-detail-hero {
+    box-shadow: 0 8px 22px rgba(24, 33, 29, 0.07);
+  }
+
+  .profile-panel,
+  .job-panel,
+  .advice-card,
+  .workflow-card,
+  .analysis-grid,
+  .detail-card {
+    padding: 14px;
+  }
+
+  .avatar-card {
+    display: flex;
+    gap: 12px;
+  }
+
+  .avatar-visual {
+    width: 72px;
+    height: 72px;
+    flex: 0 0 auto;
+  }
+
+  .avatar-visual svg {
+    width: 104px;
+    height: 58px;
+  }
+
+  .resume-document {
+    max-height: 280px;
+    padding: 14px;
+  }
+
+  .resume-header h2 {
+    font-size: 24px;
+  }
+
+  .job-card {
+    min-height: auto;
+    padding: 12px;
+  }
+
+  .job-title-row {
+    align-items: flex-start;
+  }
+
+  .job-description {
+    -webkit-line-clamp: 2;
+  }
+
+  .mini-score {
+    width: 46px;
+    height: 46px;
+    font-size: 14px;
+  }
+
+  .job-card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .workflow-step {
+    grid-template-columns: 30px 1fr;
+    padding: 9px;
+  }
+
+  .workflow-index {
+    width: 30px;
+    height: 30px;
+  }
+
+  .score-card {
+    padding: 16px;
+  }
+
+  .student-insight-panel .score-card {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .score-ring {
+    width: 84px;
+    height: 84px;
+  }
+
+  .score-ring strong {
+    font-size: 24px;
+  }
+
+  .score-ring span {
+    font-size: 11px;
+  }
+
+  .breakdown-list {
+    gap: 12px;
+  }
+
+  .skill-detail-row {
+    padding: 10px;
+  }
+
+  .snippet-box,
+  .after,
+  .score-formula {
+    padding: 12px;
+  }
+
+  .admin-panel {
+    padding: 14px;
+  }
+
+  .job-detail-page {
+    max-width: 100%;
+  }
+
+  .job-detail-topbar {
+    margin-bottom: 12px;
+  }
+
+  .job-detail-hero {
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 18px;
+  }
+
+  .job-detail-hero h2 {
+    font-size: 30px;
+  }
+
+  .job-detail-layout,
+  .job-detail-main,
+  .job-detail-side {
+    gap: 14px;
+  }
+
+  .detail-description {
+    padding: 14px;
+    line-height: 1.7;
   }
 
   .creator-watermark {

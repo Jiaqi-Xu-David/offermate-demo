@@ -85,6 +85,17 @@ test('uses the final demo branding in static pages', async () => {
   assert.ok(!jobHtml.includes('星河科技'));
 });
 
+test('defines a mobile-first dashboard reading flow', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*body\.dashboard-page[\s\S]*overflow: auto/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.dashboard-page \.app-shell[\s\S]*height: auto/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.dashboard-page \.workspace[\s\S]*display: flex/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.job-panel[\s\S]*order: 1/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.profile-panel[\s\S]*order: 2/);
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.student-workspace \.insight-panel[\s\S]*order: 3/);
+});
+
 test('grounds every seeded job in a complete job description', () => {
   assert.ok(JOBS.every((job) => job.description.length > 80));
   assert.ok(JOBS.every((job) => job.tags.length >= 4));
