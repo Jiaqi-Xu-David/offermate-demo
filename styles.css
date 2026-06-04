@@ -229,7 +229,6 @@ h3 {
 .profile-panel,
 .job-panel,
 .insight-panel > .score-card,
-.workflow-card,
 .analysis-grid,
 .advice-card {
   border: 1px solid var(--line);
@@ -980,63 +979,23 @@ a.admin-job-item:focus-visible {
 }
 
 .score-card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.score-summary-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px;
 }
 
-.workflow-card {
-  padding: 16px;
-}
-
-.workflow-steps {
+.score-explainer {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.workflow-step {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 10px;
-  min-width: 0;
-  min-height: 112px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--panel-strong);
-}
-
-.workflow-index {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(30, 124, 100, 0.12);
-  color: var(--brand-dark);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.workflow-step strong {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-}
-
-.workflow-value {
-  display: grid;
-  gap: 3px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.workflow-line {
-  display: block;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
 }
 
 .score-ring {
@@ -1091,41 +1050,71 @@ a.admin-job-item:focus-visible {
 
 .match-heatmap {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
-.heatmap-cell {
+.heatmap-row {
   display: grid;
-  gap: 6px;
-  min-height: 112px;
-  border: 1px solid rgba(30, 124, 100, 0.16);
+  grid-template-columns: minmax(78px, 0.8fr) minmax(110px, 1.4fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(30, 124, 100, calc(var(--heat) / 140)),
-    rgba(232, 241, 251, 0.82)
-  );
+  padding: 10px 12px;
+  background: var(--panel-strong);
   color: var(--ink);
   text-align: left;
 }
 
-.heatmap-cell strong,
-.heatmap-cell span {
+.heatmap-row strong,
+.heatmap-score {
   color: var(--brand-dark);
+  font-size: 13px;
   font-weight: 850;
 }
 
-.heatmap-cell p {
+.heatmap-row em {
+  min-width: 54px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  text-align: right;
+}
+
+.heatmap-row p {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
 }
 
-.heatmap-cell.active-evidence {
-  outline: 3px solid rgba(30, 124, 100, 0.22);
+.heatmap-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eee9;
+}
+
+.heatmap-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+}
+
+.heat-low .heatmap-meter span {
+  background: var(--accent);
+}
+
+.heat-medium .heatmap-meter span {
+  background: #2e6fae;
+}
+
+.heatmap-row.active-evidence {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(30, 124, 100, 0.12);
 }
 
 .composite-list {
@@ -1178,7 +1167,7 @@ ol {
 }
 
 .score-formula {
-  margin-bottom: 14px;
+  margin-bottom: 0;
   border: 1px solid rgba(46, 111, 174, 0.22);
   border-radius: 8px;
   padding: 10px 12px;
@@ -1194,7 +1183,7 @@ ol {
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 0;
   border: 1px solid rgba(30, 124, 100, 0.18);
   border-radius: 8px;
   padding: 10px 12px;
@@ -1218,7 +1207,7 @@ ol {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .evidence-link-panel > div {
@@ -1436,32 +1425,6 @@ ol {
   box-shadow: 0 12px 28px rgba(46, 111, 174, 0.18);
 }
 
-.report-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.report-item {
-  display: grid;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--panel-strong);
-}
-
-.report-item span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.report-item strong {
-  font-size: 13px;
-  line-height: 1.45;
-}
-
 .nav-link-button {
   display: inline-flex;
   align-items: center;
@@ -1597,9 +1560,6 @@ ol {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .workflow-steps {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1677,13 +1637,11 @@ ol {
   .workspace,
   .admin-workspace,
   .analysis-grid,
-  .report-grid,
   .breakdown-list,
   .admin-breakdown-list,
   .match-heatmap,
   .evidence-link-panel,
   .confidence-panel,
-  .workflow-steps,
   .detail-analysis-grid,
   .job-requirement-grid,
   .admin-job-detail-grid,
@@ -1725,7 +1683,6 @@ ol {
 
   .profile-panel,
   .job-panel,
-  .workflow-card,
   .analysis-grid,
   .advice-card,
   .insight-panel > .score-card,
@@ -1738,7 +1695,6 @@ ol {
   .profile-panel,
   .job-panel,
   .advice-card,
-  .workflow-card,
   .analysis-grid,
   .detail-card {
     padding: 14px;
@@ -1794,22 +1750,11 @@ ol {
     gap: 8px;
   }
 
-  .workflow-step {
-    grid-template-columns: 30px 1fr;
-    min-height: auto;
-    padding: 9px;
-  }
-
-  .workflow-index {
-    width: 30px;
-    height: 30px;
-  }
-
   .score-card {
     padding: 16px;
   }
 
-  .student-insight-panel .score-card {
+  .score-summary-row {
     align-items: center;
     flex-direction: row;
   }

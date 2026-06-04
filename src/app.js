@@ -16,7 +16,6 @@ import {
   buildPotentialAnalysis,
   buildResumeAdvice,
   buildScoreExplanation,
-  buildStudentWorkflowSummary,
   buildTeamComplement,
   buildTailoredResumeSnippet,
   enrichJob,
@@ -102,8 +101,6 @@ const elements = {
   routingRecommendation: document.querySelector('#routing-recommendation'),
   suggestedJobList: document.querySelector('#suggested-job-list'),
   interviewQuestionList: document.querySelector('#interview-question-list'),
-  workflowBestFit: document.querySelector('#workflow-best-fit'),
-  workflowSteps: document.querySelector('#workflow-steps'),
   selectedJobTitle: document.querySelector('#selected-job-title'),
   selectedJobMeta: document.querySelector('#selected-job-meta'),
   scoreRing: document.querySelector('#score-ring'),
@@ -122,8 +119,6 @@ const elements = {
   rewriteList: document.querySelector('#rewrite-list'),
   generateSnippet: document.querySelector('#generate-snippet'),
   tailoredSnippet: document.querySelector('#tailored-snippet'),
-  nextActions: document.querySelector('#next-actions'),
-  finalReport: document.querySelector('#final-report'),
 };
 
 function renderTags(container, tags, variant = '') {
@@ -144,37 +139,6 @@ function createLabelValue(tagName, labelText, valueText, className = '') {
   label.textContent = labelText;
   item.append(label, document.createTextNode(valueText));
   return item;
-}
-
-function renderWorkflowSummary() {
-  const summary = buildStudentWorkflowSummary(state.profile, state.jobs);
-  elements.workflowBestFit.textContent = `推荐结果：${summary.bestFit}`;
-  elements.workflowSteps.replaceChildren(
-    ...summary.steps.map((step, index) => {
-      const item = document.createElement('div');
-      item.className = 'workflow-step';
-
-      const indexNode = document.createElement('span');
-      indexNode.className = 'workflow-index';
-      indexNode.textContent = String(index + 1).padStart(2, '0');
-
-      const body = document.createElement('div');
-      const label = document.createElement('strong');
-      label.textContent = step.label;
-      const value = document.createElement('div');
-      value.className = 'workflow-value';
-      step.value.split(' · ').forEach((line) => {
-        const lineNode = document.createElement('span');
-        lineNode.className = 'workflow-line';
-        lineNode.textContent = line;
-        value.append(lineNode);
-      });
-      body.append(label, value);
-
-      item.append(indexNode, body);
-      return item;
-    }),
-  );
 }
 
 function renderPotentialAnalysis() {
@@ -493,16 +457,23 @@ function renderMatchHeatmap(profile, job) {
     ...heatmap.map((item) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `heatmap-cell heat-${item.level}`;
+      button.className = `heatmap-row heat-${item.levelKey}`;
       button.dataset.evidenceFocus = item.label;
-      button.style.setProperty('--heat', item.intensity);
       const label = document.createElement('strong');
       label.textContent = item.label;
       const score = document.createElement('span');
-      score.textContent = `${item.intensity}% · ${item.level}`;
+      score.className = 'heatmap-score';
+      score.textContent = `${item.points}/${item.max}`;
+      const meter = document.createElement('div');
+      meter.className = 'heatmap-meter';
+      const fill = document.createElement('span');
+      fill.style.width = `${item.intensity}%`;
+      meter.append(fill);
+      const level = document.createElement('em');
+      level.textContent = item.level;
       const detail = document.createElement('p');
       detail.textContent = item.detail;
-      button.append(label, score, detail);
+      button.append(label, meter, score, level, detail);
       button.addEventListener('click', () => updateEvidenceTrace(profile, job, item.label));
       return button;
     }),
@@ -651,7 +622,6 @@ function renderJobs() {
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
   elements.jobList.replaceChildren(...state.rankings.map(createJobCard));
   elements.adminResult.textContent = state.adminResult;
-  renderWorkflowSummary();
 }
 
 function renderAdminJobs() {
@@ -737,29 +707,6 @@ function renderAdminInsight() {
   );
 }
 
-function renderFinalReport(analysis, selectedJob) {
-  const topJob = state.rankings[0];
-  const reportItems = [
-    ['最适合岗位', topJob ? `${topJob.job.title} (${topJob.score}分)` : selectedJob.title],
-    ['当前投递建议', `${analysis.level}：${analysis.score >= 80 ? '优先投递并准备面试讲述' : analysis.score >= 65 ? '补强关键词后投递' : '先补项目证据再投递'}`],
-    ['主要短板', analysis.gaps.length ? analysis.gaps.join('、') : '暂无明显关键词缺口'],
-    ['面试准备', `围绕 ${selectedJob.responsibilities.slice(0, 2).join('、')} 准备 2 个项目故事`],
-  ];
-
-  elements.finalReport.replaceChildren(
-    ...reportItems.map(([label, value]) => {
-      const item = document.createElement('div');
-      item.className = 'report-item';
-      const title = document.createElement('span');
-      title.textContent = label;
-      const body = document.createElement('strong');
-      body.textContent = value;
-      item.append(title, body);
-      return item;
-    }),
-  );
-}
-
 function renderAnalysis() {
   const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
   state.selectedJobId = selectedJob.id;
@@ -768,7 +715,7 @@ function renderAnalysis() {
   const snippet = buildTailoredResumeSnippet(state.profile, selectedJob);
 
   elements.selectedJobTitle.textContent = `${selectedJob.title} · ${selectedJob.company}`;
-  elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary} · ${(selectedJob.languageRequirements ?? []).join('、') || '语言待补充'}`;
+  elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
   elements.reasonList.replaceChildren(
@@ -778,7 +725,7 @@ function renderAnalysis() {
       return item;
     }),
   );
-  renderTags(elements.gapList, analysis.gaps.length ? analysis.gaps : ['暂无明显关键词缺口'], analysis.gaps.length ? 'gap' : '');
+  renderTags(elements.gapList, analysis.gaps.length ? analysis.gaps : ['核心技能已覆盖'], analysis.gaps.length ? 'gap' : '');
   renderMatchHeatmap(state.profile, selectedJob);
   renderCompositeCapabilities(state.profile, selectedJob);
   renderScoreBreakdown(state.profile, selectedJob);
@@ -800,14 +747,6 @@ function renderAnalysis() {
     }),
   );
   elements.tailoredSnippet.textContent = snippet;
-  elements.nextActions.replaceChildren(
-    ...advice.nextActions.map((action) => {
-      const item = document.createElement('li');
-      item.textContent = action;
-      return item;
-    }),
-  );
-  renderFinalReport(analysis, selectedJob);
 }
 
 function render() {

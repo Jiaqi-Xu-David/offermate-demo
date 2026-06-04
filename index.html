@@ -96,33 +96,47 @@
         </section>
 
         <section class="insight-panel student-insight-panel" aria-label="匹配分析">
-          <div class="workflow-card">
-            <div class="section-heading compact">
+          <div class="score-card">
+            <div class="score-summary-row">
               <div>
-                <p class="eyebrow">匹配流程</p>
-                <h3 id="workflow-best-fit"></h3>
+                <p class="eyebrow">当前推荐岗位分析</p>
+                <h2 id="selected-job-title"></h2>
+                <p id="selected-job-meta" class="selected-job-meta"></p>
+              </div>
+              <div class="score-ring" id="score-ring">
+                <strong id="score-value"></strong>
+                <span>匹配分</span>
               </div>
             </div>
-            <div id="workflow-steps" class="workflow-steps"></div>
-          </div>
-
-          <div class="score-card">
-            <div>
-              <p class="eyebrow">当前推荐岗位分析</p>
-              <h2 id="selected-job-title"></h2>
-              <p id="selected-job-meta" class="selected-job-meta"></p>
-            </div>
-            <div class="score-ring" id="score-ring">
-              <strong id="score-value"></strong>
-              <span>匹配分</span>
+            <div class="score-explainer">
+              <div class="section-heading compact">
+                <div>
+                  <p class="eyebrow">评分依据</p>
+                  <h3>维度拆解与证据</h3>
+                </div>
+              </div>
+              <p id="score-formula" class="score-formula"></p>
+              <div id="score-breakdown" class="breakdown-list"></div>
+              <div id="confidence-panel" class="confidence-panel"></div>
+              <div class="evidence-link-panel">
+                <div>
+                  <p class="eyebrow">岗位要求</p>
+                  <p id="evidence-jd" class="evidence-text"></p>
+                </div>
+                <div>
+                  <p class="eyebrow">简历证据</p>
+                  <p id="evidence-resume" class="evidence-text"></p>
+                </div>
+              </div>
+              <div id="skill-detail-list" class="skill-detail-list"></div>
             </div>
           </div>
 
           <div class="advice-card heatmap-card">
             <div class="section-heading compact">
               <div>
-                <p class="eyebrow">匹配度热力仪表盘</p>
-                <h3>六维匹配强弱</h3>
+                <p class="eyebrow">匹配维度概览</p>
+                <h3>各维度贡献</h3>
               </div>
             </div>
             <div id="match-heatmap" class="match-heatmap"></div>
@@ -152,29 +166,6 @@
           <div class="advice-card">
             <div class="section-heading compact">
               <div>
-                <p class="eyebrow">可解释评分</p>
-                <h3>评分维度拆解</h3>
-              </div>
-            </div>
-            <p id="score-formula" class="score-formula"></p>
-            <div id="score-breakdown" class="breakdown-list"></div>
-            <div id="confidence-panel" class="confidence-panel"></div>
-            <div class="evidence-link-panel">
-              <div>
-                <p class="eyebrow">岗位要求</p>
-                <p id="evidence-jd" class="evidence-text"></p>
-              </div>
-              <div>
-                <p class="eyebrow">简历证据</p>
-                <p id="evidence-resume" class="evidence-text"></p>
-              </div>
-            </div>
-            <div id="skill-detail-list" class="skill-detail-list"></div>
-          </div>
-
-          <div class="advice-card">
-            <div class="section-heading compact">
-              <div>
                 <p class="eyebrow">简历优化</p>
                 <h3 id="screening-signal"></h3>
               </div>
@@ -191,16 +182,6 @@
               <button id="generate-snippet" class="secondary-button compact-button" type="button">生成片段</button>
             </div>
             <p id="tailored-snippet" class="snippet-box"></p>
-          </div>
-
-          <div class="advice-card">
-            <h3>下一步动作</h3>
-            <ol id="next-actions"></ol>
-          </div>
-
-          <div class="advice-card">
-            <h3>求职建议报告</h3>
-            <div id="final-report" class="report-grid"></div>
           </div>
         </section>
       </section>

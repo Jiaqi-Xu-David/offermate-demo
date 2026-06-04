@@ -531,31 +531,31 @@ function scoreEvidenceConfidence(evidence) {
   if (sources.includes('项目/经历') && evidence.count >= 2) {
     return {
       confidence: 1,
-      confidenceLabel: '高置信',
-      confidenceReason: '技能标签与项目经历形成多点证据链',
+      confidenceLabel: '证据充分',
+      confidenceReason: '技能标签和项目经历能够相互印证',
       adjusted: false,
     };
   }
   if (sources.includes('项目/经历')) {
     return {
       confidence: 0.9,
-      confidenceLabel: '中高置信',
-      confidenceReason: '有项目经历支撑，但出现次数较少',
+      confidenceLabel: '有经历支撑',
+      confidenceReason: '已有项目经历支撑，建议进一步补充量化结果',
       adjusted: true,
     };
   }
   if (sources.includes('技能区') || sources.includes('技能标签')) {
     return {
       confidence: 0.72,
-      confidenceLabel: '标签置信',
-      confidenceReason: '主要停留在技能标签，缺少上下文闭环，已做权重衰减',
+      confidenceLabel: '需补充项目证据',
+      confidenceReason: '目前主要来自技能标签，建议补充具体项目场景；该项评分已适度下调',
       adjusted: true,
     };
   }
   return {
     confidence: 0.6,
-    confidenceLabel: '低置信',
-    confidenceReason: '仅在简历文本中孤立出现，建议补充项目上下文',
+    confidenceLabel: '证据有限',
+    confidenceReason: '简历中缺少可定位的项目场景，建议补充任务和结果',
     adjusted: true,
   };
 }
@@ -569,7 +569,7 @@ export function getSkillMatchDetails(profile, job) {
     const score = Math.round(baseScore * confidence.confidence);
     const resumeEvidence =
       evidence.count > 0
-        ? `项目/技能区出现 ${evidence.count} 次`
+        ? `简历中定位到 ${evidence.count} 处相关证据`
         : '未在简历中出现';
     const sourceText = evidence.sources?.length ? evidence.sources.join('、') : '暂无明确来源';
 
@@ -667,8 +667,8 @@ function scoreSoftSkillDimension(profile, job) {
     matchedSkills,
     detail:
       matchedSkills.length > 0
-        ? `${matchedSkills.length}/${details.length} 项软技能有简历或活动证据`
-        : '可补充活动或协作经历来体现软技能',
+        ? `${matchedSkills.length}/${details.length} 项软技能可由简历经历支撑`
+        : '建议补充协作、表达或项目推进相关经历',
   };
 }
 
@@ -691,7 +691,7 @@ function scoreLanguageDimension(profile, job) {
     return {
       points: 5,
       matchedLanguages: [],
-      detail: 'JD 未列出语言硬性要求',
+      detail: '岗位未设置语言硬性门槛',
     };
   }
 
@@ -704,8 +704,8 @@ function scoreLanguageDimension(profile, job) {
     matchedLanguages,
     detail:
       matchedLanguages.length > 0
-        ? `满足 ${matchedLanguages.join('、')}`
-        : `简历未体现 ${requirements.join('、')}`,
+        ? '语言能力满足岗位要求'
+        : '语言能力与岗位要求仍有差距',
   };
 }
 
@@ -727,7 +727,7 @@ export function getScoreBreakdown(profile, job) {
       label: '硬技能匹配',
       points: skillScore,
       max: 50,
-      detail: `${matchedTags.length}/${tagCount} 个核心能力覆盖，分项证据 ${skillRawScore} 分`,
+      detail: `${matchedTags.length}/${tagCount} 个核心能力被简历覆盖；技能分项得分 ${skillRawScore}`,
     },
     {
       label: '软技能匹配',
@@ -757,7 +757,7 @@ export function getScoreBreakdown(profile, job) {
       label: '兴趣方向',
       points: interestScore,
       max: 10,
-      detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '兴趣方向暂未与岗位加分项形成明显交集',
+      detail: matchedNiceToHave.length > 0 ? `关联 ${matchedNiceToHave.join('、')}` : '加分方向尚未在求职偏好中体现',
     },
   ];
 }
@@ -791,7 +791,7 @@ export function buildEvidenceConfidenceSummary(profile, job) {
     averageConfidence,
     summary:
       adjustedItems.length > 0
-        ? `${adjustedItems.length} 项能力触发影子校验，已对孤立标签做权重衰减`
+        ? `${adjustedItems.length} 项能力主要来自标签表述，已降低该项评分权重`
         : '核心能力均有多点证据链支撑',
     highConfidenceCount: highConfidence.length,
     adjustedItems,
@@ -849,7 +849,7 @@ export function buildCompositeCapabilityDetails(profile, job) {
       conclusion:
         profileSignals.length > 0
           ? `简历体现 ${profileSignals.join('、')}`
-          : '简历中暂未看到直接复合能力证据',
+          : '简历中尚未形成直接的复合能力证据',
     };
   });
 }
@@ -862,7 +862,8 @@ export function buildMatchHeatmap(profile, job) {
       points: item.points,
       max: item.max,
       intensity: Math.round(ratio * 100),
-      level: ratio >= 0.85 ? '强' : ratio >= 0.6 ? '中' : '待补',
+      level: ratio >= 0.85 ? '高匹配' : ratio >= 0.6 ? '中等匹配' : '需补充',
+      levelKey: ratio >= 0.85 ? 'high' : ratio >= 0.6 ? 'medium' : 'low',
       detail: item.detail,
     };
   });
@@ -986,13 +987,13 @@ export function analyzeJobFit(profile, job) {
     matchedNiceToHave,
     gaps: (job.tags ?? []).filter((tag) => !matchedTags.includes(tag)),
     reasons: [
-      `${matchedTags.length}/${(job.tags ?? []).length} 个核心关键词已被简历证据覆盖`,
+      `${matchedTags.length}/${(job.tags ?? []).length} 个核心能力已被简历证据覆盖`,
       scoreSoftSkillDimension(profile, job).detail,
       scoreLanguageDimension(profile, job).detail,
       cityMatch ? `地点偏好包含 ${job.city}` : `地点 ${job.city} 不在当前偏好中`,
       matchedNiceToHave.length > 0
         ? `兴趣方向与 ${matchedNiceToHave.join('、')} 有交集`
-        : '兴趣方向暂未与岗位加分项形成明显交集',
+        : '加分方向尚未在求职偏好中体现',
     ],
   };
 }
@@ -1110,7 +1111,11 @@ export function buildResumeAdvice(profile, job) {
     coveredKeywords: analysis.matchedTags,
     missingKeywords: analysis.gaps,
     screeningSignal:
-      analysis.score >= 80 ? '中高：建议优化后优先投递' : analysis.score >= 65 ? '中：可补强关键词后投递' : '偏低：建议先补项目证据',
+      analysis.score >= 80
+        ? '初筛竞争力较强，建议完成针对性优化后投递'
+        : analysis.score >= 65
+          ? '具备投递基础，建议先补强关键能力表述'
+          : '当前证据支撑不足，建议先补充项目经历',
     rewrites: [
       {
         before: primaryExperience,

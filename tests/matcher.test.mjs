@@ -121,6 +121,7 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('id="potential-summary"'));
   assert.ok(indexHtml.includes('id="match-heatmap"'));
   assert.ok(indexHtml.includes('id="composite-list"'));
+  assert.ok(indexHtml.includes('class="score-explainer"'));
   assert.ok(indexHtml.includes('id="confidence-panel"'));
   assert.ok(indexHtml.includes('id="evidence-jd"'));
   assert.ok(indexHtml.includes('id="team-complement-list"'));
@@ -131,6 +132,31 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('AI 面试提问桩'));
 });
 
+test('removes duplicate workflow and low-value advice cards from student view', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+
+  assert.ok(!indexHtml.includes('workflow-card'));
+  assert.ok(!indexHtml.includes('workflow-best-fit'));
+  assert.ok(!indexHtml.includes('workflow-steps'));
+  assert.ok(!indexHtml.includes('匹配流程'));
+  assert.ok(!indexHtml.includes('下一步动作'));
+  assert.ok(!indexHtml.includes('求职建议报告'));
+  assert.ok(!indexHtml.includes('final-report'));
+});
+
+test('places score explanation directly under the main score summary', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const scoreSummaryIndex = indexHtml.indexOf('class="score-summary-row"');
+  const scoreRingIndex = indexHtml.indexOf('id="score-ring"');
+  const explainerIndex = indexHtml.indexOf('class="score-explainer"');
+  const heatmapIndex = indexHtml.indexOf('id="match-heatmap"');
+
+  assert.ok(scoreSummaryIndex > -1);
+  assert.ok(scoreRingIndex > scoreSummaryIndex);
+  assert.ok(explainerIndex > scoreRingIndex);
+  assert.ok(heatmapIndex > explainerIndex);
+});
+
 test('tightens repeated tag blocks and job detail spacing', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
@@ -139,11 +165,13 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
   assert.match(css, /\.profile-meta-grid \+ \.profile-block\s*\{[\s\S]*margin-top: 18px/);
   assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
   assert.match(css, /\.job-detail-main > \.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
+  assert.match(css, /\.score-explainer\s*\{/);
   assert.match(css, /\.match-heatmap\s*\{/);
-  assert.match(css, /\.heatmap-cell\.active-evidence\s*\{/);
+  assert.match(css, /\.heatmap-row\.active-evidence\s*\{/);
   assert.match(css, /\.evidence-link-panel\s*\{/);
   assert.match(css, /\.team-gap\.matched\s*\{/);
   assert.match(css, /\.interview-question-item\s*\{/);
+  assert.ok(!css.includes('.heatmap-cell {'));
 });
 
 test('grounds every seeded job in a complete job description', () => {
@@ -196,6 +224,7 @@ test('builds potential, composite capability, and heatmap outputs', () => {
   assert.ok(composites.some((item) => item.name === '数据驱动增长' && item.matched));
   assert.equal(heatmap.length, 6);
   assert.ok(heatmap.every((item) => item.intensity >= 0 && item.intensity <= 100));
+  assert.ok(heatmap.every((item) => !item.level.includes('待补')));
 });
 
 test('runs evidence confidence shadow checks and evidence trace linking', () => {
@@ -215,7 +244,8 @@ test('runs evidence confidence shadow checks and evidence trace linking', () => 
 
   assert.ok(summary.adjustedItems.some((item) => item.name === 'SQL'));
   assert.ok(sql.score < sql.baseScore);
-  assert.ok(sql.confidenceReason.includes('权重衰减'));
+  assert.ok(sql.confidenceReason.includes('评分已适度下调'));
+  assert.ok(!summary.summary.includes('影子校验'));
   assert.ok(trace.jdText.includes('SQL'));
   assert.ok(trace.resumeText.includes('SQL'));
 });
@@ -282,7 +312,7 @@ test('explains individual skill scoring with JD requirement and resume evidence'
   assert.equal(sql.score, 8);
   assert.equal(python.resumeLevel, '高级');
   assert.equal(python.score, 10);
-  assert.ok(tableau.resumeEvidence.includes('项目/技能区出现'));
+  assert.ok(tableau.resumeEvidence.includes('定位到'));
   assert.ok(tableau.sourceText.includes('技能区'));
   assert.ok(tableau.sourceText.includes('项目/经历'));
   assert.ok(explanation.formula.includes('硬技能匹配'));
@@ -304,6 +334,15 @@ test('uses gentler match language without weak-evidence wording', () => {
   assert.ok(!combinedText.includes('证据较弱'));
   assert.ok(!combinedText.includes('证据不足'));
   assert.ok(!combinedText.includes('分项证据 50/50'));
+  assert.ok(!combinedText.includes('满足 英语 CET-6'));
+  assert.ok(!combinedText.includes('CET-6'));
+});
+
+test('keeps language requirements out of compact job summary metadata', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;'));
+  assert.ok(!appJs.includes('selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary} ·'));
 });
 
 test('explains soft skill matches with resume and activity evidence', () => {
