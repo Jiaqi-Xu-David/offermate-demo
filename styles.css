@@ -704,6 +704,7 @@ a.admin-job-item:focus-visible {
   color: inherit;
   text-align: left;
   text-decoration: none;
+  cursor: pointer;
   transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
 }
 
@@ -801,10 +802,21 @@ a.admin-job-item:focus-visible {
   gap: 12px;
 }
 
-.job-detail-hint {
+.job-detail-link {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
   color: var(--brand-dark);
   font-size: 12px;
   font-weight: 850;
+  text-decoration: none;
+}
+
+.job-detail-link:hover,
+.job-detail-link:focus-visible {
+  color: var(--brand);
+  text-decoration: underline;
+  outline: 0;
 }
 
 .admin-status-pill {

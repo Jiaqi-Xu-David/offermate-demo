@@ -250,11 +250,26 @@ function renderProfile() {
 }
 
 function createJobCard(analysis) {
-  const link = document.createElement('a');
-  link.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
-  link.dataset.jobId = analysis.job.id;
-  link.href = buildJobDetailUrl(analysis.job.id);
-  link.setAttribute('aria-label', `查看${analysis.job.company}${analysis.job.title}招聘详情`);
+  const card = document.createElement('article');
+  card.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
+  card.dataset.jobId = analysis.job.id;
+  card.tabIndex = 0;
+  card.setAttribute('role', 'button');
+  card.setAttribute('aria-label', `查看${analysis.job.title}匹配分析`);
+
+  const selectJob = () => {
+    state.selectedJobId = analysis.job.id;
+    renderJobs();
+    renderAnalysis();
+  };
+  card.addEventListener('click', selectJob);
+  card.addEventListener('keydown', (event) => {
+    if (event.target !== card) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectJob();
+    }
+  });
 
   const titleRow = document.createElement('div');
   titleRow.className = 'job-title-row';
@@ -295,13 +310,18 @@ function createJobCard(analysis) {
 
   const footer = document.createElement('div');
   footer.className = 'job-card-footer';
-  const detailHint = document.createElement('span');
-  detailHint.className = 'job-detail-hint';
-  detailHint.textContent = '查看公司招聘详情';
-  footer.append(level, detailHint);
+  const detailLink = document.createElement('a');
+  detailLink.className = 'job-detail-link';
+  detailLink.href = buildJobDetailUrl(analysis.job.id);
+  detailLink.textContent = '查看公司招聘详情';
+  detailLink.setAttribute('aria-label', `查看${analysis.job.company}${analysis.job.title}招聘详情`);
+  detailLink.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  footer.append(level, detailLink);
 
-  link.append(titleRow, description, requirementList, tagList, footer);
-  return link;
+  card.append(titleRow, description, requirementList, tagList, footer);
+  return card;
 }
 
 function createAdminJobItem(job) {

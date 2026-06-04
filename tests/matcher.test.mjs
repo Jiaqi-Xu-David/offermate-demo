@@ -191,6 +191,17 @@ test('builds stable company job detail links for every seeded job', () => {
   assert.equal(new Set(links).size, JOBS.length);
 });
 
+test('separates job card selection from company detail navigation', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes("const card = document.createElement('article');"));
+  assert.ok(appJs.includes('state.selectedJobId = analysis.job.id;'));
+  assert.ok(appJs.includes('detailLink.href = buildJobDetailUrl(analysis.job.id);'));
+  assert.ok(appJs.includes("detailLink.addEventListener('click', (event) => {"));
+  assert.ok(appJs.includes('event.stopPropagation();'));
+  assert.ok(!appJs.includes("const link = document.createElement('a');\n  link.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';"));
+});
+
 test('finds a job by id with parsed JD fields preserved', () => {
   const job = findJobById('data-analyst-intern', JOBS);
 
