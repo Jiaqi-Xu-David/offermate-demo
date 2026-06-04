@@ -8,9 +8,16 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
+  buildCompositeCapabilityDetails,
+  buildEvidenceConfidenceSummary,
+  buildEvidenceTrace,
+  buildInterviewQuestions,
+  buildMatchHeatmap,
+  buildPotentialAnalysis,
   buildResumeAdvice,
   buildScoreExplanation,
   buildStudentWorkflowSummary,
+  buildTeamComplement,
   buildTailoredResumeSnippet,
   enrichJob,
   parseResumeText,
@@ -63,6 +70,8 @@ const elements = {
   resumeDocument: document.querySelector('#resume-document'),
   parseResume: document.querySelector('#parse-resume'),
   parseStatus: document.querySelector('#parse-status'),
+  potentialSummary: document.querySelector('#potential-summary'),
+  potentialSignals: document.querySelector('#potential-signals'),
   skillList: document.querySelector('#skill-list'),
   languageList: document.querySelector('#language-list'),
   softSkillList: document.querySelector('#soft-skill-list'),
@@ -86,10 +95,13 @@ const elements = {
   adminMatchTitle: document.querySelector('#admin-match-title'),
   adminMatchFormula: document.querySelector('#admin-match-formula'),
   adminMatchBreakdown: document.querySelector('#admin-match-breakdown'),
+  teamComplementTitle: document.querySelector('#team-complement-title'),
+  teamComplementList: document.querySelector('#team-complement-list'),
   submittedJobList: document.querySelector('#submitted-job-list'),
   screeningRecommendation: document.querySelector('#screening-recommendation'),
   routingRecommendation: document.querySelector('#routing-recommendation'),
   suggestedJobList: document.querySelector('#suggested-job-list'),
+  interviewQuestionList: document.querySelector('#interview-question-list'),
   workflowBestFit: document.querySelector('#workflow-best-fit'),
   workflowSteps: document.querySelector('#workflow-steps'),
   selectedJobTitle: document.querySelector('#selected-job-title'),
@@ -98,8 +110,13 @@ const elements = {
   scoreValue: document.querySelector('#score-value'),
   reasonList: document.querySelector('#reason-list'),
   gapList: document.querySelector('#gap-list'),
+  matchHeatmap: document.querySelector('#match-heatmap'),
+  compositeList: document.querySelector('#composite-list'),
   scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
+  confidencePanel: document.querySelector('#confidence-panel'),
+  evidenceJd: document.querySelector('#evidence-jd'),
+  evidenceResume: document.querySelector('#evidence-resume'),
   skillDetailList: document.querySelector('#skill-detail-list'),
   screeningSignal: document.querySelector('#screening-signal'),
   rewriteList: document.querySelector('#rewrite-list'),
@@ -155,6 +172,24 @@ function renderWorkflowSummary() {
       body.append(label, value);
 
       item.append(indexNode, body);
+      return item;
+    }),
+  );
+}
+
+function renderPotentialAnalysis() {
+  const potential = buildPotentialAnalysis(state.profile);
+  const score = document.createElement('strong');
+  score.textContent = `${potential.score}`;
+  const label = document.createElement('span');
+  label.textContent = potential.label;
+  const trend = document.createElement('p');
+  trend.textContent = potential.trend;
+  elements.potentialSummary.replaceChildren(score, label, trend);
+  elements.potentialSignals.replaceChildren(
+    ...potential.signals.map((signal) => {
+      const item = document.createElement('p');
+      item.textContent = signal;
       return item;
     }),
   );
@@ -244,6 +279,7 @@ function renderProfile() {
   elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${(state.profile.cityPreferences ?? []).join(' / ')}`;
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
+  renderPotentialAnalysis();
   renderTags(elements.skillList, state.profile.skills);
   renderTags(elements.languageList, state.profile.languages ?? ['未解析到语言要求']);
   renderTags(elements.softSkillList, state.profile.softSkills ?? ['未解析到软技能']);
@@ -442,10 +478,73 @@ function renderAdminMatchReview(candidate, insight) {
   );
 }
 
+function updateEvidenceTrace(profile, job, focus) {
+  const trace = buildEvidenceTrace(profile, job, focus);
+  elements.evidenceJd.textContent = trace.jdText;
+  elements.evidenceResume.textContent = trace.resumeText;
+  document.querySelectorAll('[data-evidence-focus]').forEach((node) => {
+    node.classList.toggle('active-evidence', node.dataset.evidenceFocus === focus);
+  });
+}
+
+function renderMatchHeatmap(profile, job) {
+  const heatmap = buildMatchHeatmap(profile, job);
+  elements.matchHeatmap.replaceChildren(
+    ...heatmap.map((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `heatmap-cell heat-${item.level}`;
+      button.dataset.evidenceFocus = item.label;
+      button.style.setProperty('--heat', item.intensity);
+      const label = document.createElement('strong');
+      label.textContent = item.label;
+      const score = document.createElement('span');
+      score.textContent = `${item.intensity}% · ${item.level}`;
+      const detail = document.createElement('p');
+      detail.textContent = item.detail;
+      button.append(label, score, detail);
+      button.addEventListener('click', () => updateEvidenceTrace(profile, job, item.label));
+      return button;
+    }),
+  );
+}
+
+function renderCompositeCapabilities(profile, job) {
+  const capabilities = buildCompositeCapabilityDetails(profile, job);
+  elements.compositeList.replaceChildren(
+    ...(capabilities.length
+      ? capabilities.map((capability) => {
+          const item = document.createElement('article');
+          item.className = capability.matched ? 'composite-item matched' : 'composite-item';
+          const title = document.createElement('strong');
+          title.textContent = capability.name;
+          const description = document.createElement('p');
+          description.textContent = capability.description;
+          const evidence = document.createElement('span');
+          evidence.textContent = capability.conclusion;
+          item.append(title, description, evidence);
+          return item;
+        })
+      : [Object.assign(document.createElement('p'), { textContent: '当前 JD 暂未识别出额外复合能力。' })]),
+  );
+}
+
+function renderConfidencePanel(profile, job) {
+  const summary = buildEvidenceConfidenceSummary(profile, job);
+  const score = document.createElement('strong');
+  score.textContent = `${summary.averageConfidence}%`;
+  const text = document.createElement('p');
+  text.textContent = summary.summary;
+  const detail = document.createElement('span');
+  detail.textContent = `${summary.highConfidenceCount}/${summary.details.length} 项高置信证据`;
+  elements.confidencePanel.replaceChildren(score, text, detail);
+}
+
 function renderScoreBreakdown(profile, job) {
   const explanation = buildScoreExplanation(profile, job);
   const breakdown = explanation.breakdown;
   elements.scoreFormula.textContent = explanation.formula;
+  renderConfidencePanel(profile, job);
   elements.scoreBreakdown.replaceChildren(
     ...breakdown.map((item) => {
       const row = document.createElement('div');
@@ -481,6 +580,16 @@ function renderScoreBreakdown(profile, job) {
     ...explanation.skillDetails.map((detail) => {
       const row = document.createElement('article');
       row.className = 'skill-detail-row';
+      row.dataset.evidenceFocus = detail.name;
+      row.tabIndex = 0;
+      row.setAttribute('role', 'button');
+      row.addEventListener('click', () => updateEvidenceTrace(profile, job, detail.name));
+      row.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          updateEvidenceTrace(profile, job, detail.name);
+        }
+      });
 
       const title = document.createElement('div');
       title.className = 'skill-detail-title';
@@ -496,6 +605,7 @@ function renderScoreBreakdown(profile, job) {
         ['JD要求', detail.jdRequirement],
         ['简历体现', detail.resumeLevel],
         ['证据', detail.resumeEvidence],
+        ['置信度', `${detail.confidenceLabel}：${detail.confidenceReason}`],
         ['来源', detail.sourceText],
       ];
       fieldRows.forEach(([labelText, valueText]) => {
@@ -532,6 +642,8 @@ function renderScoreBreakdown(profile, job) {
       return row;
     }),
   );
+  const firstFocus = explanation.skillDetails[0]?.name ?? breakdown[0]?.label;
+  if (firstFocus) updateEvidenceTrace(profile, job, firstFocus);
 }
 
 function renderJobs() {
@@ -561,7 +673,47 @@ function createMatchItem(match) {
   const meta = document.createElement('p');
   meta.textContent = `地点：${match.city}；匹配能力：${match.matchedTags.join('、') || '暂无明显匹配'}`;
   item.append(title, meta);
+  if (match.reason) {
+    const reason = document.createElement('p');
+    reason.className = 'cross-role-reason';
+    reason.textContent = match.reason;
+    item.append(reason);
+  }
   return item;
+}
+
+function renderTeamComplement(candidate) {
+  const complement = buildTeamComplement(candidate);
+  elements.teamComplementTitle.textContent = `${complement.score} 分互补度`;
+  elements.teamComplementList.replaceChildren(
+    ...complement.teamGaps.map((gap) => {
+      const item = document.createElement('div');
+      item.className = complement.matchedGaps.includes(gap) ? 'team-gap matched' : 'team-gap';
+      item.textContent = gap;
+      return item;
+    }),
+  );
+}
+
+function renderInterviewQuestions(candidate, insight) {
+  const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+  const bestJob = bestMatch ? state.jobs.find((job) => job.id === bestMatch.id) : state.jobs[0];
+  const questions = buildInterviewQuestions(candidate, bestJob);
+
+  elements.interviewQuestionList.replaceChildren(
+    ...questions.map((question) => {
+      const item = document.createElement('article');
+      item.className = 'interview-question-item';
+      const focus = document.createElement('strong');
+      focus.textContent = question.focus;
+      const text = document.createElement('p');
+      text.textContent = question.question;
+      const reason = document.createElement('span');
+      reason.textContent = question.reason;
+      item.append(focus, text, reason);
+      return item;
+    }),
+  );
 }
 
 function renderAdminInsight() {
@@ -573,6 +725,8 @@ function renderAdminInsight() {
   elements.adminCandidateStatus.textContent = `${candidate.submittedJobIds.length} 个已投岗位`;
   renderAdminResume(candidate);
   renderAdminMatchReview(candidate, insight);
+  renderTeamComplement(candidate);
+  renderInterviewQuestions(candidate, insight);
   elements.submittedJobList.replaceChildren(...insight.submittedJobs.map(createMatchItem));
   elements.screeningRecommendation.textContent = insight.screeningRecommendation;
   elements.routingRecommendation.textContent = insight.routingRecommendation;
@@ -625,6 +779,8 @@ function renderAnalysis() {
     }),
   );
   renderTags(elements.gapList, analysis.gaps.length ? analysis.gaps : ['暂无明显关键词缺口'], analysis.gaps.length ? 'gap' : '');
+  renderMatchHeatmap(state.profile, selectedJob);
+  renderCompositeCapabilities(state.profile, selectedJob);
   renderScoreBreakdown(state.profile, selectedJob);
 
   elements.screeningSignal.textContent = advice.screeningSignal;

@@ -107,6 +107,41 @@ const RESPONSIBILITY_RULES = [
   ['推荐', '推荐策略优化'],
 ];
 
+const COMPOSITE_CAPABILITY_RULES = [
+  {
+    name: '数据驱动增长',
+    jdSignals: ['增长', '转化', '漏斗', 'A/B测试', '用户分层'],
+    profileSignals: ['转化漏斗', 'A/B测试', '用户分层', '活动复盘'],
+    description: '把数据分析、用户增长和实验复盘组合成可执行增长判断',
+  },
+  {
+    name: '洞察到行动',
+    jdSignals: ['洞察', '建议', '复盘', '策略', '输出'],
+    profileSignals: ['输出', '形成产品优化建议', '提升转化率', '活动复盘'],
+    description: '不只做分析，还能把结论转成业务动作或优化建议',
+  },
+  {
+    name: '跨团队推进',
+    jdSignals: ['产品', '运营', '团队', '跨部门', '协助'],
+    profileSignals: ['跨部门沟通', '协助运营团队', '项目推进', '组织'],
+    description: '能在产品、运营、数据之间推进问题闭环',
+  },
+  {
+    name: '研究到策略',
+    jdSignals: ['研究', '调研', '问卷', '市场', '竞品'],
+    profileSignals: ['问卷调研', '用户访谈', '市场研究', '竞品'],
+    description: '能把用户或市场研究转化为策略输入',
+  },
+  {
+    name: '实验建模闭环',
+    jdSignals: ['模型', '实验', '评估', '推荐', 'PyTorch'],
+    profileSignals: ['机器学习', '深度学习', 'PyTorch', '推荐算法', '数学建模'],
+    description: '能完成样本处理、模型训练和效果评估',
+  },
+];
+
+const TEAM_CAPABILITY_GAPS = ['用户研究', '商业分析', '数据看板', '跨部门沟通', '模型评估'];
+
 const KEYWORD_ALIASES = {
   问卷调研: ['问卷', '用户调研', '问卷反馈'],
   数据看板: ['Tableau 看板', '周报看板', '看板'],
@@ -136,6 +171,16 @@ function extractAliasTerms(text, rules) {
   return rules
     .filter((rule) => rule.aliases.some((alias) => text.includes(alias)))
     .map((rule) => rule.name);
+}
+
+function extractCompositeCapabilities(text, signalKey = 'jdSignals') {
+  return COMPOSITE_CAPABILITY_RULES.filter((rule) =>
+    rule[signalKey].some((signal) => text.includes(signal)),
+  ).map((rule) => ({
+    name: rule.name,
+    description: rule.description,
+    signals: rule[signalKey].filter((signal) => text.includes(signal)),
+  }));
 }
 
 function countTermOccurrences(text, term) {
@@ -279,10 +324,15 @@ export function parseJobDescription(description) {
     name,
     requiredLevel: detectRequirementLevel(description, name),
   }));
+  const redLines = hardSkillRequirements.filter((skill) => ['高级', '必须', '熟练'].includes(skill.requiredLevel));
+  const compositeCapabilities = extractCompositeCapabilities(description, 'jdSignals');
 
   return {
     salary: salaryMatch ? salaryMatch[1].replace(/\s+/g, '') : '',
     hardSkillRequirements,
+    redLines,
+    compositeCapabilities,
+    implicitRequirements: compositeCapabilities.map((item) => item.name),
     softSkills: extractKnownTerms(description, SOFT_SKILL_DICTIONARY),
     languageRequirements: extractAliasTerms(description, LANGUAGE_RULES),
   };
@@ -294,6 +344,9 @@ export function enrichJob(job) {
     ...job,
     salary: job.salary || parsed.salary || '待补充',
     hardSkillRequirements: job.hardSkillRequirements ?? parsed.hardSkillRequirements,
+    redLines: job.redLines ?? parsed.redLines,
+    compositeCapabilities: job.compositeCapabilities ?? parsed.compositeCapabilities,
+    implicitRequirements: job.implicitRequirements ?? parsed.implicitRequirements,
     softSkills: unique([...(job.softSkills ?? []), ...parsed.softSkills]),
     languageRequirements: unique([...(job.languageRequirements ?? []), ...parsed.languageRequirements]),
   };
@@ -432,10 +485,18 @@ function getProfileSkillEvidence(profile, skill) {
 
   const profileText = profileToSearchText(profile);
   const count = countTermOccurrences(profileText, skill);
+  const appearsInSkillList = (profile.skills ?? []).some((item) => item === skill);
+  const appearsInExperience = hasTextMatch(profile.experiences ?? [], skill);
   return {
     count,
     level: count > 0 ? inferResumeSkillLevel(profileText, skill, count) : '未体现',
-    sources: count > 0 ? ['技能/经历'] : [],
+    sources: count > 0
+      ? unique([
+          appearsInSkillList ? '技能标签' : '',
+          appearsInExperience ? '项目/经历' : '',
+          !appearsInSkillList && !appearsInExperience ? '简历文本' : '',
+        ])
+      : [],
   };
 }
 
@@ -457,10 +518,55 @@ function scoreSkillDetail(jdRequirement, resumeLevel, count) {
   return 7;
 }
 
+function scoreEvidenceConfidence(evidence) {
+  const sources = evidence.sources ?? [];
+  if (evidence.count === 0) {
+    return {
+      confidence: 0,
+      confidenceLabel: '未验证',
+      confidenceReason: '简历中未找到该能力的可定位证据',
+      adjusted: true,
+    };
+  }
+  if (sources.includes('项目/经历') && evidence.count >= 2) {
+    return {
+      confidence: 1,
+      confidenceLabel: '高置信',
+      confidenceReason: '技能标签与项目经历形成多点证据链',
+      adjusted: false,
+    };
+  }
+  if (sources.includes('项目/经历')) {
+    return {
+      confidence: 0.9,
+      confidenceLabel: '中高置信',
+      confidenceReason: '有项目经历支撑，但出现次数较少',
+      adjusted: true,
+    };
+  }
+  if (sources.includes('技能区') || sources.includes('技能标签')) {
+    return {
+      confidence: 0.72,
+      confidenceLabel: '标签置信',
+      confidenceReason: '主要停留在技能标签，缺少上下文闭环，已做权重衰减',
+      adjusted: true,
+    };
+  }
+  return {
+    confidence: 0.6,
+    confidenceLabel: '低置信',
+    confidenceReason: '仅在简历文本中孤立出现，建议补充项目上下文',
+    adjusted: true,
+  };
+}
+
 export function getSkillMatchDetails(profile, job) {
   return (job.tags ?? []).map((skill) => {
     const evidence = getProfileSkillEvidence(profile, skill);
     const jdRequirement = getJobRequirement(job, skill);
+    const baseScore = scoreSkillDetail(jdRequirement, evidence.level, evidence.count);
+    const confidence = scoreEvidenceConfidence(evidence);
+    const score = Math.round(baseScore * confidence.confidence);
     const resumeEvidence =
       evidence.count > 0
         ? `项目/技能区出现 ${evidence.count} 次`
@@ -473,8 +579,10 @@ export function getSkillMatchDetails(profile, job) {
       resumeLevel: evidence.level,
       resumeEvidence,
       sourceText,
-      score: scoreSkillDetail(jdRequirement, evidence.level, evidence.count),
+      baseScore,
+      score,
       max: 10,
+      ...confidence,
     };
   });
 }
@@ -670,6 +778,198 @@ export function buildScoreExplanation(profile, job) {
   };
 }
 
+export function buildEvidenceConfidenceSummary(profile, job) {
+  const details = getSkillMatchDetails(profile, job);
+  const adjustedItems = details.filter((item) => item.adjusted);
+  const highConfidence = details.filter((item) => item.confidence >= 0.9);
+  const averageConfidence =
+    details.length > 0
+      ? Math.round((details.reduce((sum, item) => sum + item.confidence, 0) / details.length) * 100)
+      : 100;
+
+  return {
+    averageConfidence,
+    summary:
+      adjustedItems.length > 0
+        ? `${adjustedItems.length} 项能力触发影子校验，已对孤立标签做权重衰减`
+        : '核心能力均有多点证据链支撑',
+    highConfidenceCount: highConfidence.length,
+    adjustedItems,
+    details,
+  };
+}
+
+export function buildPotentialAnalysis(profile) {
+  const experiences = profile.experiences ?? [];
+  const complexityTerms = ['SQL', 'Python', 'Tableau', 'A/B', '模型', '看板', '漏斗', '复盘', '访谈', '问卷'];
+  const scoredExperiences = experiences.map((experience, index) => {
+    const toolCount = complexityTerms.filter((term) => experience.includes(term)).length;
+    const numberBonus = /\d/.test(experience) ? 2 : 0;
+    const ownershipBonus = /负责|组织|输出|形成|定位|搭建/.test(experience) ? 2 : 0;
+    return {
+      stage: index + 1,
+      score: 4 + toolCount * 2 + numberBonus + ownershipBonus,
+      text: experience,
+    };
+  });
+  const early = scoredExperiences.slice(0, Math.ceil(scoredExperiences.length / 2));
+  const late = scoredExperiences.slice(Math.ceil(scoredExperiences.length / 2));
+  const earlyAverage = early.length ? early.reduce((sum, item) => sum + item.score, 0) / early.length : 0;
+  const lateAverage = late.length ? late.reduce((sum, item) => sum + item.score, 0) / late.length : earlyAverage;
+  const skillBreadth = Math.min((profile.skills ?? []).length, 10);
+  const score = Math.min(100, Math.round(55 + skillBreadth * 3 + Math.max(0, lateAverage - earlyAverage) * 3));
+
+  return {
+    score,
+    label: score >= 82 ? '成长潜力高' : score >= 68 ? '成长潜力稳定' : '需要补充进阶证据',
+    trend: lateAverage >= earlyAverage ? '经历复杂度呈上升或稳定趋势' : '后段经历复杂度略低，建议补充更强项目',
+    signals: [
+      `${profile.skills?.length ?? 0} 个技能标签形成能力广度`,
+      `${experiences.length} 条经历可用于支撑岗位匹配`,
+      lateAverage >= earlyAverage ? '后续经历包含更多任务闭环' : '需要让最近经历更突出工具和结果',
+    ],
+    stages: scoredExperiences,
+  };
+}
+
+export function buildCompositeCapabilityDetails(profile, job) {
+  const profileText = profileToSearchText(profile);
+  const jobCapabilities = job.compositeCapabilities ?? parseJobDescription(job.description ?? '').compositeCapabilities;
+
+  return jobCapabilities.map((capability) => {
+    const rule = COMPOSITE_CAPABILITY_RULES.find((item) => item.name === capability.name);
+    const profileSignals = rule?.profileSignals.filter((signal) => profileText.includes(signal)) ?? [];
+
+    return {
+      name: capability.name,
+      description: capability.description,
+      jdSignals: capability.signals,
+      profileSignals,
+      matched: profileSignals.length > 0,
+      conclusion:
+        profileSignals.length > 0
+          ? `简历体现 ${profileSignals.join('、')}`
+          : '简历中暂未看到直接复合能力证据',
+    };
+  });
+}
+
+export function buildMatchHeatmap(profile, job) {
+  return getScoreBreakdown(profile, job).map((item) => {
+    const ratio = item.max > 0 ? item.points / item.max : 1;
+    return {
+      label: item.label,
+      points: item.points,
+      max: item.max,
+      intensity: Math.round(ratio * 100),
+      level: ratio >= 0.85 ? '强' : ratio >= 0.6 ? '中' : '待补',
+      detail: item.detail,
+    };
+  });
+}
+
+export function buildTeamComplement(candidate) {
+  const profileText = profileToSearchText(candidate.profile);
+  const matchedGaps = TEAM_CAPABILITY_GAPS.filter((gap) => {
+    if (gap === '用户研究') return /问卷|访谈|用户/.test(profileText);
+    if (gap === '模型评估') return /模型|评估|PyTorch|推荐/.test(profileText);
+    return profileText.includes(gap);
+  });
+  const score = Math.round((matchedGaps.length / TEAM_CAPABILITY_GAPS.length) * 100);
+
+  return {
+    score,
+    matchedGaps,
+    teamGaps: TEAM_CAPABILITY_GAPS,
+    summary:
+      matchedGaps.length > 0
+        ? `${candidate.name} 可补强团队的 ${matchedGaps.join('、')} 能力`
+        : '当前候选人与团队短板交集有限，可优先看岗位匹配',
+  };
+}
+
+export function buildCrossRoleRecommendations(candidate, jobs = JOBS) {
+  const submittedIds = new Set(candidate.submittedJobIds);
+  const profileText = profileToSearchText(candidate.profile);
+
+  return rankJobs(candidate.profile, jobs)
+    .filter((analysis) => !submittedIds.has(analysis.job.id))
+    .map((analysis) => {
+      const compositeMatches = buildCompositeCapabilityDetails(candidate.profile, analysis.job).filter((item) => item.matched);
+      const transferSignals = unique([
+        ...analysis.matchedTags,
+        ...compositeMatches.map((item) => item.name),
+        /问卷|访谈|用户/.test(profileText) && analysis.job.title.includes('运营') ? '用户研究可迁移' : '',
+        /SQL|看板|商业分析/.test(profileText) && analysis.job.title.includes('商业') ? '数据分析可迁移' : '',
+      ]);
+
+      return {
+        id: analysis.job.id,
+        title: analysis.job.title,
+        city: analysis.job.city,
+        score: analysis.score,
+        matchedTags: analysis.matchedTags,
+        transferSignals,
+        reason: transferSignals.length > 0
+          ? `跨界依据：${transferSignals.slice(0, 3).join('、')}`
+          : '跨界依据较少，仅作为备选方向',
+      };
+    })
+    .filter((item) => item.transferSignals.length > 0 || item.score >= 60)
+    .slice(0, 2);
+}
+
+export function buildInterviewQuestions(candidate, job) {
+  const skillDetails = getSkillMatchDetails(candidate.profile, job);
+  const compositeDetails = buildCompositeCapabilityDetails(candidate.profile, job);
+  const weakSkills = skillDetails.filter((item) => item.score < item.max || item.confidence < 0.9).slice(0, 3);
+  const questions = weakSkills.map((item) => ({
+    focus: item.name,
+    question: `请具体讲一个你在项目中使用 ${item.name} 的场景：当时目标、输入数据、你的动作和结果分别是什么？`,
+    reason: item.confidenceReason,
+  }));
+  compositeDetails
+    .filter((item) => !item.matched)
+    .slice(0, Math.max(0, 4 - questions.length))
+    .forEach((item) => {
+      questions.push({
+        focus: item.name,
+        question: `这个岗位需要${item.name}，请举例说明你如何把分析结论推进成实际业务动作。`,
+        reason: '复合能力在简历中体现不够直接',
+      });
+    });
+
+  if (questions.length === 0) {
+    questions.push({
+      focus: '项目复盘',
+      question: '请选一个最相关项目，说明你如何判断项目成功，以及下一步会如何优化。',
+      reason: '用于确认候选人是否具备复盘和业务判断能力',
+    });
+  }
+
+  return questions;
+}
+
+export function buildEvidenceTrace(profile, job, focus) {
+  const profileTextItems = profile.experiences ?? [];
+  const matchedExperiences = profileTextItems.filter((item) => hasTextMatch([item], focus));
+  const jdRequirement = getJobRequirement(job, focus);
+  const jdText = job.description.includes(focus)
+    ? `JD 中要求 ${focus}（${jdRequirement}）：${job.description}`
+    : `${focus} 属于 ${job.title} 的评分维度：${getScoreBreakdown(profile, job).find((item) => item.label === focus)?.detail ?? job.description}`;
+
+  return {
+    focus,
+    jdText,
+    resumeText:
+      matchedExperiences.length > 0
+        ? matchedExperiences.slice(0, 2).join('；')
+        : getProfileSkillEvidence(profile, focus).count > 0
+          ? `${focus} 出现在技能标签或简历文本中，但项目上下文较少`
+          : '简历中暂未定位到直接对应文本',
+  };
+}
+
 export function analyzeJobFit(profile, job) {
   const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
   const score = clampScore(getScoreBreakdown(profile, job).reduce((sum, item) => sum + item.points, 0));
@@ -774,16 +1074,8 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
   const submittedIds = new Set(candidate.submittedJobIds);
-  const suggestedJobs = rankedJobs
-    .filter((analysis) => !submittedIds.has(analysis.job.id) && analysis.score >= 60)
-    .slice(0, 2)
-    .map((analysis) => ({
-      id: analysis.job.id,
-      title: analysis.job.title,
-      city: analysis.job.city,
-      score: analysis.score,
-      matchedTags: analysis.matchedTags,
-    }));
+  const suggestedJobs = buildCrossRoleRecommendations(candidate, jobs)
+    .filter((item) => !submittedIds.has(item.id));
   const bestSubmitted = submittedJobs[0];
   const bestSuggested = suggestedJobs[0];
 
@@ -796,7 +1088,7 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
 
   const routingRecommendation =
     bestSuggested && (!bestSubmitted || bestSuggested.score > bestSubmitted.score + 5)
-      ? `建议转推荐至 ${bestSuggested.title}：匹配度 ${bestSuggested.score} 分，高于当前投递岗位。`
+      ? `建议转推荐至 ${bestSuggested.title}：匹配度 ${bestSuggested.score} 分，${bestSuggested.reason}。`
       : '当前投递方向基本匹配，可按原岗位推进筛选。';
 
   return {

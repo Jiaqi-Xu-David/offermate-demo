@@ -56,6 +56,12 @@
             <p id="parse-status">从示例简历中提取学生画像、技能标签和经历证据。</p>
           </div>
 
+          <div class="profile-block potential-card">
+            <h3>动态潜力推演</h3>
+            <div id="potential-summary" class="potential-summary"></div>
+            <div id="potential-signals" class="signal-list"></div>
+          </div>
+
           <div class="profile-block">
             <h3>技能标签</h3>
             <div id="skill-list" class="tag-list"></div>
@@ -112,6 +118,16 @@
             </div>
           </div>
 
+          <div class="advice-card heatmap-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">匹配度热力仪表盘</p>
+                <h3>六维匹配强弱</h3>
+              </div>
+            </div>
+            <div id="match-heatmap" class="match-heatmap"></div>
+          </div>
+
           <div class="analysis-grid">
             <div>
               <h3>匹配原因</h3>
@@ -123,6 +139,16 @@
             </div>
           </div>
 
+          <div class="advice-card composite-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">JD 复合能力拆解</p>
+                <h3>显性要求之外的隐性能力</h3>
+              </div>
+            </div>
+            <div id="composite-list" class="composite-list"></div>
+          </div>
+
           <div class="advice-card">
             <div class="section-heading compact">
               <div>
@@ -132,6 +158,17 @@
             </div>
             <p id="score-formula" class="score-formula"></p>
             <div id="score-breakdown" class="breakdown-list"></div>
+            <div id="confidence-panel" class="confidence-panel"></div>
+            <div class="evidence-link-panel">
+              <div>
+                <p class="eyebrow">岗位要求</p>
+                <p id="evidence-jd" class="evidence-text"></p>
+              </div>
+              <div>
+                <p class="eyebrow">简历证据</p>
+                <p id="evidence-resume" class="evidence-text"></p>
+              </div>
+            </div>
             <div id="skill-detail-list" class="skill-detail-list"></div>
           </div>
 
@@ -224,6 +261,16 @@
             <div id="admin-match-breakdown" class="admin-breakdown-list"></div>
           </div>
 
+          <div class="advice-card team-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">团队互补看板</p>
+                <h3 id="team-complement-title"></h3>
+              </div>
+            </div>
+            <div id="team-complement-list" class="team-complement-list"></div>
+          </div>
+
           <div class="advice-card">
             <h3>已投岗位</h3>
             <div id="submitted-job-list" class="admin-match-list"></div>
@@ -236,8 +283,13 @@
           </div>
 
           <div class="advice-card">
-            <h3>可转推荐岗位</h3>
+            <h3>跨界转推荐岗位</h3>
             <div id="suggested-job-list" class="admin-match-list"></div>
+          </div>
+
+          <div class="advice-card">
+            <h3>AI 面试提问桩</h3>
+            <div id="interview-question-list" class="interview-question-list"></div>
           </div>
         </section>
       </section>

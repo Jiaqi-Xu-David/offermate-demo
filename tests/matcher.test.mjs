@@ -10,10 +10,18 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
+  buildCompositeCapabilityDetails,
+  buildCrossRoleRecommendations,
+  buildEvidenceTrace,
+  buildEvidenceConfidenceSummary,
+  buildInterviewQuestions,
+  buildMatchHeatmap,
+  buildPotentialAnalysis,
   buildScoreExplanation,
   buildResumeAdvice,
   buildSoftSkillMatchDetails,
   buildStudentWorkflowSummary,
+  buildTeamComplement,
   buildTailoredResumeSnippet,
   getSkillMatchDetails,
   getScoreBreakdown,
@@ -110,8 +118,17 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('id="admin-match-title"'));
   assert.ok(indexHtml.includes('id="admin-match-formula"'));
   assert.ok(indexHtml.includes('id="admin-match-breakdown"'));
+  assert.ok(indexHtml.includes('id="potential-summary"'));
+  assert.ok(indexHtml.includes('id="match-heatmap"'));
+  assert.ok(indexHtml.includes('id="composite-list"'));
+  assert.ok(indexHtml.includes('id="confidence-panel"'));
+  assert.ok(indexHtml.includes('id="evidence-jd"'));
+  assert.ok(indexHtml.includes('id="team-complement-list"'));
+  assert.ok(indexHtml.includes('id="interview-question-list"'));
   assert.ok(indexHtml.includes('候选人简历'));
   assert.ok(indexHtml.includes('匹配结果与评分'));
+  assert.ok(indexHtml.includes('动态潜力推演'));
+  assert.ok(indexHtml.includes('AI 面试提问桩'));
 });
 
 test('tightens repeated tag blocks and job detail spacing', async () => {
@@ -122,6 +139,11 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
   assert.match(css, /\.profile-meta-grid \+ \.profile-block\s*\{[\s\S]*margin-top: 18px/);
   assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
   assert.match(css, /\.job-detail-main > \.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
+  assert.match(css, /\.match-heatmap\s*\{/);
+  assert.match(css, /\.heatmap-cell\.active-evidence\s*\{/);
+  assert.match(css, /\.evidence-link-panel\s*\{/);
+  assert.match(css, /\.team-gap\.matched\s*\{/);
+  assert.match(css, /\.interview-question-item\s*\{/);
 });
 
 test('grounds every seeded job in a complete job description', () => {
@@ -156,8 +178,61 @@ test('parses JD text into compensation, hard skills, soft skills, and language r
 
   assert.equal(parsed.salary, '220-280元/天');
   assert.equal(sql.requiredLevel, '高级');
+  assert.ok(parsed.redLines.some((item) => item.name === 'SQL'));
+  assert.ok(parsed.compositeCapabilities.some((item) => item.name === '数据驱动增长'));
+  assert.ok(parsed.implicitRequirements.includes('数据驱动增长'));
   assert.ok(parsed.softSkills.includes('跨部门沟通'));
   assert.ok(parsed.languageRequirements.includes('英语 CET-6'));
+});
+
+test('builds potential, composite capability, and heatmap outputs', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const potential = buildPotentialAnalysis(STUDENT_PROFILE);
+  const composites = buildCompositeCapabilityDetails(STUDENT_PROFILE, targetJob);
+  const heatmap = buildMatchHeatmap(STUDENT_PROFILE, targetJob);
+
+  assert.ok(potential.score >= 70);
+  assert.ok(potential.signals.length >= 3);
+  assert.ok(composites.some((item) => item.name === '数据驱动增长' && item.matched));
+  assert.equal(heatmap.length, 6);
+  assert.ok(heatmap.every((item) => item.intensity >= 0 && item.intensity <= 100));
+});
+
+test('runs evidence confidence shadow checks and evidence trace linking', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const shallowProfile = {
+    name: '标签型候选人',
+    skills: ['SQL'],
+    experiences: [],
+    cityPreferences: ['上海'],
+    languages: [],
+    softSkills: [],
+    interests: [],
+  };
+  const summary = buildEvidenceConfidenceSummary(shallowProfile, targetJob);
+  const sql = summary.details.find((item) => item.name === 'SQL');
+  const trace = buildEvidenceTrace(STUDENT_PROFILE, targetJob, 'SQL');
+
+  assert.ok(summary.adjustedItems.some((item) => item.name === 'SQL'));
+  assert.ok(sql.score < sql.baseScore);
+  assert.ok(sql.confidenceReason.includes('权重衰减'));
+  assert.ok(trace.jdText.includes('SQL'));
+  assert.ok(trace.resumeText.includes('SQL'));
+});
+
+test('builds HR team complement, cross-role recommendations, and interview questions', () => {
+  const candidate = CANDIDATES.find((item) => item.id === 'davide');
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const complement = buildTeamComplement(candidate);
+  const recommendations = buildCrossRoleRecommendations(candidate, JOBS);
+  const questions = buildInterviewQuestions(candidate, targetJob);
+
+  assert.ok(complement.score > 0);
+  assert.ok(complement.matchedGaps.length >= 1);
+  assert.ok(recommendations.length >= 1);
+  assert.ok(recommendations[0].reason.includes('跨界依据'));
+  assert.ok(questions.length >= 1);
+  assert.ok(questions[0].question.includes('请'));
 });
 
 test('analyzes an admin-added job description into required capabilities', () => {
