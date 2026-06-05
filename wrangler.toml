@@ -1,0 +1,8 @@
+name = "offermate-demo"
+pages_build_output_dir = "."
+compatibility_date = "2026-06-05"
+
+[[d1_databases]]
+binding = "VISITS_DB"
+database_name = "offermate_visits"
+database_id = "070f058b-85f4-4422-b8be-117c9b26d2a7"

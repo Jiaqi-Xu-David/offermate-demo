@@ -429,3 +429,28 @@ test('builds recruiter-facing candidate routing insights', () => {
   assert.ok(!combinedText.includes('优先投递'));
   assert.ok(!combinedText.includes('简历优化'));
 });
+
+test('defines a guarded Cloudflare visit log backend', async () => {
+  const middleware = await readFile(new URL('../functions/_middleware.js', import.meta.url), 'utf8');
+  const adminPage = await readFile(new URL('../functions/admin/visits.js', import.meta.url), 'utf8');
+  const schema = await readFile(new URL('../db/schema.sql', import.meta.url), 'utf8');
+  const wrangler = await readFile(new URL('../wrangler.toml', import.meta.url), 'utf8');
+
+  assert.ok(wrangler.includes('binding = "VISITS_DB"'));
+  assert.ok(wrangler.includes('database_name = "offermate_visits"'));
+  assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS visit_logs'));
+  assert.ok(schema.includes('visited_at TEXT NOT NULL'));
+  assert.ok(schema.includes('ip TEXT NOT NULL'));
+  assert.ok(middleware.includes("request.headers.get('cf-connecting-ip')"));
+  assert.ok(middleware.includes('query_present'));
+  assert.ok(middleware.includes("url.pathname.startsWith('/admin/')"));
+  assert.ok(middleware.includes('PRIVATE_FILE_PATTERN'));
+  assert.ok(middleware.includes("'/wrangler.toml'"));
+  assert.ok(adminPage.includes('VISIT_ADMIN_TOKEN'));
+  assert.ok(adminPage.includes('WWW-Authenticate'));
+  assert.ok(adminPage.includes('OfferMate 访问记录'));
+  assert.ok(!middleware.includes('localStorage'));
+  assert.ok(!middleware.includes('clipboard'));
+  assert.ok(!middleware.includes('canvas'));
+  assert.ok(!middleware.includes('fingerprint'));
+});
