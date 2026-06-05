@@ -113,6 +113,9 @@ test('defines a mobile-first dashboard reading flow', async () => {
 
 test('supports HR candidate resume and match review in static markup', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const adminSummaryIndex = indexHtml.indexOf('class="score-card admin-summary-card"');
+  const submittedJobsIndex = indexHtml.indexOf('id="submitted-job-list"');
+  const resumeIndex = indexHtml.indexOf('id="admin-resume-document"');
 
   assert.ok(indexHtml.includes('id="admin-resume-document"'));
   assert.ok(indexHtml.includes('id="admin-match-title"'));
@@ -130,6 +133,8 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('匹配结果与评分'));
   assert.ok(indexHtml.includes('动态潜力推演'));
   assert.ok(indexHtml.includes('AI 面试提问桩'));
+  assert.ok(submittedJobsIndex > adminSummaryIndex);
+  assert.ok(resumeIndex > submittedJobsIndex);
 });
 
 test('removes duplicate workflow and low-value advice cards from student view', async () => {
