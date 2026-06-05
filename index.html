@@ -53,18 +53,23 @@
 
           <div class="profile-block parse-card">
             <h3>已提取画像</h3>
-            <p id="parse-status">从示例简历中提取学生画像、技能标签和经历证据。</p>
+            <p id="parse-status">从示例简历中提取候选人能力、经历证据和求职偏好。</p>
+          </div>
+
+          <div class="profile-block">
+            <h3>核心技能</h3>
+            <div id="skill-list" class="tag-list"></div>
           </div>
 
           <div class="profile-block potential-card">
-            <h3>动态潜力推演</h3>
+            <h3>动态能力标签</h3>
             <div id="potential-summary" class="potential-summary"></div>
             <div id="potential-signals" class="signal-list"></div>
           </div>
 
           <div class="profile-block">
-            <h3>技能标签</h3>
-            <div id="skill-list" class="tag-list"></div>
+            <h3>求职偏好</h3>
+            <p id="student-target"></p>
           </div>
 
           <div class="profile-meta-grid">
@@ -76,11 +81,6 @@
               <h3>软技能</h3>
               <div id="soft-skill-list" class="tag-list"></div>
             </div>
-          </div>
-
-          <div class="profile-block">
-            <h3>求职偏好</h3>
-            <p id="student-target"></p>
           </div>
         </aside>
 
@@ -120,7 +120,7 @@
               <div id="confidence-panel" class="confidence-panel"></div>
               <div class="evidence-link-panel">
                 <div>
-                  <p class="eyebrow">岗位要求</p>
+                  <p class="eyebrow">JD 证据</p>
                   <p id="evidence-jd" class="evidence-text"></p>
                 </div>
                 <div>
@@ -129,27 +129,6 @@
                 </div>
               </div>
               <div id="skill-detail-list" class="skill-detail-list"></div>
-            </div>
-          </div>
-
-          <div class="advice-card heatmap-card">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">匹配维度概览</p>
-                <h3>各维度贡献</h3>
-              </div>
-            </div>
-            <div id="match-heatmap" class="match-heatmap"></div>
-          </div>
-
-          <div class="analysis-grid">
-            <div>
-              <h3>匹配原因</h3>
-              <ul id="reason-list"></ul>
-            </div>
-            <div>
-              <h3>关键词差距</h3>
-              <div id="gap-list" class="tag-list"></div>
             </div>
           </div>
 

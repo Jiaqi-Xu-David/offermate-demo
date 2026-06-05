@@ -492,7 +492,7 @@ function getProfileSkillEvidence(profile, skill) {
     level: count > 0 ? inferResumeSkillLevel(profileText, skill, count) : '未体现',
     sources: count > 0
       ? unique([
-          appearsInSkillList ? '技能标签' : '',
+          appearsInSkillList ? '核心技能' : '',
           appearsInExperience ? '项目/经历' : '',
           !appearsInSkillList && !appearsInExperience ? '简历文本' : '',
         ])
@@ -532,7 +532,7 @@ function scoreEvidenceConfidence(evidence) {
     return {
       confidence: 1,
       confidenceLabel: '证据充分',
-      confidenceReason: '技能标签和项目经历能够相互印证',
+      confidenceReason: '核心技能和项目经历能够相互印证',
       adjusted: false,
     };
   }
@@ -544,11 +544,11 @@ function scoreEvidenceConfidence(evidence) {
       adjusted: true,
     };
   }
-  if (sources.includes('技能区') || sources.includes('技能标签')) {
+  if (sources.includes('技能区') || sources.includes('核心技能')) {
     return {
       confidence: 0.72,
       confidenceLabel: '需补充项目证据',
-      confidenceReason: '目前主要来自技能标签，建议补充具体项目场景；该项评分已适度下调',
+      confidenceReason: '目前主要来自核心技能表述，建议补充具体项目场景；该项评分已适度下调',
       adjusted: true,
     };
   }
@@ -704,8 +704,8 @@ function scoreLanguageDimension(profile, job) {
     matchedLanguages,
     detail:
       matchedLanguages.length > 0
-        ? '语言能力满足岗位要求'
-        : '语言能力与岗位要求仍有差距',
+        ? '语言能力满足 JD 要求'
+        : '语言能力与 JD 要求仍有差距',
   };
 }
 
@@ -791,7 +791,7 @@ export function buildEvidenceConfidenceSummary(profile, job) {
     averageConfidence,
     summary:
       adjustedItems.length > 0
-        ? `${adjustedItems.length} 项能力主要来自标签表述，已降低该项评分权重`
+        ? `${adjustedItems.length} 项能力主要来自概括表述，已降低该项评分权重`
         : '核心能力均有多点证据链支撑',
     highConfidenceCount: highConfidence.length,
     adjustedItems,
@@ -824,7 +824,7 @@ export function buildPotentialAnalysis(profile) {
     label: score >= 82 ? '成长潜力高' : score >= 68 ? '成长潜力稳定' : '需要补充进阶证据',
     trend: lateAverage >= earlyAverage ? '经历复杂度呈上升或稳定趋势' : '后段经历复杂度略低，建议补充更强项目',
     signals: [
-      `${profile.skills?.length ?? 0} 个技能标签形成能力广度`,
+      `${profile.skills?.length ?? 0} 项核心技能形成能力广度`,
       `${experiences.length} 条经历可用于支撑岗位匹配`,
       lateAverage >= earlyAverage ? '后续经历包含更多任务闭环' : '需要让最近经历更突出工具和结果',
     ],
@@ -954,10 +954,22 @@ export function buildInterviewQuestions(candidate, job) {
 export function buildEvidenceTrace(profile, job, focus) {
   const profileTextItems = profile.experiences ?? [];
   const matchedExperiences = profileTextItems.filter((item) => hasTextMatch([item], focus));
-  const jdRequirement = getJobRequirement(job, focus);
-  const jdText = job.description.includes(focus)
-    ? `JD 中要求 ${focus}（${jdRequirement}）：${job.description}`
-    : `${focus} 属于 ${job.title} 的评分维度：${getScoreBreakdown(profile, job).find((item) => item.label === focus)?.detail ?? job.description}`;
+  const normalizedFocus = focus.toLowerCase();
+  const skillRequirement = job.hardSkillRequirements?.find((item) => item.name.toLowerCase() === normalizedFocus);
+  const softRequirement = job.softSkills?.find((item) => item === focus);
+  const languageRequirement = job.languageRequirements?.find((item) => item.includes(focus) || focus.includes(item));
+  const breakdownDetail = getScoreBreakdown(profile, job).find((item) => item.label === focus)?.detail;
+  let jdText = breakdownDetail ? `评分维度：${focus}。${breakdownDetail}` : `${focus} 与 ${job.title} 的岗位匹配相关。`;
+
+  if (skillRequirement) {
+    jdText = `JD 核心技能：${skillRequirement.name}，要求 ${skillRequirement.requiredLevel}。`;
+  } else if (softRequirement) {
+    jdText = `JD 软技能：需要体现 ${softRequirement}。`;
+  } else if (languageRequirement) {
+    jdText = `JD 语言要求：${languageRequirement}。`;
+  } else if (job.description.includes(focus)) {
+    jdText = `JD 描述中明确出现：${focus}。`;
+  }
 
   return {
     focus,
@@ -966,7 +978,7 @@ export function buildEvidenceTrace(profile, job, focus) {
       matchedExperiences.length > 0
         ? matchedExperiences.slice(0, 2).join('；')
         : getProfileSkillEvidence(profile, focus).count > 0
-          ? `${focus} 出现在技能标签或简历文本中，但项目上下文较少`
+          ? `${focus} 出现在核心技能或简历文本中，但项目上下文较少`
           : '简历中暂未定位到直接对应文本',
   };
 }

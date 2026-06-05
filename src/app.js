@@ -12,7 +12,6 @@ import {
   buildEvidenceConfidenceSummary,
   buildEvidenceTrace,
   buildInterviewQuestions,
-  buildMatchHeatmap,
   buildPotentialAnalysis,
   buildResumeAdvice,
   buildScoreExplanation,
@@ -48,7 +47,7 @@ const state = {
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: 'davide',
   rankings: rankJobs(STUDENT_PROFILE, JOBS),
-  parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 个技能标签、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
+  parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 项核心技能、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
   adminResult:
     savedAdminJobs.length > 0
       ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
@@ -105,9 +104,6 @@ const elements = {
   selectedJobMeta: document.querySelector('#selected-job-meta'),
   scoreRing: document.querySelector('#score-ring'),
   scoreValue: document.querySelector('#score-value'),
-  reasonList: document.querySelector('#reason-list'),
-  gapList: document.querySelector('#gap-list'),
-  matchHeatmap: document.querySelector('#match-heatmap'),
   compositeList: document.querySelector('#composite-list'),
   scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
@@ -423,7 +419,7 @@ function renderAdminResume(candidate) {
 
   elements.adminResumeDocument.replaceChildren(
     header,
-    createTagGroup('技能标签', profile.skills ?? []),
+    createTagGroup('核心技能', profile.skills ?? []),
     createTagGroup('语言能力', profile.languages ?? []),
     createTagGroup('软技能', profile.softSkills ?? []),
     experienceSection,
@@ -469,35 +465,6 @@ function updateEvidenceTrace(profile, job, focus) {
   document.querySelectorAll('[data-evidence-focus]').forEach((node) => {
     node.classList.toggle('active-evidence', node.dataset.evidenceFocus === focus);
   });
-}
-
-function renderMatchHeatmap(profile, job) {
-  const heatmap = buildMatchHeatmap(profile, job);
-  elements.matchHeatmap.replaceChildren(
-    ...heatmap.map((item) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `heatmap-row heat-${item.levelKey}`;
-      button.dataset.evidenceFocus = item.label;
-      const label = document.createElement('strong');
-      label.textContent = item.label;
-      const score = document.createElement('span');
-      score.className = 'heatmap-score';
-      score.textContent = `${item.points}/${item.max}`;
-      const meter = document.createElement('div');
-      meter.className = 'heatmap-meter';
-      const fill = document.createElement('span');
-      fill.style.width = `${item.intensity}%`;
-      meter.append(fill);
-      const level = document.createElement('em');
-      level.textContent = item.level;
-      const detail = document.createElement('p');
-      detail.textContent = item.detail;
-      button.append(label, meter, score, level, detail);
-      button.addEventListener('click', () => updateEvidenceTrace(profile, job, item.label));
-      return button;
-    }),
-  );
 }
 
 function renderCompositeCapabilities(profile, job) {
@@ -600,7 +567,9 @@ function renderScoreBreakdown(profile, job) {
         ['来源', detail.sourceText],
       ];
       fieldRows.forEach(([labelText, valueText]) => {
-        fields.append(createLabelValue('p', labelText, valueText, labelText === '来源' ? 'source-field' : ''));
+        const className =
+          labelText === '来源' ? 'source-field' : labelText === '置信度' ? 'confidence-field' : '';
+        fields.append(createLabelValue('p', labelText, valueText, className));
       });
 
       row.append(title, fields);
@@ -738,15 +707,6 @@ function renderAnalysis() {
   elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
-  elements.reasonList.replaceChildren(
-    ...analysis.reasons.map((reason) => {
-      const item = document.createElement('li');
-      item.textContent = reason;
-      return item;
-    }),
-  );
-  renderTags(elements.gapList, analysis.gaps.length ? analysis.gaps : ['核心技能已覆盖'], analysis.gaps.length ? 'gap' : '');
-  renderMatchHeatmap(state.profile, selectedJob);
   renderCompositeCapabilities(state.profile, selectedJob);
   renderScoreBreakdown(state.profile, selectedJob);
 
@@ -780,7 +740,7 @@ function render() {
 
 elements.parseResume.addEventListener('click', () => {
   state.profile = parseResumeText(SAMPLE_RESUME_TEXT);
-  state.parseStatus = `已解析 ${state.profile.skills.length} 个技能标签、${state.profile.experiences.length} 条经历证据。`;
+  state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
   render();
 });
 

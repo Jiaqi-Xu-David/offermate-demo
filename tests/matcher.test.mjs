@@ -122,7 +122,6 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('id="admin-match-formula"'));
   assert.ok(indexHtml.includes('id="admin-match-breakdown"'));
   assert.ok(indexHtml.includes('id="potential-summary"'));
-  assert.ok(indexHtml.includes('id="match-heatmap"'));
   assert.ok(indexHtml.includes('id="composite-list"'));
   assert.ok(indexHtml.includes('class="score-explainer"'));
   assert.ok(indexHtml.includes('id="confidence-panel"'));
@@ -131,7 +130,7 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('id="interview-question-list"'));
   assert.ok(indexHtml.includes('候选人简历'));
   assert.ok(indexHtml.includes('匹配结果与评分'));
-  assert.ok(indexHtml.includes('动态潜力推演'));
+  assert.ok(indexHtml.includes('动态能力标签'));
   assert.ok(indexHtml.includes('AI 面试提问桩'));
   assert.ok(submittedJobsIndex > adminSummaryIndex);
   assert.ok(resumeIndex > submittedJobsIndex);
@@ -149,17 +148,36 @@ test('removes duplicate workflow and low-value advice cards from student view', 
   assert.ok(!indexHtml.includes('final-report'));
 });
 
+test('keeps the student profile ordered like a resume summary', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const skillIndex = indexHtml.indexOf('<h3>核心技能</h3>');
+  const potentialIndex = indexHtml.indexOf('<h3>动态能力标签</h3>');
+  const preferenceIndex = indexHtml.indexOf('<h3>求职偏好</h3>');
+  const languageIndex = indexHtml.indexOf('<h3>语言能力</h3>');
+  const softSkillIndex = indexHtml.indexOf('<h3>软技能</h3>');
+
+  assert.ok(skillIndex > -1);
+  assert.ok(potentialIndex > skillIndex);
+  assert.ok(preferenceIndex > potentialIndex);
+  assert.ok(languageIndex > preferenceIndex);
+  assert.ok(softSkillIndex > languageIndex);
+  assert.ok(!indexHtml.includes('技能标签'));
+  assert.ok(!indexHtml.includes('id="match-heatmap"'));
+  assert.ok(!indexHtml.includes('id="reason-list"'));
+  assert.ok(!indexHtml.includes('id="gap-list"'));
+});
+
 test('places score explanation directly under the main score summary', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const scoreSummaryIndex = indexHtml.indexOf('class="score-summary-row"');
   const scoreRingIndex = indexHtml.indexOf('id="score-ring"');
   const explainerIndex = indexHtml.indexOf('class="score-explainer"');
-  const heatmapIndex = indexHtml.indexOf('id="match-heatmap"');
+  const skillDetailIndex = indexHtml.indexOf('id="skill-detail-list"');
 
   assert.ok(scoreSummaryIndex > -1);
   assert.ok(scoreRingIndex > scoreSummaryIndex);
   assert.ok(explainerIndex > scoreRingIndex);
-  assert.ok(heatmapIndex > explainerIndex);
+  assert.ok(skillDetailIndex > explainerIndex);
 });
 
 test('tightens repeated tag blocks and job detail spacing', async () => {
@@ -171,9 +189,8 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
   assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
   assert.match(css, /\.job-detail-main\s*>\s*\.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
   assert.match(css, /\.score-explainer\s*\{/);
-  assert.match(css, /\.match-heatmap\s*\{/);
-  assert.match(css, /\.heatmap-row\.active-evidence\s*\{/);
   assert.match(css, /\.evidence-link-panel\s*\{/);
+  assert.match(css, /\.skill-detail-fields \.confidence-field\s*\{[\s\S]*display: flex/);
   assert.match(css, /\.team-gap\.matched\s*\{/);
   assert.match(css, /\.interview-question-item\s*\{/);
   assert.ok(!css.includes('.heatmap-cell {'));
