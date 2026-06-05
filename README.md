@@ -1,6 +1,6 @@
-# OfferMate AI Job Matcher Demo
+# OfferMate Demo
 
-OfferMate is a static demo for an AI job-matching agent. It shows a realistic student resume, parses the candidate profile, ranks multiple roles inside the same company, and lets an admin add a job description that is automatically converted into capability tags.
+OfferMate is a static job-matching demo. It shows a realistic student resume, compares the candidate profile with multiple roles inside the same company, and provides separate views for job seekers and HR reviewers.
 
 ## Run Locally
 

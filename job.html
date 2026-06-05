@@ -1,102 +1,105 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>大卫德科技岗位招聘详情</title>
-    <link rel="stylesheet" href="./styles.css">
-  </head>
-  <body>
-    <main class="app-shell job-detail-page">
-      <section class="topbar job-detail-topbar" aria-label="招聘详情页">
-        <div>
-          <p class="eyebrow">大卫德科技校园招聘</p>
-          <h1 id="detail-company">大卫德科技</h1>
-          <p id="detail-company-subtitle" class="top-subtitle"></p>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大卫德科技岗位招聘详情</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+  <main class="app-shell job-detail-page">
+    <section class="topbar job-detail-topbar" aria-label="招聘详情页">
+      <div>
+        <p class="eyebrow">大卫德科技校园招聘</p>
+        <h1 id="detail-company">大卫德科技</h1>
+        <p id="detail-company-subtitle" class="top-subtitle"></p>
+      </div>
+      <div class="top-actions">
+        <a class="secondary-button compact-button nav-link-button" href="./index.html">返回岗位池</a>
+        <div class="status-pill">
+          <span class="dot"></span>
+          岗位详情
         </div>
-        <div class="top-actions">
-          <a class="secondary-button compact-button nav-link-button" href="./index.html">返回岗位池</a>
-          <div class="status-pill">
-            <span class="dot"></span>
-            岗位详情
+      </div>
+    </section>
+
+    <section class="job-detail-hero">
+      <div>
+        <p class="eyebrow">Campus Hiring</p>
+        <h2 id="detail-title"></h2>
+        <p id="detail-meta" class="selected-job-meta"></p>
+      </div>
+    </section>
+
+    <section class="job-detail-layout">
+      <article class="job-detail-main">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">职位介绍</p>
+            <h3></h3>
           </div>
         </div>
-      </section>
+        <p id="detail-description" class="detail-description"></p>
 
-      <section class="job-detail-hero">
-        <div>
-          <p class="eyebrow">Campus Hiring</p>
-          <h2 id="detail-title"></h2>
-          <p id="detail-meta" class="selected-job-meta"></p>
+        <div class="detail-section-grid">
+          <section class="detail-card">
+            <h3>岗位职责</h3>
+            <ul id="detail-responsibilities"></ul>
+          </section>
+          <section class="detail-card">
+            <h3>相关要求</h3>
+            <ul id="detail-requirements"></ul>
+          </section>
         </div>
-      </section>
 
-      <section class="job-detail-layout">
-        <article class="job-detail-main">
+        <section class="detail-card">
           <div class="section-heading compact">
             <div>
-              <p class="eyebrow">职位介绍</p>
-              <h3>关于这个岗位</h3>
+              <p class="eyebrow"></p>
+              <h3>加分方向</h3>
             </div>
           </div>
-          <p id="detail-description" class="detail-description"></p>
+          <div id="detail-nice-to-have" class="tag-list"></div>
+        </section>
+      </article>
 
-          <div class="detail-section-grid">
-            <section class="detail-card">
-              <h3>岗位职责</h3>
-              <ul id="detail-responsibilities"></ul>
-            </section>
-            <section class="detail-card">
-              <h3>任职要求</h3>
-              <ul id="detail-requirements"></ul>
-            </section>
+      <aside class="job-detail-side">
+        <section class="detail-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">岗位概要</p>
+              <h3>招聘信息</h3>
+            </div>
           </div>
+          <div id="detail-summary" class="detail-analysis-grid"></div>
+        </section>
 
-          <section class="detail-card">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">加分方向</p>
-                <h3>我们也欢迎这些经历</h3>
-              </div>
+        <section class="detail-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">工作安排</p>
+              <h3>实习说明</h3>
             </div>
-            <div id="detail-nice-to-have" class="tag-list"></div>
-          </section>
-        </article>
+          </div>
+          <div id="detail-arrangements" class="detail-analysis-grid"></div>
+        </section>
 
-        <aside class="job-detail-side">
-          <section class="detail-card">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">岗位概要</p>
-                <h3>招聘信息</h3>
-              </div>
+        <section class="detail-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">投递说明</p>
+              <h3>申请材料</h3>
             </div>
-            <div id="detail-summary" class="detail-analysis-grid"></div>
-          </section>
+          </div>
+          <ul id="detail-apply-notes"></ul>
+        </section>
+      </aside>
+    </section>
+  </main>
 
-          <section class="detail-card">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">工作安排</p>
-                <h3>实习说明</h3>
-              </div>
-            </div>
-            <div id="detail-arrangements" class="detail-analysis-grid"></div>
-          </section>
+  <script type="module" src="./src/job-detail.js"></script>
+</body>
 
-          <section class="detail-card">
-            <div class="section-heading compact">
-              <div>
-                <p class="eyebrow">投递说明</p>
-                <h3>申请材料</h3>
-              </div>
-            </div>
-            <ul id="detail-apply-notes"></ul>
-          </section>
-        </aside>
-      </section>
-    </main>
-
-    <script type="module" src="./src/job-detail.js"></script>
-  </body>
 </html>

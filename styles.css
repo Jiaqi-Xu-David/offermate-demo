@@ -70,7 +70,7 @@ button {
   padding-bottom: 18px;
 }
 
-.topbar > *:not(.creator-watermark) {
+.topbar>*:not(.creator-watermark) {
   position: relative;
   z-index: 1;
 }
@@ -228,7 +228,7 @@ h3 {
 
 .profile-panel,
 .job-panel,
-.insight-panel > .score-card,
+.insight-panel>.score-card,
 .analysis-grid,
 .advice-card {
   border: 1px solid var(--line);
@@ -372,7 +372,7 @@ h3 {
   gap: 6px;
 }
 
-.resume-skill-row + .resume-skill-row {
+.resume-skill-row+.resume-skill-row {
   margin-top: 0;
 }
 
@@ -505,11 +505,11 @@ textarea:focus {
   color: var(--ink);
 }
 
-.profile-block + .profile-block {
+.profile-block+.profile-block {
   margin-top: 18px;
 }
 
-.profile-meta-grid + .profile-block {
+.profile-meta-grid+.profile-block {
   margin-top: 18px;
 }
 
@@ -530,7 +530,7 @@ textarea:focus {
   background: var(--panel-strong);
 }
 
-.profile-meta-grid .profile-block + .profile-block {
+.profile-meta-grid .profile-block+.profile-block {
   margin-top: 0;
 }
 
@@ -880,7 +880,7 @@ a.admin-job-item:focus-visible {
   gap: 8px;
 }
 
-.admin-resume-section > strong {
+.admin-resume-section>strong {
   color: var(--brand-dark);
   font-size: 13px;
 }
@@ -1050,7 +1050,7 @@ a.admin-job-item:focus-visible {
   padding: 16px;
 }
 
-.analysis-grid > div {
+.analysis-grid>div {
   display: grid;
   align-content: start;
   gap: 10px;
@@ -1222,7 +1222,7 @@ ol {
   margin-bottom: 0;
 }
 
-.evidence-link-panel > div {
+.evidence-link-panel>div {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
@@ -1491,7 +1491,7 @@ ol {
   gap: 12px;
 }
 
-.job-detail-main > .section-heading.compact {
+.job-detail-main>.section-heading.compact {
   margin-bottom: 0;
 }
 
@@ -1553,6 +1553,7 @@ ol {
 }
 
 @media (max-width: 1120px) {
+
   .workspace,
   .admin-workspace {
     grid-template-columns: 1fr 1fr;
@@ -1697,7 +1698,7 @@ ol {
   .job-panel,
   .analysis-grid,
   .advice-card,
-  .insight-panel > .score-card,
+  .insight-panel>.score-card,
   .detail-card,
   .detail-description,
   .job-detail-hero {
