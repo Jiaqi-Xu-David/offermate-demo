@@ -1,6 +1,6 @@
-# OfferMate Demo
+# OfferMate AI 求职匹配智能体 Demo
 
-OfferMate is a static job-matching demo. It shows a realistic student resume, compares the candidate profile with multiple roles inside the same company, and provides separate views for job seekers and HR reviewers.
+OfferMate 是一个面向学生求职场景的 AI 求职匹配智能体 Demo。它展示真实学生简历、同一公司多岗位匹配、求职者与 HR 双视角，以及可解释评分与简历优化建议。
 
 ## Run Locally
 
