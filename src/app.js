@@ -163,10 +163,6 @@ function getConfidenceTone(confidence) {
   return 'low';
 }
 
-function getCompactDimensionLabel(label) {
-  return label.replace('匹配', '').replace('要求', '');
-}
-
 function selectStudentJob(jobId) {
   state.selectedJobId = jobId;
   renderJobs();
@@ -353,7 +349,21 @@ function renderProfile() {
 }
 
 function renderMatchDashboard() {
+  const bestMatch = state.rankings[0];
+  const viableCount = state.rankings.filter((analysis) => analysis.score >= 65).length;
+  const strongCount = state.rankings.filter((analysis) => analysis.score >= 80).length;
+  const summary = document.createElement('article');
+  summary.className = 'match-dashboard-summary';
+  const summaryLabel = document.createElement('span');
+  summaryLabel.textContent = '推荐';
+  const summaryTitle = document.createElement('strong');
+  summaryTitle.textContent = bestMatch ? `${bestMatch.job.title} ${bestMatch.score}分` : '暂无岗位';
+  const summaryMeta = document.createElement('p');
+  summaryMeta.textContent = `${strongCount} 个强匹配 · ${viableCount} 个可投递 · 点击右侧快速切换`;
+  summary.append(summaryLabel, summaryTitle, summaryMeta);
+
   elements.matchDashboardList.replaceChildren(
+    summary,
     ...state.rankings.map((analysis, index) => {
       const tone = getScoreTone(analysis.score);
       const card = document.createElement('button');
@@ -369,26 +379,15 @@ function renderMatchDashboard() {
       ring.className = 'dashboard-score-ring';
       const score = document.createElement('strong');
       score.textContent = analysis.score;
-      const level = document.createElement('span');
-      level.textContent = getScoreToneLabel(analysis.score);
-      ring.append(score, level);
+      ring.append(score);
 
       const content = document.createElement('div');
       content.className = 'dashboard-card-content';
       const title = document.createElement('strong');
       title.textContent = analysis.job.title;
-      const meta = document.createElement('p');
-      meta.textContent = `${analysis.job.city} · ${analysis.job.salary}`;
-      const dimensions = document.createElement('div');
-      dimensions.className = 'dashboard-dimensions';
-      buildScoreExplanation(state.profile, analysis.job).breakdown.slice(0, 4).forEach((item) => {
-        const dimension = document.createElement('span');
-        dimension.title = `${item.label} ${item.points}`;
-        dimension.style.setProperty('--fill', `${Math.round((item.points / item.max) * 100)}%`);
-        dimension.textContent = getCompactDimensionLabel(item.label);
-        dimensions.append(dimension);
-      });
-      content.append(title, meta, dimensions);
+      const level = document.createElement('p');
+      level.textContent = getScoreToneLabel(analysis.score);
+      content.append(title, level);
       card.append(ring, content);
       return card;
     }),
