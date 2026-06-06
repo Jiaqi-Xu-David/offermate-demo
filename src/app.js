@@ -23,6 +23,8 @@ import {
 import { buildJobDetailUrl } from './job-navigation.js';
 
 const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
+const HIGHLIGHT_CLASS = 'hl-target';
+const HIGHLIGHT_FLASH_CLASS = 'hl-flash';
 
 function loadAdminJobs() {
   try {
@@ -70,6 +72,7 @@ const elements = {
   parseStatus: document.querySelector('#parse-status'),
   potentialSummary: document.querySelector('#potential-summary'),
   potentialSignals: document.querySelector('#potential-signals'),
+  matchDashboardList: document.querySelector('#match-dashboard-list'),
   skillList: document.querySelector('#skill-list'),
   languageList: document.querySelector('#language-list'),
   softSkillList: document.querySelector('#soft-skill-list'),
@@ -108,6 +111,7 @@ const elements = {
   scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
   confidencePanel: document.querySelector('#confidence-panel'),
+  confidenceChain: document.querySelector('#confidence-chain'),
   evidenceJd: document.querySelector('#evidence-jd'),
   evidenceResume: document.querySelector('#evidence-resume'),
   skillDetailList: document.querySelector('#skill-detail-list'),
@@ -135,6 +139,106 @@ function createLabelValue(tagName, labelText, valueText, className = '') {
   label.textContent = labelText;
   item.append(label, document.createTextNode(valueText));
   return item;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getScoreTone(score) {
+  if (score >= 80) return 'strong';
+  if (score >= 65) return 'medium';
+  return 'low';
+}
+
+function getScoreToneLabel(score) {
+  if (score >= 80) return '强匹配';
+  if (score >= 65) return '可投递';
+  return '暂缓';
+}
+
+function getConfidenceTone(confidence) {
+  if (confidence >= 0.9) return 'high';
+  if (confidence >= 0.7) return 'medium';
+  return 'low';
+}
+
+function getCompactDimensionLabel(label) {
+  return label.replace('匹配', '').replace('要求', '');
+}
+
+function selectStudentJob(jobId) {
+  state.selectedJobId = jobId;
+  renderJobs();
+  renderAnalysis();
+}
+
+function clearHighlights(container) {
+  container.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((node) => {
+    node.replaceWith(document.createTextNode(node.textContent));
+  });
+  container.normalize();
+}
+
+function highlightKeyword(container, keyword) {
+  if (!container || !keyword?.trim()) return [];
+
+  clearHighlights(container);
+  const pattern = new RegExp(escapeRegExp(keyword.trim()), 'gi');
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if (parent?.closest(`.${HIGHLIGHT_CLASS}, script, style, textarea, input`)) return NodeFilter.FILTER_REJECT;
+      pattern.lastIndex = 0;
+      return pattern.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+    },
+  });
+  const textNodes = [];
+
+  while (walker.nextNode()) {
+    textNodes.push(walker.currentNode);
+  }
+
+  return textNodes.flatMap((node) => {
+    const matches = [];
+    const fragment = document.createDocumentFragment();
+    const source = node.nodeValue;
+    let cursor = 0;
+    pattern.lastIndex = 0;
+
+    source.replace(pattern, (match, index) => {
+      if (index > cursor) {
+        fragment.append(document.createTextNode(source.slice(cursor, index)));
+      }
+      const highlight = document.createElement('span');
+      highlight.className = `${HIGHLIGHT_CLASS} ${HIGHLIGHT_FLASH_CLASS}`;
+      highlight.textContent = match;
+      fragment.append(highlight);
+      matches.push(highlight);
+      cursor = index + match.length;
+      return match;
+    });
+
+    if (cursor < source.length) {
+      fragment.append(document.createTextNode(source.slice(cursor)));
+    }
+
+    node.replaceWith(fragment);
+    return matches;
+  });
+}
+
+function scrollFirstMatch(matches) {
+  matches[0]?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+}
+
+function highlightEvidenceFocus(focus) {
+  const resumeMatches = highlightKeyword(elements.resumeDocument, focus);
+  const activeJobCard = elements.jobList.querySelector('.job-card.active');
+  const jobMatches = highlightKeyword(activeJobCard, focus);
+  scrollFirstMatch(resumeMatches);
+  scrollFirstMatch(jobMatches);
 }
 
 function renderPotentialAnalysis() {
@@ -228,6 +332,9 @@ function renderProfile() {
   document.body.dataset.mode = state.mode;
   elements.studentWorkspace.hidden = state.mode !== 'student';
   elements.adminWorkspace.hidden = state.mode !== 'admin';
+  const activeWorkspace = state.mode === 'student' ? elements.studentWorkspace : elements.adminWorkspace;
+  activeWorkspace.classList.remove('workspace-fade-in');
+  window.requestAnimationFrame(() => activeWorkspace.classList.add('workspace-fade-in'));
   elements.studentMode.classList.toggle('active', state.mode === 'student');
   elements.adminMode.classList.toggle('active', state.mode === 'admin');
   elements.studentMode.setAttribute('aria-selected', String(state.mode === 'student'));
@@ -245,6 +352,49 @@ function renderProfile() {
   renderTags(elements.softSkillList, state.profile.softSkills ?? ['未解析到软技能']);
 }
 
+function renderMatchDashboard() {
+  elements.matchDashboardList.replaceChildren(
+    ...state.rankings.map((analysis, index) => {
+      const tone = getScoreTone(analysis.score);
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className =
+        analysis.job.id === state.selectedJobId ? `match-dashboard-card ${tone} active` : `match-dashboard-card ${tone}`;
+      card.style.setProperty('--score', analysis.score);
+      card.style.setProperty('--delay', `${Math.min(index * 35, 180)}ms`);
+      card.setAttribute('aria-label', `切换到${analysis.job.title}匹配分析`);
+      card.addEventListener('click', () => selectStudentJob(analysis.job.id));
+
+      const ring = document.createElement('div');
+      ring.className = 'dashboard-score-ring';
+      const score = document.createElement('strong');
+      score.textContent = analysis.score;
+      const level = document.createElement('span');
+      level.textContent = getScoreToneLabel(analysis.score);
+      ring.append(score, level);
+
+      const content = document.createElement('div');
+      content.className = 'dashboard-card-content';
+      const title = document.createElement('strong');
+      title.textContent = analysis.job.title;
+      const meta = document.createElement('p');
+      meta.textContent = `${analysis.job.city} · ${analysis.job.salary}`;
+      const dimensions = document.createElement('div');
+      dimensions.className = 'dashboard-dimensions';
+      buildScoreExplanation(state.profile, analysis.job).breakdown.slice(0, 4).forEach((item) => {
+        const dimension = document.createElement('span');
+        dimension.title = `${item.label} ${item.points}`;
+        dimension.style.setProperty('--fill', `${Math.round((item.points / item.max) * 100)}%`);
+        dimension.textContent = getCompactDimensionLabel(item.label);
+        dimensions.append(dimension);
+      });
+      content.append(title, meta, dimensions);
+      card.append(ring, content);
+      return card;
+    }),
+  );
+}
+
 function createJobCard(analysis) {
   const card = document.createElement('article');
   card.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
@@ -253,17 +403,12 @@ function createJobCard(analysis) {
   card.setAttribute('role', 'button');
   card.setAttribute('aria-label', `查看${analysis.job.title}匹配分析`);
 
-  const selectJob = () => {
-    state.selectedJobId = analysis.job.id;
-    renderJobs();
-    renderAnalysis();
-  };
-  card.addEventListener('click', selectJob);
+  card.addEventListener('click', () => selectStudentJob(analysis.job.id));
   card.addEventListener('keydown', (event) => {
     if (event.target !== card) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      selectJob();
+      selectStudentJob(analysis.job.id);
     }
   });
 
@@ -458,13 +603,14 @@ function renderAdminMatchReview(candidate, insight) {
   );
 }
 
-function updateEvidenceTrace(profile, job, focus) {
+function updateEvidenceTrace(profile, job, focus, shouldHighlight = true) {
   const trace = buildEvidenceTrace(profile, job, focus);
   elements.evidenceJd.textContent = trace.jdText;
   elements.evidenceResume.textContent = trace.resumeText;
   document.querySelectorAll('[data-evidence-focus]').forEach((node) => {
     node.classList.toggle('active-evidence', node.dataset.evidenceFocus === focus);
   });
+  if (shouldHighlight) highlightEvidenceFocus(focus);
 }
 
 function renderCompositeCapabilities(profile, job) {
@@ -496,6 +642,24 @@ function renderConfidencePanel(profile, job) {
   const detail = document.createElement('span');
   detail.textContent = `${summary.highConfidenceCount}/${summary.details.length} 项高置信证据`;
   elements.confidencePanel.replaceChildren(score, text, detail);
+  elements.confidenceChain.replaceChildren(
+    ...summary.details.map((item) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `confidence-chain-item ${getConfidenceTone(item.confidence)}`;
+      node.dataset.evidenceFocus = item.name;
+      node.title = item.confidenceReason;
+      node.addEventListener('click', () => updateEvidenceTrace(profile, job, item.name));
+      const dot = document.createElement('span');
+      dot.className = 'confidence-dot';
+      const name = document.createElement('strong');
+      name.textContent = item.name;
+      const label = document.createElement('em');
+      label.textContent = item.confidenceLabel;
+      node.append(dot, name, label);
+      return node;
+    }),
+  );
 }
 
 function renderScoreBreakdown(profile, job) {
@@ -603,13 +767,14 @@ function renderScoreBreakdown(profile, job) {
     }),
   );
   const firstFocus = explanation.skillDetails[0]?.name ?? breakdown[0]?.label;
-  if (firstFocus) updateEvidenceTrace(profile, job, firstFocus);
+  if (firstFocus) updateEvidenceTrace(profile, job, firstFocus, false);
 }
 
 function renderJobs() {
   state.rankings = rankJobs(state.profile, state.jobs);
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
   elements.jobList.replaceChildren(...state.rankings.map(createJobCard));
+  renderMatchDashboard();
   elements.adminResult.textContent = state.adminResult;
 }
 
@@ -707,6 +872,11 @@ function renderAnalysis() {
   elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
+  clearHighlights(elements.resumeDocument);
+  clearHighlights(elements.jobList);
+  elements.scoreRing.classList.remove('score-bump');
+  void elements.scoreRing.offsetWidth;
+  elements.scoreRing.classList.add('score-bump');
   renderCompositeCapabilities(state.profile, selectedJob);
   renderScoreBreakdown(state.profile, selectedJob);
 

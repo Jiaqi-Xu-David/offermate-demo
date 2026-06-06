@@ -122,9 +122,11 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('id="admin-match-formula"'));
   assert.ok(indexHtml.includes('id="admin-match-breakdown"'));
   assert.ok(indexHtml.includes('id="potential-summary"'));
+  assert.ok(indexHtml.includes('id="match-dashboard-list"'));
   assert.ok(indexHtml.includes('id="composite-list"'));
   assert.ok(indexHtml.includes('class="score-explainer"'));
   assert.ok(indexHtml.includes('id="confidence-panel"'));
+  assert.ok(indexHtml.includes('id="confidence-chain"'));
   assert.ok(indexHtml.includes('id="evidence-jd"'));
   assert.ok(indexHtml.includes('id="team-complement-list"'));
   assert.ok(indexHtml.includes('id="interview-question-list"'));
@@ -190,6 +192,12 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
   assert.match(css, /\.job-detail-main\s*>\s*\.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
   assert.match(css, /\.score-explainer\s*\{/);
   assert.match(css, /\.evidence-link-panel\s*\{/);
+  assert.match(css, /\.match-dashboard\s*\{/);
+  assert.match(css, /\.dashboard-score-ring\s*\{[\s\S]*conic-gradient/);
+  assert.match(css, /\.confidence-chain-item\.high \.confidence-dot\s*\{/);
+  assert.match(css, /@keyframes workspaceFade/);
+  assert.match(css, /@keyframes scoreBump/);
+  assert.match(css, /@keyframes hlPulse/);
   assert.match(css, /\.skill-detail-fields \.confidence-field\s*\{[\s\S]*display: flex/);
   assert.match(css, /\.team-gap\.matched\s*\{/);
   assert.match(css, /\.interview-question-item\s*\{/);
@@ -217,11 +225,25 @@ test('separates job card selection from company detail navigation', async () => 
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.ok(appJs.includes("const card = document.createElement('article');"));
-  assert.ok(appJs.includes('state.selectedJobId = analysis.job.id;'));
+  assert.ok(appJs.includes('function selectStudentJob(jobId)'));
+  assert.ok(appJs.includes('state.selectedJobId = jobId;'));
+  assert.ok(appJs.includes('renderMatchDashboard();'));
   assert.ok(appJs.includes('detailLink.href = buildJobDetailUrl(analysis.job.id);'));
   assert.ok(appJs.includes("detailLink.addEventListener('click', (event) => {"));
   assert.ok(appJs.includes('event.stopPropagation();'));
   assert.ok(!appJs.includes("const link = document.createElement('a');\n  link.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';"));
+});
+
+test('wires evidence highlighting and confidence-chain interactions', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('document.createTreeWalker'));
+  assert.ok(appJs.includes('hl-target'));
+  assert.ok(appJs.includes('scrollIntoView'));
+  assert.ok(appJs.includes('highlightEvidenceFocus(focus)'));
+  assert.ok(appJs.includes('confidence-chain-item'));
+  assert.ok(appJs.includes('node.title = item.confidenceReason;'));
+  assert.ok(appJs.includes("elements.scoreRing.classList.add('score-bump')"));
 });
 
 test('finds a job by id with parsed JD fields preserved', () => {
