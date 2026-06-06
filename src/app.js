@@ -10,10 +10,9 @@ import {
   buildAdminCandidateInsight,
   buildCompositeCapabilityDetails,
   buildEvidenceConfidenceSummary,
- buildEvidenceTrace,
- buildInterviewQuestions,
-  getSkillMatchDetails,
- buildPotentialAnalysis,
+  buildEvidenceTrace,
+  buildInterviewQuestions,
+  buildPotentialAnalysis,
   buildResumeAdvice,
   buildScoreExplanation,
   buildTeamComplement,
@@ -116,8 +115,6 @@ const elements = {
   rewriteList: document.querySelector('#rewrite-list'),
   generateSnippet: document.querySelector('#generate-snippet'),
   tailoredSnippet: document.querySelector('#tailored-snippet'),
-  heatDashboardGrid: document.querySelector("#heat-dashboard-grid"),
-  evidenceChainSummary: document.querySelector("#evidence-chain-summary"),
 };
 
 function renderTags(container, tags, variant = '') {
@@ -140,61 +137,6 @@ function createLabelValue(tagName, labelText, valueText, className = '') {
   return item;
 }
 
-function escapeRegex(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function clearHighlights(container) {
-  container.querySelectorAll('.hl-target').forEach((el) => {
-    el.replaceWith(el.textContent);
-  });
-}
-
-function highlightTextInEl(container, term) {
-  clearHighlights(container);
-  if (!term || term.length < 1) return false;
-
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-  const matches = [];
-  const escaped = escapeRegex(term);
-
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.parentElement?.closest('.hl-target, .tag, button, a, .score-ring, .heat-score-ring')) continue;
-    try {
-      const re = new RegExp(escaped, 'gi');
-      if (re.test(node.textContent)) matches.push(node);
-    } catch (_) {}
-  }
-
-  matches.forEach((textNode) => {
-    const parent = textNode.parentElement;
-    if (!parent) return;
-    try {
-      const re = new RegExp(`(${escapeRegex(term)})`, 'gi');
-      const html = textNode.textContent.replace(re, '<span class="hl-target">$1</span>');
-      const wrapper = document.createElement('span');
-      wrapper.innerHTML = html;
-      textNode.replaceWith(wrapper);
-    } catch (_) {}
-  });
-
-  const first = container.querySelector('.hl-target');
-  if (first) {
-    first.classList.add('hl-flash');
-    setTimeout(() => first.classList.remove('hl-flash'), 700);
-    return true;
-  }
-  return false;
-}
-
-function animateScoreRing() {
-  elements.scoreRing.classList.remove('score-bump');
-  void elements.scoreRing.offsetWidth;
-  elements.scoreRing.classList.add('score-bump');
-  setTimeout(() => elements.scoreRing.classList.remove('score-bump'), 500);
-}
-
 function renderPotentialAnalysis() {
   const potential = buildPotentialAnalysis(state.profile);
   const score = document.createElement('strong');
@@ -208,64 +150,6 @@ function renderPotentialAnalysis() {
     ...potential.signals.map((signal) => {
       const item = document.createElement('p');
       item.textContent = signal;
-      return item;
-    }),
-  );
-}
-
-function renderHeatDashboard() {
-  const rankings = state.rankings;
-  const grid = elements.heatDashboardGrid;
-  if (!grid) return;
-
-  grid.replaceChildren(
-    ...rankings.map((analysis) => {
-      const item = document.createElement('article');
-      const job = analysis.job;
-      const levelClass = analysis.score >= 80 ? 'high' : analysis.score >= 65 ? 'mid' : 'low';
-      item.className = `heat-item ${levelClass}${job.id === state.selectedJobId ? ' active' : ''}`;
-      item.dataset.jobId = job.id;
-      item.tabIndex = 0;
-      item.setAttribute('role', 'button');
-      item.setAttribute('aria-label', `${job.title} ${analysis.score}分`);
-
-      const scoreRing = document.createElement('div');
-      scoreRing.className = 'heat-score-ring';
-      scoreRing.style.setProperty('--score', analysis.score);
-      const scoreVal = document.createElement('span');
-      scoreVal.textContent = analysis.score;
-      scoreRing.append(scoreVal);
-
-      const title = document.createElement('div');
-      title.className = 'heat-item-title';
-      title.textContent = job.title;
-
-      const dims = document.createElement('div');
-      dims.className = 'heat-item-dims';
-      const breakdown = analysis.reasons.slice(0, 4).map((r) => r.includes('已被') || r.includes('覆盖') ? 2 : r.includes('支持') || r.includes('有交集') ? 1 : 0);
-      breakdown.forEach((level) => {
-        const dot = document.createElement('i');
-        dot.className = level === 2 ? 's-high' : level === 1 ? 's-mid' : 's-low';
-        dims.append(dot);
-      });
-
-      item.append(scoreRing, title, dims);
-
-      item.addEventListener('click', () => {
-        state.selectedJobId = job.id;
-        render();
-      });
-      item.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          state.selectedJobId = job.id;
-          render();
-        }
-      });
-
-      requestAnimationFrame(() => item.classList.add('heat-enter'));
-      requestAnimationFrame(() => requestAnimationFrame(() => item.classList.remove('heat-enter')));
-
       return item;
     }),
   );
@@ -581,28 +465,6 @@ function updateEvidenceTrace(profile, job, focus) {
   document.querySelectorAll('[data-evidence-focus]').forEach((node) => {
     node.classList.toggle('active-evidence', node.dataset.evidenceFocus === focus);
   });
-
-  clearHighlights(elements.resumeDocument);
-  clearHighlights(elements.jobList);
-
-  const resumePanel = elements.resumeDocument.closest('.profile-panel');
-  const jobPanel = elements.jobList.closest('.job-panel');
-  const focusTerms = focus.split(/[\/\\s,、]+/).filter(Boolean);
-  const searchTerm = focusTerms.length > 0 ? focusTerms[0] : focus;
-
-  if (!searchTerm) return;
-
-  const foundInResume = highlightTextInEl(elements.resumeDocument, searchTerm);
-  const foundInJob = highlightTextInEl(elements.jobList, searchTerm);
-
-  if (foundInResume && resumePanel) {
-    const firstHl = elements.resumeDocument.querySelector('.hl-target');
-    if (firstHl) firstHl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-  if (foundInJob && jobPanel) {
-    const firstHl = elements.jobList.querySelector('.hl-target');
-    if (firstHl) firstHl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
 }
 
 function renderCompositeCapabilities(profile, job) {
@@ -634,34 +496,6 @@ function renderConfidencePanel(profile, job) {
   const detail = document.createElement('span');
   detail.textContent = `${summary.highConfidenceCount}/${summary.details.length} 项高置信证据`;
   elements.confidencePanel.replaceChildren(score, text, detail);
-
-  const chain = elements.evidenceChainSummary;
-  if (!chain) return;
-
-  const matchDetails = getSkillMatchDetails(profile, job);
-  const adjustedCount = matchDetails.filter((d) => d.adjusted).length;
-
-  chain.replaceChildren(
-    ...matchDetails.map((detail) => {
-      const row = document.createElement('div');
-      row.className = 'evidence-chain-row';
-
-      const marker = document.createElement('span');
-      marker.className = `evidence-chain-marker ${detail.confidence >= 0.9 ? 'high' : detail.confidence >= 0.7 ? 'mid' : 'low'}`;
-
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'evidence-chain-name';
-      nameSpan.textContent = detail.name;
-
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'evidence-chain-label';
-      labelSpan.title = detail.confidenceReason;
-      labelSpan.textContent = detail.confidenceLabel;
-
-      row.append(marker, nameSpan, labelSpan);
-      return row;
-    }),
-  );
 }
 
 function renderScoreBreakdown(profile, job) {
@@ -902,7 +736,6 @@ function render() {
   renderAdminJobs();
   renderCandidates();
   renderAdminInsight();
-  renderHeatDashboard();
 }
 
 elements.parseResume.addEventListener('click', () => {
