@@ -306,18 +306,6 @@ function renderResumeDocument() {
     }
 
     if (!currentSection) return;
-    if (currentSection.querySelector('h4')?.textContent === '核心技能' && !line.startsWith('-')) {
-      const skills = document.createElement('div');
-      skills.className = 'resume-skill-row';
-      line.split('、').forEach((skill) => {
-        const tag = document.createElement('span');
-        tag.textContent = skill;
-        skills.append(tag);
-      });
-      currentSection.append(skills);
-      return;
-    }
-
     appendResumeLine(currentSection, line);
   });
 
@@ -355,11 +343,11 @@ function renderMatchDashboard() {
   const summary = document.createElement('article');
   summary.className = 'match-dashboard-summary';
   const summaryLabel = document.createElement('span');
-  summaryLabel.textContent = '推荐';
+  summaryLabel.textContent = '最佳匹配';
   const summaryTitle = document.createElement('strong');
-  summaryTitle.textContent = bestMatch ? `${bestMatch.job.title} ${bestMatch.score}分` : '暂无岗位';
+  summaryTitle.textContent = bestMatch ? `${bestMatch.job.title} · ${bestMatch.score}分` : '暂无岗位';
   const summaryMeta = document.createElement('p');
-  summaryMeta.textContent = `${strongCount} 个强匹配 · ${viableCount} 个可投递 · 点击右侧快速切换`;
+  summaryMeta.textContent = `${strongCount} 个强匹配，${viableCount} 个建议投递`;
   summary.append(summaryLabel, summaryTitle, summaryMeta);
 
   elements.matchDashboardList.replaceChildren(
@@ -427,13 +415,13 @@ function createJobCard(analysis) {
   titleRow.append(titleBlock, score);
 
   const tagList = document.createElement('div');
-  tagList.className = 'tag-list';
+  tagList.className = 'tag-list job-keywords';
   renderTags(tagList, analysis.job.tags.slice(0, 4));
 
   const requirementList = document.createElement('div');
-  requirementList.className = 'job-requirement-grid';
+  requirementList.className = 'job-signal-strip';
   [
-    ['核心技能', analysis.job.tags.slice(0, 3).join('、')],
+    ['核心', analysis.job.tags.slice(0, 3).join('、')],
     ['软技能', (analysis.job.softSkills ?? []).slice(0, 2).join('、') || '待补充'],
     ['语言', (analysis.job.languageRequirements ?? []).slice(0, 1).join('、') || '待补充'],
   ].forEach(([labelText, valueText]) => {

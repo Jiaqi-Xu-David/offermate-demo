@@ -133,7 +133,7 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('候选人简历'));
   assert.ok(indexHtml.includes('匹配结果与评分'));
   assert.ok(indexHtml.includes('动态能力标签'));
-  assert.ok(indexHtml.includes('AI 面试提问桩'));
+  assert.ok(indexHtml.includes('面试提问建议'));
   assert.ok(submittedJobsIndex > adminSummaryIndex);
   assert.ok(resumeIndex > submittedJobsIndex);
 });
@@ -184,20 +184,23 @@ test('places score explanation directly under the main score summary', async () 
 
 test('tightens repeated tag blocks and job detail spacing', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.match(css, /\.resume-section\s*\{[\s\S]*gap: 6px/);
-  assert.match(css, /\.resume-skill-row\s*\+\s*\.resume-skill-row\s*\{[\s\S]*margin-top: 0/);
+  assert.ok(!appJs.includes('resume-skill-row'));
   assert.match(css, /\.profile-meta-grid\s*\+\s*\.profile-block\s*\{[\s\S]*margin-top: 18px/);
   assert.match(css, /a\.admin-job-item\s*\{[\s\S]*display: grid[\s\S]*gap: 10px/);
   assert.match(css, /\.job-detail-main\s*>\s*\.section-heading\.compact\s*\{[\s\S]*margin-bottom: 0/);
   assert.match(css, /\.score-explainer\s*\{/);
   assert.match(css, /\.evidence-link-panel\s*\{/);
   assert.match(css, /\.match-dashboard\s*\{/);
+  assert.match(css, /\.job-signal-strip\s*\{/);
   assert.match(css, /\.dashboard-score-ring\s*\{[\s\S]*conic-gradient/);
   assert.match(css, /\.confidence-chain-item\.high \.confidence-dot\s*\{/);
   assert.match(css, /@keyframes workspaceFade/);
   assert.match(css, /@keyframes scoreBump/);
   assert.match(css, /@keyframes hlPulse/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.skill-detail-fields \.confidence-field\s*\{[\s\S]*display: flex/);
   assert.match(css, /\.team-gap\.matched\s*\{/);
   assert.match(css, /\.interview-question-item\s*\{/);
