@@ -1804,8 +1804,310 @@ ol {
   min-height: 0;
 }
 
-.dashboard-page .profile-panel,
-.dashboard-page .job-panel,
-.dashboard-page .insight-panel {
-  max-height: none;
+ .dashboard-page .profile-panel,
+ .dashboard-page .job-panel,
+ .dashboard-page .insight-panel {
+   max-height: none;
+ }
+
+/*
+ * Heat Dashboard — match overview
+ */
+.heat-dashboard {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.heat-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.heat-item {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, opacity 0.3s ease;
+}
+
+.heat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(24, 33, 29, 0.1);
+}
+
+.heat-item:active {
+  transform: translateY(0);
+}
+
+.heat-item.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(30, 124, 100, 0.15);
+}
+
+.heat-item.high {
+  --heat-color: var(--brand);
+}
+
+.heat-item.mid {
+  --heat-color: var(--accent);
+}
+
+.heat-item.low {
+  --heat-color: #b0b8b3;
+}
+
+.heat-score-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--panel-strong) 0 55%, transparent 56%),
+    conic-gradient(var(--heat-color) calc(var(--score) * 1%), #e8eee9 0);
+}
+
+.heat-score-ring span {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 850;
+  color: var(--ink);
+}
+
+.heat-item-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heat-item-dims {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.heat-item-dims i {
+  display: block;
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  transition: background 0.3s ease;
+}
+
+.heat-item-dims i.s-high { background: var(--brand); }
+.heat-item-dims i.s-mid { background: var(--accent); }
+.heat-item-dims i.s-low { background: #dce3dd; }
+
+.dashboard-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.high { background: var(--brand); }
+.legend-dot.mid { background: var(--accent); }
+.legend-dot.low { background: #b0b8b3; }
+
+/*
+ * Highlight targets — dual-panel linked highlighting
+ */
+.hl-target {
+  background: rgba(30, 124, 100, 0.12);
+  border-radius: 3px;
+  padding: 0 2px;
+  transition: background 0.25s ease;
+}
+
+.hl-target.hl-flash {
+  animation: hlPulse 0.7s ease 1;
+}
+
+@keyframes hlPulse {
+  0%, 100% { background: rgba(30, 124, 100, 0.12); }
+  40% { background: rgba(30, 124, 100, 0.28); box-shadow: 0 0 0 2px rgba(30, 124, 100, 0.12); }
+}
+
+/*
+ * Evidence chain — confidence visualization
+ */
+.evidence-chain-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(30, 124, 100, 0.16);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f5fbf7;
+}
+
+.evidence-chain-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(30, 124, 100, 0.06);
+  font-size: 12px;
+}
+
+.evidence-chain-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.evidence-chain-row:first-child {
+  padding-top: 0;
+}
+
+.evidence-chain-marker {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.evidence-chain-marker.high { background: var(--brand); box-shadow: 0 0 0 1px rgba(30,124,100,0.2); }
+.evidence-chain-marker.mid { background: var(--accent); box-shadow: 0 0 0 1px rgba(216,111,50,0.2); }
+.evidence-chain-marker.low { background: #b0b8b3; }
+
+.evidence-chain-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.evidence-chain-label {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/*
+ * Micro-interactions and transitions
+ */
+.workspace {
+  transition: opacity 0.22s ease;
+}
+
+.score-ring {
+  transition: --score 0.4s ease, transform 0.3s ease;
+}
+
+.score-ring.score-bump {
+  animation: scoreBump 0.4s ease;
+}
+
+@keyframes scoreBump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.heat-item.heat-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.section-heading-left {
+  display: grid;
+}
+
+/* Smooth scroll for linked panels */
+.job-panel,
+.insight-panel,
+.profile-panel,
+.resume-document {
+  scroll-behavior: smooth;
+}
+
+/* Evidence link panel — dual highlighting context */
+.evidence-link-panel.has-highlights .evidence-text {
+  background: rgba(30, 124, 100, 0.04);
+  border-radius: 4px;
+}
+
+/*
+ * Responsive — dashboard adapts to narrow viewports
+ */
+@media (max-width: 1120px) {
+  .heat-dashboard {
+    grid-column: 1 / -1;
+  }
+
+  .heat-dashboard-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .heat-dashboard {
+    grid-column: 1 / -1;
+    padding: 12px 14px;
+  }
+
+  .heat-dashboard .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .dashboard-legend {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .heat-dashboard-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  .heat-score-ring {
+    width: 40px;
+    height: 40px;
+  }
+
+  .heat-score-ring span {
+    font-size: 12px;
+  }
+
+  .evidence-chain-summary {
+    padding: 10px;
+  }
+
+  .evidence-chain-row {
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+  }
 }
