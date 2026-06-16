@@ -40,6 +40,26 @@ function decodeUtf16Be(bytes) {
   return text;
 }
 
+function decodeUtf8(bytes) {
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
+function decodePdfByteString(value) {
+  const bytes = binaryToBytes(value);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return decodeUtf16Be(bytes);
+
+  try {
+    const decoded = decodeUtf8(bytes);
+    const decodedSignal = (decoded.match(/[\u4e00-\u9fa5]/g) ?? []).length;
+    const rawSignal = (value.match(/[\u00c0-\u00ff]/g) ?? []).length;
+    if (decodedSignal > 0 || rawSignal > 0) return decoded;
+  } catch {
+    // Keep the raw PDF byte string when it is not valid UTF-8.
+  }
+
+  return value;
+}
+
 function decodeUnicodeHex(source) {
   const bytes = hexToBytes(source);
   if (bytes.length === 1) return String.fromCharCode(bytes[0]);
@@ -54,7 +74,7 @@ function decodeHexString(source) {
     bytes[index / 2] = Number.parseInt(padded.slice(index, index + 2), 16);
   }
   if (bytes[0] === 0xfe && bytes[1] === 0xff) return decodeUtf16Be(bytes);
-  return bytesToBinary(bytes);
+  return decodePdfByteString(bytesToBinary(bytes));
 }
 
 function hexToBytes(source) {
@@ -123,7 +143,7 @@ function readLiteral(content, start) {
     index += 1;
   }
 
-  return { token: { type: 'string', value: decodeLiteralString(value) }, index };
+  return { token: { type: 'string', value: decodePdfByteString(decodeLiteralString(value)) }, index };
 }
 
 function readHex(content, start) {
@@ -196,6 +216,27 @@ function tokenText(token, unicodeMap) {
   return decodeWithCMap(token.rawHex, unicodeMap) ?? token.value;
 }
 
+function visibleLength(value) {
+  return Array.from(String(value ?? '').trim()).length;
+}
+
+function shouldJoinTightly(left, right) {
+  const leftText = String(left ?? '').trim();
+  const rightText = String(right ?? '').trim();
+  if (!leftText || !rightText) return true;
+  if (visibleLength(leftText) <= 1 || visibleLength(rightText) <= 1) return true;
+  return /[\u4e00-\u9fa5]$/.test(leftText) && /^[\u4e00-\u9fa5]/.test(rightText);
+}
+
+function joinPdfTextFragments(fragments) {
+  return fragments.reduce((text, fragment) => {
+    const clean = String(fragment ?? '').trim();
+    if (!clean) return text;
+    if (!text) return clean;
+    return shouldJoinTightly(text, clean) ? `${text}${clean}` : `${text} ${clean}`;
+  }, '');
+}
+
 function collectTextFromTokens(tokens, unicodeMap = new Map()) {
   const lines = [];
 
@@ -210,15 +251,61 @@ function collectTextFromTokens(tokens, unicodeMap = new Map()) {
     let start = index - 1;
     while (start >= 0 && tokens[start].type !== '[') start -= 1;
     if (start < 0) return;
-    const text = tokens
-      .slice(start + 1, index)
-      .filter((item) => item.type === 'string')
-      .map((item) => tokenText(item, unicodeMap))
-      .join(' ');
+    const text = joinPdfTextFragments(
+      tokens
+        .slice(start + 1, index)
+        .filter((item) => item.type === 'string')
+        .map((item) => tokenText(item, unicodeMap)),
+    );
     if (text) lines.push(text);
   });
 
   return lines;
+}
+
+function isSeparatedSingleGlyphLine(line) {
+  const parts = line.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 3 && parts.every((part) => visibleLength(part) === 1);
+}
+
+function isSingleGlyphLine(line) {
+  const clean = line.trim();
+  return clean.length > 0 && visibleLength(clean) === 1;
+}
+
+function normalizePdfTextLine(line) {
+  const clean = line.replace(/\u0000/g, '').replace(/[ \t]+/g, ' ').trim();
+  if (isSeparatedSingleGlyphLine(clean)) return clean.replace(/\s+/g, '');
+  return clean;
+}
+
+function normalizeExtractedText(rawText) {
+  const lines = String(rawText ?? '')
+    .split(/\r?\n/)
+    .map(normalizePdfTextLine)
+    .filter(Boolean);
+  const normalized = [];
+  let glyphBuffer = '';
+
+  lines.forEach((line) => {
+    if (isSingleGlyphLine(line)) {
+      glyphBuffer += line;
+      return;
+    }
+    if (glyphBuffer) {
+      normalized.push(glyphBuffer);
+      glyphBuffer = '';
+    }
+    normalized.push(line);
+  });
+
+  if (glyphBuffer) normalized.push(glyphBuffer);
+
+  return normalized
+    .join('\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function parseUnicodeCMaps(streams) {
@@ -290,10 +377,5 @@ export async function extractPdfText(input) {
 
   const source = bytesToBinary(bytes);
   const lines = await extractStreamText(source);
-  return lines
-    .join('\n')
-    .replace(/\u0000/g, '')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return normalizeExtractedText(lines.join('\n'));
 }

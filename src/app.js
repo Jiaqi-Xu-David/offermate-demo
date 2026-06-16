@@ -220,6 +220,75 @@ function renderTags(container, tags, variant = '') {
   );
 }
 
+function hasResumeEvidence(profile) {
+  const placeholderValues = new Set(['上传后生成', '未识别到', '待补充', '暂无', '']);
+  const meaningfulItems = (items = []) =>
+    (Array.isArray(items) ? items : [])
+      .map((item) => String(item ?? '').trim())
+      .filter((item) => item && !placeholderValues.has(item));
+  const profileName = String(profile?.name ?? '').trim();
+  const hasBrokenName = visibleLength(profileName) <= 1 || isGenericResumeTitle(profileName);
+  const skills = meaningfulItems(profile?.skills);
+  const languages = meaningfulItems(profile?.languages);
+  const softSkills = meaningfulItems(profile?.softSkills);
+  const experiences = meaningfulItems(profile?.experiences).filter((item) => item.length >= 12 && /[，。；,.;]|\d|SQL|Python|Excel|Tableau/.test(item));
+
+  return Boolean(skills.length + languages.length + softSkills.length + experiences.length) && !hasBrokenName;
+}
+
+function isGenericResumeTitle(line) {
+  return ['个人简历', '求职简历', '简历', '我的简历', 'Resume', 'CV'].includes(String(line ?? '').trim());
+}
+
+function visibleLength(value) {
+  return Array.from(String(value ?? '').trim()).length;
+}
+
+function normalizeResumeDisplayText(rawText) {
+  const lines = String(rawText ?? '')
+    .replace(/\u0000/g, '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean);
+  const merged = [];
+  let singleGlyphBuffer = '';
+
+  lines.forEach((line) => {
+    const parts = line.split(/\s+/);
+    const normalizedLine =
+      parts.length >= 3 && parts.every((part) => visibleLength(part) === 1)
+        ? parts.join('')
+        : line;
+
+    if (visibleLength(normalizedLine) === 1) {
+      singleGlyphBuffer += normalizedLine;
+      return;
+    }
+    if (singleGlyphBuffer) {
+      merged.push(singleGlyphBuffer);
+      singleGlyphBuffer = '';
+    }
+    merged.push(normalizedLine);
+  });
+
+  if (singleGlyphBuffer) merged.push(singleGlyphBuffer);
+  return merged.join('\n');
+}
+
+function getDisplayResumeName(lines) {
+  const explicit = lines.find((line) => /^(姓名|Name)\s*[：:]/i.test(line));
+  if (explicit) {
+    const value = explicit.replace(/^(姓名|Name)\s*[：:\s]*/i, '').replace(/[，,；;|].*$/, '').trim();
+    if (value) return { name: value, sourceLine: explicit };
+  }
+
+  const candidateLine = lines.find((line) => {
+    const clean = line.replace(/\s+/g, '');
+    return !isGenericResumeTitle(clean) && /^[\u4e00-\u9fa5A-Za-z·]{2,24}$/.test(clean);
+  });
+  return { name: candidateLine ?? lines[0] ?? '求职者', sourceLine: candidateLine ?? lines[0] ?? '' };
+}
+
 function createLabelValue(tagName, labelText, valueText, className = '') {
   const item = document.createElement(tagName);
   if (className) item.className = className;
@@ -326,6 +395,20 @@ function highlightEvidenceFocus(focus) {
 }
 
 function renderPotentialAnalysis() {
+  if (!hasResumeEvidence(state.profile)) {
+    const score = document.createElement('strong');
+    score.textContent = '待解析';
+    const label = document.createElement('span');
+    label.textContent = '上传简历后生成';
+    const trend = document.createElement('p');
+    trend.textContent = '能力标签会基于技能、项目经历和活动证据生成。';
+    elements.potentialSummary.replaceChildren(score, label, trend);
+    elements.potentialSignals.replaceChildren(
+      Object.assign(document.createElement('p'), { textContent: '当前还没有可用于评估的简历证据。' }),
+    );
+    return;
+  }
+
   const potential = buildPotentialAnalysis(state.profile);
   const score = document.createElement('strong');
   score.textContent = `${potential.score}`;
@@ -399,23 +482,41 @@ function renderResumePlaceholder(container = elements.resumeDocument) {
 }
 
 function renderResumeDocumentFromText(rawText, container = elements.resumeDocument) {
-  const text = String(rawText ?? '').trim();
+  const text = normalizeResumeDisplayText(rawText).trim();
   if (!text) {
     renderResumePlaceholder(container);
     return;
   }
 
-  const sectionNames = new Set(['教育背景', '核心技能', '语言与软技能', '实习经历', '项目经历', '校园经历']);
+  const sectionNames = new Set([
+    '个人信息',
+    '联系方式',
+    '教育背景',
+    '教育经历',
+    '核心技能',
+    '专业技能',
+    '技能',
+    '语言与软技能',
+    '实习经历',
+    '工作经历',
+    '项目经历',
+    '校园经历',
+    '获奖经历',
+    '证书',
+  ]);
   const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
   const header = document.createElement('div');
   header.className = 'resume-header';
   const firstSectionIndex = lines.findIndex((line) => sectionNames.has(line));
-  const headerLines = firstSectionIndex > -1 ? lines.slice(0, firstSectionIndex) : lines.slice(0, 4);
+  const headerLines = firstSectionIndex > -1 ? lines.slice(0, firstSectionIndex) : lines.slice(0, Math.min(4, lines.length));
+  const displayName = getDisplayResumeName(headerLines.length ? headerLines : lines);
 
   const name = document.createElement('h2');
-  name.textContent = headerLines[0];
+  name.textContent = displayName.name;
   header.append(name);
-  headerLines.slice(1).forEach((line) => {
+  headerLines
+    .filter((line) => line !== displayName.sourceLine && !isGenericResumeTitle(line))
+    .forEach((line) => {
     const paragraph = document.createElement('p');
     paragraph.textContent = line;
     header.append(paragraph);
@@ -425,7 +526,17 @@ function renderResumeDocumentFromText(rawText, container = elements.resumeDocume
   body.className = 'resume-body';
   let currentSection;
 
-  lines.slice(firstSectionIndex > -1 ? firstSectionIndex : 4).forEach((line) => {
+  const bodyLines = lines.slice(firstSectionIndex > -1 ? firstSectionIndex : headerLines.length);
+  if (firstSectionIndex === -1 && bodyLines.length) {
+    currentSection = document.createElement('section');
+    currentSection.className = 'resume-section';
+    const heading = document.createElement('h4');
+    heading.textContent = '解析文本';
+    currentSection.append(heading);
+    body.append(currentSection);
+  }
+
+  bodyLines.forEach((line) => {
     if (sectionNames.has(line)) {
       currentSection = document.createElement('section');
       currentSection.className = 'resume-section';
@@ -471,12 +582,54 @@ function renderProfile() {
   }
   renderPotentialAnalysis();
   renderResumeHistory();
-  renderTags(elements.skillList, state.profile.skills?.length ? state.profile.skills : ['上传后生成']);
-  renderTags(elements.languageList, state.profile.languages?.length ? state.profile.languages : ['上传后生成']);
-  renderTags(elements.softSkillList, state.profile.softSkills?.length ? state.profile.softSkills : ['上传后生成']);
+  const emptyTag = state.hasParsedResume ? ['未识别到'] : ['上传后生成'];
+  renderTags(elements.skillList, state.profile.skills?.length ? state.profile.skills : emptyTag);
+  renderTags(elements.languageList, state.profile.languages?.length ? state.profile.languages : emptyTag);
+  renderTags(elements.softSkillList, state.profile.softSkills?.length ? state.profile.softSkills : emptyTag);
 }
 
 function renderMatchDashboard() {
+  if (!hasResumeEvidence(state.profile)) {
+    const summary = document.createElement('article');
+    summary.className = 'match-dashboard-summary';
+    const summaryLabel = document.createElement('span');
+    summaryLabel.textContent = '匹配状态';
+    const summaryTitle = document.createElement('strong');
+    summaryTitle.textContent = '上传可识别简历后生成';
+    const summaryMeta = document.createElement('p');
+    summaryMeta.textContent = `${state.jobs.length} 个岗位等待分析`;
+    summary.append(summaryLabel, summaryTitle, summaryMeta);
+
+    elements.matchDashboardList.replaceChildren(
+      summary,
+      ...state.jobs.map((job) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = job.id === state.selectedJobId ? 'match-dashboard-card pending active' : 'match-dashboard-card pending';
+        card.style.setProperty('--score', 0);
+        card.setAttribute('aria-label', `切换到${job.title}`);
+        card.addEventListener('click', () => selectStudentJob(job.id));
+
+        const ring = document.createElement('div');
+        ring.className = 'dashboard-score-ring';
+        const score = document.createElement('strong');
+        score.textContent = '--';
+        ring.append(score);
+
+        const content = document.createElement('div');
+        content.className = 'dashboard-card-content';
+        const title = document.createElement('strong');
+        title.textContent = job.title;
+        const level = document.createElement('p');
+        level.textContent = '待解析';
+        content.append(title, level);
+        card.append(ring, content);
+        return card;
+      }),
+    );
+    return;
+  }
+
   const bestMatch = state.rankings[0];
   const viableCount = state.rankings.filter((analysis) => analysis.score >= 65).length;
   const strongCount = state.rankings.filter((analysis) => analysis.score >= 80).length;
@@ -523,6 +676,7 @@ function renderMatchDashboard() {
 }
 
 function createJobCard(analysis) {
+  const hasEvidence = hasResumeEvidence(state.profile);
   const card = document.createElement('article');
   card.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
   card.dataset.jobId = analysis.job.id;
@@ -551,7 +705,7 @@ function createJobCard(analysis) {
 
   const score = document.createElement('span');
   score.className = 'mini-score';
-  score.textContent = analysis.score;
+  score.textContent = hasEvidence ? analysis.score : '--';
   titleRow.append(titleBlock, score);
 
   const tagList = document.createElement('div');
@@ -574,7 +728,9 @@ function createJobCard(analysis) {
 
   const level = document.createElement('span');
   level.className = 'job-level';
-  level.textContent = analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level;
+  level.textContent = hasEvidence
+    ? analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level
+    : '待解析';
 
   const footer = document.createElement('div');
   footer.className = 'job-card-footer';
@@ -643,7 +799,7 @@ function createCandidateCard(candidate) {
   meta.textContent = `${candidate.profile.gender ?? '未填写'} · ${candidate.school} · ${candidate.major}`;
   const submitted = document.createElement('p');
   submitted.className = 'candidate-submitted';
-  submitted.textContent = `已提交：${submittedJobs.join('、')}`;
+  submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';
   button.append(name, meta, submitted);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;
@@ -664,10 +820,33 @@ function createTagGroup(labelText, tags) {
   return section;
 }
 
+function prependAdminResumeDownload(candidate) {
+  if (!candidate.resumeDownloadUrl) return;
+  const action = document.createElement('a');
+  action.className = 'admin-resume-download';
+  action.href = candidate.resumeDownloadUrl;
+  action.textContent = '下载原简历';
+  action.setAttribute('download', candidate.fileName || 'resume.pdf');
+  elements.adminResumeDocument.prepend(action);
+}
+
 function renderAdminResume(candidate) {
   const { profile } = candidate;
   if (candidate.rawText?.trim()) {
     renderResumeDocumentFromText(candidate.rawText, elements.adminResumeDocument);
+    prependAdminResumeDownload(candidate);
+    return;
+  }
+
+  if (!hasResumeEvidence(profile)) {
+    const empty = document.createElement('div');
+    empty.className = 'resume-empty-state';
+    const title = document.createElement('strong');
+    title.textContent = '候选人尚未上传简历';
+    const copy = document.createElement('p');
+    copy.textContent = '上传后 HR 可在这里查看解析文本，并下载原始文件。';
+    empty.append(title, copy);
+    elements.adminResumeDocument.replaceChildren(empty);
     return;
   }
 
@@ -700,9 +879,17 @@ function renderAdminResume(candidate) {
     createTagGroup('软技能', profile.softSkills ?? []),
     experienceSection,
   );
+  prependAdminResumeDownload(candidate);
 }
 
 function renderAdminMatchReview(candidate, insight) {
+  if (!hasResumeEvidence(candidate.profile)) {
+    elements.adminMatchTitle.textContent = '等待候选人上传简历';
+    elements.adminMatchFormula.textContent = '暂无简历证据，不能生成可信评分。';
+    elements.adminMatchBreakdown.replaceChildren();
+    return;
+  }
+
   const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
   const bestJob = bestMatch ? state.jobs.find((job) => job.id === bestMatch.id) : null;
 
@@ -902,7 +1089,17 @@ function renderScoreBreakdown(profile, job) {
 }
 
 function renderJobs() {
-  state.rankings = rankJobs(state.profile, state.jobs);
+  state.rankings = hasResumeEvidence(state.profile)
+    ? rankJobs(state.profile, state.jobs)
+    : state.jobs.map((job) => ({
+        job,
+        score: 0,
+        level: '待解析',
+        matchedTags: [],
+        matchedNiceToHave: [],
+        gaps: job.tags ?? [],
+        reasons: [],
+      }));
   elements.jobCount.textContent = `${state.rankings.length} 个岗位`;
   elements.jobList.replaceChildren(...state.rankings.map(createJobCard));
   renderMatchDashboard();
@@ -985,6 +1182,14 @@ function createMatchItem(match) {
 }
 
 function renderTeamComplement(candidate) {
+  if (!hasResumeEvidence(candidate.profile)) {
+    elements.teamComplementTitle.textContent = '待上传简历';
+    elements.teamComplementList.replaceChildren(
+      Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无候选人能力证据。' }),
+    );
+    return;
+  }
+
   const complement = buildTeamComplement(candidate);
   elements.teamComplementTitle.textContent = `${complement.score} 分互补度`;
   elements.teamComplementList.replaceChildren(
@@ -998,6 +1203,13 @@ function renderTeamComplement(candidate) {
 }
 
 function renderInterviewQuestions(candidate, insight) {
+  if (!hasResumeEvidence(candidate.profile)) {
+    elements.interviewQuestionList.replaceChildren(
+      Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '上传简历后再生成面试问题。' }),
+    );
+    return;
+  }
+
   const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
   const bestJob = bestMatch ? state.jobs.find((job) => job.id === bestMatch.id) : state.jobs[0];
   const questions = buildInterviewQuestions(candidate, bestJob);
@@ -1036,24 +1248,62 @@ function renderAdminInsight() {
   const insight = buildAdminCandidateInsight(candidate, state.jobs);
 
   elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.profile.gender ?? '未填写'} · ${candidate.school}`;
-  elements.adminCandidateStatus.textContent = `${candidate.submittedJobIds.length} 个已投岗位`;
+  elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ? `${candidate.submittedJobIds.length} 个已投岗位` : '尚未提交岗位';
   renderAdminResume(candidate);
   renderAdminMatchReview(candidate, insight);
   renderTeamComplement(candidate);
   renderInterviewQuestions(candidate, insight);
-  elements.submittedJobList.replaceChildren(...insight.submittedJobs.map(createMatchItem));
-  elements.screeningRecommendation.textContent = insight.screeningRecommendation;
-  elements.routingRecommendation.textContent = insight.routingRecommendation;
+  elements.submittedJobList.replaceChildren(
+    ...(insight.submittedJobs.length
+      ? insight.submittedJobs.map(createMatchItem)
+      : [Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无已投岗位。' })]),
+  );
+  elements.screeningRecommendation.textContent = hasResumeEvidence(candidate.profile)
+    ? insight.screeningRecommendation
+    : '候选人尚未上传简历，暂不能进行初筛判断。';
+  elements.routingRecommendation.textContent = hasResumeEvidence(candidate.profile)
+    ? insight.routingRecommendation
+    : '上传简历后再生成转推荐建议。';
   elements.suggestedJobList.replaceChildren(
-    ...(insight.suggestedJobs.length
+    ...(hasResumeEvidence(candidate.profile) && insight.suggestedJobs.length
       ? insight.suggestedJobs.map(createMatchItem)
-      : [Object.assign(document.createElement('p'), { textContent: '暂无更合适的转推荐岗位。' })]),
+      : [Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无更合适的转推荐岗位。' })]),
   );
 }
 
 function renderAnalysis() {
   const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
   state.selectedJobId = selectedJob.id;
+  if (!hasResumeEvidence(state.profile)) {
+    elements.selectedJobTitle.textContent = `${selectedJob.title} · ${selectedJob.company}`;
+    elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
+    elements.scoreValue.textContent = '--';
+    elements.scoreRing.style.setProperty('--score', 0);
+    clearHighlights(elements.resumeDocument);
+    clearHighlights(elements.jobList);
+    elements.compositeList.replaceChildren(
+      Object.assign(document.createElement('p'), { textContent: '上传并成功解析简历后，会展示该岗位的复合能力匹配。' }),
+    );
+    elements.scoreFormula.textContent = '等待简历解析完成后生成评分。';
+    elements.scoreBreakdown.replaceChildren();
+    elements.confidencePanel.replaceChildren(
+      Object.assign(document.createElement('p'), { textContent: '暂无可计算的证据链。' }),
+    );
+    elements.confidenceChain.replaceChildren();
+    elements.evidenceJd.textContent = selectedJob.description;
+    elements.evidenceResume.textContent = '尚未上传可识别简历。';
+    elements.skillDetailList.replaceChildren();
+    elements.screeningSignal.textContent = '上传可识别简历后生成建议';
+    elements.rewriteList.replaceChildren(
+      Object.assign(document.createElement('p'), {
+        className: 'history-empty',
+        textContent: '当前没有足够的简历经历，暂不生成改写建议。',
+      }),
+    );
+    renderSnippetPrompt(selectedJob);
+    return;
+  }
+
   const analysis = analyzeJobFit(state.profile, selectedJob);
   const advice = buildResumeAdvice(state.profile, selectedJob);
 
@@ -1108,6 +1358,9 @@ async function refreshStudentHistory() {
     state.resumeText = latestResume.rawText ?? latestProfile.rawResume ?? '';
     state.resumeFileName = latestResume.fileName ?? '';
     state.hasParsedResume = Boolean(state.resumeText.trim());
+    state.parseStatus = hasResumeEvidence(latestProfile)
+      ? `已加载最近一次解析：${latestResume.fileName}`
+      : '最近一次解析质量不足，建议重新上传文字型 PDF 或先进行 OCR。';
   } else if (!state.hasParsedResume) {
     state.profile = createEmptyProfile(state.currentUser?.name ?? '求职者');
     state.resumeText = '';
@@ -1116,16 +1369,18 @@ async function refreshStudentHistory() {
 }
 
 function mapUploadedCandidate(candidate) {
-  const submittedJobIds = (candidate.scores ?? []).slice(0, 2).map((score) => score.jobId).filter(Boolean);
+  const submittedJobIds = candidate.submittedJobIds ?? [];
   const profile = candidate.profile?.name ? candidate.profile : createEmptyProfile(candidate.name);
   return {
     id: candidate.id,
     name: candidate.name,
-    school: profile.headline?.split(' ')[0] ?? '已上传简历',
+    school: hasResumeEvidence(profile) ? profile.headline?.split(' ')[0] ?? '已上传简历' : '未上传简历',
     major: candidate.fileName ?? '候选人简历',
-    submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern'],
+    submittedJobIds,
     profile,
     rawText: candidate.rawText ?? profile.rawResume ?? '',
+    fileName: candidate.fileName ?? '',
+    resumeDownloadUrl: candidate.resumeDownloadUrl ?? '',
   };
 }
 

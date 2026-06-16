@@ -74,6 +74,20 @@ function parseJson(value, fallback = []) {
   }
 }
 
+function base64ToBytes(value) {
+  const raw = String(value ?? '');
+  if (!raw) return new Uint8Array();
+  if (typeof atob === 'function') {
+    const binary = atob(raw);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+  return new Uint8Array(Buffer.from(raw, 'base64'));
+}
+
 function serializeJob(job, source = job.source ?? 'seed', createdBy = job.createdBy ?? null) {
   return {
     ...job,
@@ -159,6 +173,17 @@ async function migrateUsersRoleCheck(db) {
   await db.prepare('PRAGMA foreign_keys = on').run();
 }
 
+async function ensureResumeFileColumns(db) {
+  const columns = await db.prepare('PRAGMA table_info(resumes)').all();
+  const columnNames = new Set((columns.results ?? []).map((column) => column.name));
+  if (!columnNames.has('file_data_base64')) {
+    await db.prepare('ALTER TABLE resumes ADD COLUMN file_data_base64 TEXT').run();
+  }
+  if (!columnNames.has('mime_type')) {
+    await db.prepare('ALTER TABLE resumes ADD COLUMN mime_type TEXT').run();
+  }
+}
+
 async function seedUsers(db) {
   for (const user of DEMO_USERS) {
     await db
@@ -210,10 +235,19 @@ async function seedSampleResume(db) {
   await db
     .prepare(
       `INSERT INTO resumes (
-        id, user_id, file_name, raw_text, profile_json, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?)`,
+        id, user_id, file_name, raw_text, file_data_base64, mime_type, profile_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind('resume-seed-davide', 'user-student-davide', 'davide-sample-resume.txt', SAMPLE_RESUME_TEXT, JSON.stringify(STUDENT_PROFILE), nowIso())
+    .bind(
+      'resume-seed-davide',
+      'user-student-davide',
+      'davide-sample-resume.txt',
+      SAMPLE_RESUME_TEXT,
+      null,
+      'text/plain;charset=utf-8',
+      JSON.stringify(STUDENT_PROFILE),
+      nowIso(),
+    )
     .run();
 }
 
@@ -221,6 +255,7 @@ export async function ensureAppData(env) {
   const db = dbFromEnv(env);
   await executeSchema(db);
   await migrateUsersRoleCheck(db);
+  await ensureResumeFileColumns(db);
   await seedUsers(db);
   await seedJobs(db);
   return db;
@@ -296,9 +331,25 @@ export async function addJob(env, user, input) {
   return parsed;
 }
 
-export async function createResumeAndMatchRun(env, user, { fileName, rawText }) {
+function isLikelyUnusableResumeProfile(profile, rawText) {
+  const compactText = String(rawText ?? '').replace(/\s+/g, '');
+  const evidenceCount =
+    (profile.skills?.length ?? 0) +
+    (profile.experiences?.length ?? 0) +
+    (profile.languages?.length ?? 0) +
+    (profile.softSkills?.length ?? 0);
+  const genericName = ['求职者', '个人简历', '求职简历', '简历', 'Resume', 'CV'].includes(profile.name);
+  const brokenName = genericName || Array.from(String(profile.name ?? '').trim()).length <= 1;
+  const extractionLooksCorrupt = /个亲简历|教育背施|籍设|特话|迎箱|与业/.test(compactText);
+  return evidenceCount === 0 && (compactText.length < 80 || extractionLooksCorrupt || (brokenName && profile.headline === '学生'));
+}
+
+export async function createResumeAndMatchRun(env, user, { fileName, rawText, fileDataBase64 = null, mimeType = null }) {
   const db = await ensureAppData(env);
   const profile = await parseResumeProfile(env, rawText);
+  if (isLikelyUnusableResumeProfile(profile, rawText)) {
+    throw new Error('PDF 文本提取质量过低，无法可靠生成匹配结果。请上传文字型 PDF，扫描件需要先 OCR，或使用示例简历确认流程。');
+  }
   const resumeId = createId('resume');
   const runId = createId('match');
   const createdAt = nowIso();
@@ -306,8 +357,12 @@ export async function createResumeAndMatchRun(env, user, { fileName, rawText }) 
   const rankings = rankJobs(profile, jobs);
 
   await db
-    .prepare('INSERT INTO resumes (id, user_id, file_name, raw_text, profile_json, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(resumeId, user.id, fileName, rawText, JSON.stringify(profile), createdAt)
+    .prepare(
+      `INSERT INTO resumes (
+        id, user_id, file_name, raw_text, file_data_base64, mime_type, profile_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(resumeId, user.id, fileName, rawText, fileDataBase64, mimeType, JSON.stringify(profile), createdAt)
     .run();
   await db.prepare('INSERT INTO match_runs (id, user_id, resume_id, created_at) VALUES (?, ?, ?, ?)').bind(runId, user.id, resumeId, createdAt).run();
 
@@ -396,6 +451,14 @@ async function listScoresForRun(db, runId) {
 
 export async function listHrCandidates(env) {
   const db = await ensureAppData(env);
+  const applicationRows = await db.prepare('SELECT user_id, job_id FROM applications ORDER BY created_at DESC').all();
+  const applicationsByUser = new Map();
+  for (const row of applicationRows.results ?? []) {
+    const existing = applicationsByUser.get(row.user_id) ?? [];
+    if (!existing.includes(row.job_id)) existing.push(row.job_id);
+    applicationsByUser.set(row.user_id, existing);
+  }
+
   const uploaded = await db
     .prepare(
       `SELECT users.id AS user_id, users.name, users.email, resumes.id AS resume_id,
@@ -423,6 +486,8 @@ export async function listHrCandidates(env) {
       fileName: row.file_name,
       rawText: row.raw_text,
       profile: parseJson(row.profile_json, {}),
+      submittedJobIds: applicationsByUser.get(row.user_id) ?? [],
+      resumeDownloadUrl: row.resume_id ? `/api/hr/resume-download?id=${encodeURIComponent(row.resume_id)}` : '',
       createdAt: row.created_at,
       scores: latestRun ? await listScoresForRun(db, latestRun.id) : [],
     });
@@ -431,6 +496,29 @@ export async function listHrCandidates(env) {
   return {
     seededCandidates: CANDIDATES,
     uploadedCandidates,
+  };
+}
+
+export async function getResumeFileForHr(env, resumeId) {
+  const db = await ensureAppData(env);
+  const row = await db
+    .prepare('SELECT id, file_name, raw_text, file_data_base64, mime_type FROM resumes WHERE id = ?')
+    .bind(resumeId)
+    .first();
+  if (!row) return null;
+
+  if (row.file_data_base64) {
+    return {
+      fileName: row.file_name || `${row.id}.pdf`,
+      mimeType: row.mime_type || 'application/octet-stream',
+      bytes: base64ToBytes(row.file_data_base64),
+    };
+  }
+
+  return {
+    fileName: `${(row.file_name || row.id).replace(/\.[^.]+$/, '')}.txt`,
+    mimeType: 'text/plain;charset=utf-8',
+    bytes: new TextEncoder().encode(row.raw_text ?? ''),
   };
 }
 

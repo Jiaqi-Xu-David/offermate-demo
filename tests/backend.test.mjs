@@ -5,6 +5,7 @@ import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
+import { parseResumeText } from '../src/matcher.js';
 
 function buildMinimalPdf(streamBody) {
   return new TextEncoder().encode(`%PDF-1.4
@@ -110,6 +111,33 @@ end`,
   assert.match(text, /大卫德 SQL Pyth/);
 });
 
+test('normalizes glyph-by-glyph resume text into readable lines', async () => {
+  const pdf = buildMinimalPdf(`BT
+    [(个) 0 (人) 0 (简) 0 (历)] TJ
+    [(姓) 0 (名) 0 (：) 0 (大) 0 (卫) 0 (德)] TJ
+    [(S) 0 (Q) 0 (L)] TJ
+  ET`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /个人简历/);
+  assert.match(text, /姓名：大卫德/);
+  assert.match(text, /SQL/);
+});
+
+test('infers the candidate name from labeled resume text instead of generic title', () => {
+  const profile = parseResumeText(`个人简历
+姓名：大卫德
+学校：慕尼黑工业大学 统计学 本科 2026届
+求职意向：数据分析实习
+技能：SQL、Python、Tableau`);
+
+  assert.equal(profile.name, '大卫德');
+  assert.ok(profile.headline.includes('慕尼黑工业大学'));
+  assert.equal(profile.target, '数据分析实习');
+  assert.ok(profile.skills.includes('SQL'));
+});
+
 test('parses resume text with DeepSeek JSON mode when an API key is configured', async () => {
   const calls = [];
   const profile = await parseResumeWithDeepSeek(
@@ -182,6 +210,19 @@ test('defines application tables for auth, jobs, resumes, matches, and applicati
   ].forEach((snippet) => {
     assert.ok(APP_SCHEMA_SQL.includes(snippet), `${snippet} missing`);
   });
+});
+
+test('schema and HR APIs support original resume download', async () => {
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+  const downloadApi = await readFile(new URL('../functions/api/hr/resume-download.js', import.meta.url), 'utf8');
+
+  assert.ok(APP_SCHEMA_SQL.includes('file_data_base64 TEXT'));
+  assert.ok(APP_SCHEMA_SQL.includes('mime_type TEXT'));
+  assert.ok(databaseJs.includes('ensureResumeFileColumns'));
+  assert.ok(databaseJs.includes('fileDataBase64'));
+  assert.ok(databaseJs.includes('resumeDownloadUrl'));
+  assert.ok(downloadApi.includes("requireUser(context, ['hr'])"));
+  assert.ok(downloadApi.includes('Content-Disposition'));
 });
 
 test('supports account admin users and exposes raw parsed resume text', async () => {

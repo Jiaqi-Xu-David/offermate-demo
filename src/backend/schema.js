@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS resumes (
   user_id TEXT NOT NULL,
   file_name TEXT NOT NULL,
   raw_text TEXT NOT NULL,
+  file_data_base64 TEXT,
+  mime_type TEXT,
   profile_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE

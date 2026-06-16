@@ -275,23 +275,77 @@ function extractGender(text) {
   return '未填写';
 }
 
+const GENERIC_RESUME_TITLES = new Set(['个人简历', '求职简历', '简历', '我的简历', 'Resume', 'CV']);
+
+function normalizeResumeSourceText(text) {
+  return String(text ?? '')
+    .replace(/\u0000/g, '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function cleanCandidateName(value) {
+  return String(value ?? '')
+    .replace(/^(姓名|Name)\s*[：:\s]*/i, '')
+    .replace(/[，,；;|].*$/, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function isGenericResumeTitle(line) {
+  return GENERIC_RESUME_TITLES.has(line.trim());
+}
+
+function isPlausibleCandidateName(value) {
+  const clean = cleanCandidateName(value);
+  if (!clean || isGenericResumeTitle(clean)) return false;
+  if (/求职|意向|电话|邮箱|学校|教育|经历|技能|项目|个人信息/.test(clean)) return false;
+  return /^[\u4e00-\u9fa5A-Za-z·]{2,24}$/.test(clean);
+}
+
+function extractResumeName(lines, text) {
+  const explicit = text.match(/(?:^|\n)\s*(?:姓名|Name)\s*[：:\s]*([^\n，,；;|]+)/i);
+  const explicitName = cleanCandidateName(explicit?.[1] ?? '');
+  if (isPlausibleCandidateName(explicitName)) return explicitName;
+
+  const firstNameLine = lines.find((line) => isPlausibleCandidateName(line));
+  return firstNameLine ? cleanCandidateName(firstNameLine) : '求职者';
+}
+
+function extractEducationHeadline(lines) {
+  const direct = lines.find((line) => /(本科|硕士|博士|大学|学院).*(届|专业|本科|硕士|博士)|学校[：:]/.test(line));
+  if (!direct) return '学生';
+  return direct
+    .replace(/^学校[：:\s]*/, '')
+    .replace(/^教育背景[：:\s]*/, '')
+    .trim();
+}
+
+function extractTarget(lines) {
+  const targetLine = lines.find((line) => /^求职(?:意向|目标|偏好)\s*[：:]/.test(line));
+  if (!targetLine) return '数据分析相关实习';
+  return targetLine.replace(/^求职(?:意向|目标|偏好)\s*[：:\s]*/, '').trim() || '数据分析相关实习';
+}
+
 export function parseResumeText(text) {
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-  const name = lines[0] ?? '求职者';
-  const educationLine = lines.find((line) => line.includes('本科') || line.includes('硕士')) ?? '学生';
-  const targetLine = lines.find((line) => line.startsWith('求职意向')) ?? '求职意向：数据分析相关实习';
-  const target = targetLine.replace('求职意向：', '');
-  const skills = extractKnownTerms(text, SKILL_DICTIONARY);
-  const skillEvidence = buildSkillEvidence(text, skills);
-  const interests = unique([...extractKnownTerms(text, INTEREST_DICTIONARY), ...target.split(/[ /、]+/).filter(Boolean)]);
-  const cityPreferences = extractKnownTerms(text, CITY_DICTIONARY);
-  const languages = extractAliasTerms(text, LANGUAGE_RULES);
-  const softSkills = extractKnownTerms(text, SOFT_SKILL_DICTIONARY);
-  const experiences = extractBulletExperiences(text);
+  const normalizedText = normalizeResumeSourceText(text);
+  const lines = normalizedText.split('\n').map((line) => line.trim()).filter(Boolean);
+  const name = extractResumeName(lines, normalizedText);
+  const educationLine = extractEducationHeadline(lines);
+  const target = extractTarget(lines);
+  const skills = extractKnownTerms(normalizedText, SKILL_DICTIONARY);
+  const skillEvidence = buildSkillEvidence(normalizedText, skills);
+  const interests = unique([...extractKnownTerms(normalizedText, INTEREST_DICTIONARY), ...target.split(/[ /、]+/).filter(Boolean)]);
+  const cityPreferences = extractKnownTerms(normalizedText, CITY_DICTIONARY);
+  const languages = extractAliasTerms(normalizedText, LANGUAGE_RULES);
+  const softSkills = extractKnownTerms(normalizedText, SOFT_SKILL_DICTIONARY);
+  const experiences = extractBulletExperiences(normalizedText);
 
   return {
     name,
-    gender: extractGender(text),
+    gender: extractGender(normalizedText),
     headline: educationLine.replace('教育背景', '').trim(),
     target,
     cityPreferences,
@@ -301,7 +355,7 @@ export function parseResumeText(text) {
     skillEvidence,
     interests,
     experiences,
-    rawResume: text,
+    rawResume: normalizedText,
   };
 }
 

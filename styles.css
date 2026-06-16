@@ -454,6 +454,11 @@ h3 {
   --tone: #8a9691;
 }
 
+.match-dashboard-card.pending {
+  --tone: #8a9691;
+  background: #f8faf8;
+}
+
 .match-dashboard-card:hover,
 .match-dashboard-card:focus-visible,
 .match-dashboard-card.active {
@@ -1319,6 +1324,29 @@ a.admin-job-item:focus-visible {
   border-radius: 8px;
   padding: 14px;
   background: #fffefa;
+}
+
+.admin-resume-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 32px;
+  border: 1px solid rgba(30, 124, 100, 0.24);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #eef8f3;
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.admin-resume-download:hover,
+.admin-resume-download:focus-visible {
+  border-color: var(--brand);
+  background: #e5f3ee;
+  outline: 0;
 }
 
 .admin-resume-header {

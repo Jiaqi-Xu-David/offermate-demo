@@ -175,6 +175,18 @@ test('renders HR candidate raw resume text and account admin workspace', async (
   assert.ok(appJs.includes('refreshAccountUsers'));
 });
 
+test('keeps empty HR candidates empty and exposes resume download action', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes("submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';"));
+  assert.ok(appJs.includes("elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ?"));
+  assert.ok(!appJs.includes("submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern']"));
+  assert.ok(appJs.includes('candidate.resumeDownloadUrl'));
+  assert.ok(appJs.includes('下载原简历'));
+  assert.match(css, /\.admin-resume-download\s*\{/);
+});
+
 test('removes duplicate workflow and low-value advice cards from student view', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
