@@ -1,28 +1,4 @@
-CREATE TABLE IF NOT EXISTS visit_logs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  visited_at TEXT NOT NULL,
-  method TEXT NOT NULL,
-  host TEXT NOT NULL,
-  path TEXT NOT NULL,
-  query_present INTEGER NOT NULL DEFAULT 0,
-  ip TEXT NOT NULL,
-  country TEXT,
-  region TEXT,
-  city TEXT,
-  timezone TEXT,
-  colo TEXT,
-  as_organization TEXT,
-  device_type TEXT,
-  browser_family TEXT,
-  os_family TEXT,
-  user_agent TEXT,
-  referer TEXT,
-  status INTEGER
-);
-
-CREATE INDEX IF NOT EXISTS idx_visit_logs_visited_at ON visit_logs (visited_at DESC);
-CREATE INDEX IF NOT EXISTS idx_visit_logs_path ON visit_logs (path);
-
+export const APP_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
@@ -108,3 +84,4 @@ CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes (user_id, created_at D
 CREATE INDEX IF NOT EXISTS idx_match_runs_user_id ON match_runs (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_match_scores_run_id ON match_scores (run_id, score DESC);
 CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications (user_id, created_at DESC);
+`;

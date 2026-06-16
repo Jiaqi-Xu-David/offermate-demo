@@ -88,8 +88,11 @@ test('uses the final demo branding in static pages', async () => {
   assert.ok(indexHtml.includes('./assets/avatar-davide.jpeg'));
   assert.ok(indexHtml.includes('id="open-admin-modal"'));
   assert.ok(indexHtml.includes('id="admin-job-dialog"'));
-  assert.ok(indexHtml.includes('求职者视角'));
-  assert.ok(indexHtml.includes('HR 视角'));
+  assert.ok(indexHtml.includes('id="login-form"'));
+  assert.ok(indexHtml.includes('id="logout-button"'));
+  assert.ok(indexHtml.includes('id="auth-role-label"'));
+  assert.ok(!indexHtml.includes('求职者视角'));
+  assert.ok(!indexHtml.includes('HR 视角'));
   assert.ok(!indexHtml.includes('学生视角'));
   assert.ok(!indexHtml.includes('管理员视角'));
   assert.match(indexHtml, />\s*demo\s*</);
@@ -488,6 +491,7 @@ test('defines a guarded Cloudflare visit log backend', async () => {
   assert.ok(middleware.includes("url.pathname.startsWith('/admin/')"));
   assert.ok(middleware.includes('PRIVATE_FILE_PATTERN'));
   assert.ok(middleware.includes("'/wrangler.toml'"));
+  assert.ok(middleware.includes('src\\/backend'));
   assert.ok(adminPage.includes('VISIT_ADMIN_TOKEN'));
   assert.ok(adminPage.includes('WWW-Authenticate'));
   assert.ok(adminPage.includes('OfferMate 访问记录'));

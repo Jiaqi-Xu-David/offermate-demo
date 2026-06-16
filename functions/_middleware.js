@@ -1,6 +1,6 @@
 const STATIC_ASSET_PATTERN =
   /\.(?:avif|css|gif|ico|jpeg|jpg|js|json|map|mjs|png|svg|txt|webmanifest|webp|woff2?)$/i;
-const PRIVATE_FILE_PATTERN = /^\/(?:db|functions|tests)\//i;
+const PRIVATE_FILE_PATTERN = /^\/(?:db|functions|tests|src\/backend)\//i;
 const PRIVATE_ROOT_FILES = new Set(['/package.json', '/README.md', '/wrangler.toml']);
 
 function cleanHeader(value, maxLength = 500) {

@@ -18,7 +18,6 @@ import {
   buildTeamComplement,
   buildTailoredResumeSnippet,
   enrichJob,
-  parseResumeText,
 } from './matcher.js';
 import { buildJobDetailUrl } from './job-navigation.js';
 
@@ -44,8 +43,11 @@ const savedAdminJobs = loadAdminJobs();
 
 const state = {
   mode: 'student',
+  currentUser: null,
   profile: STUDENT_PROFILE,
   jobs: [...savedAdminJobs, ...JOBS],
+  candidates: CANDIDATES,
+  history: { resumes: [], matchRuns: [] },
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: 'davide',
   rankings: rankJobs(STUDENT_PROFILE, JOBS),
@@ -57,10 +59,17 @@ const state = {
 };
 
 const elements = {
+  appShell: document.querySelector('#app-shell'),
+  loginScreen: document.querySelector('#login-screen'),
+  loginForm: document.querySelector('#login-form'),
+  loginEmail: document.querySelector('#login-email'),
+  loginPassword: document.querySelector('#login-password'),
+  loginError: document.querySelector('#login-error'),
+  logoutButton: document.querySelector('#logout-button'),
+  authUserName: document.querySelector('#auth-user-name'),
+  authRoleLabel: document.querySelector('#auth-role-label'),
   studentWorkspace: document.querySelector('#student-workspace'),
   adminWorkspace: document.querySelector('#admin-workspace'),
-  studentMode: document.querySelector('#student-mode'),
-  adminMode: document.querySelector('#admin-mode'),
   companySubtitle: document.querySelector('#company-subtitle'),
   companyName: document.querySelector('#company-name'),
   studentName: document.querySelector('#student-name'),
@@ -68,7 +77,9 @@ const elements = {
   studentMeta: document.querySelector('#student-meta'),
   studentTarget: document.querySelector('#student-target'),
   resumeDocument: document.querySelector('#resume-document'),
-  parseResume: document.querySelector('#parse-resume'),
+  resumeUploadForm: document.querySelector('#resume-upload-form'),
+  resumeFile: document.querySelector('#resume-file'),
+  resumeHistoryList: document.querySelector('#resume-history-list'),
   parseStatus: document.querySelector('#parse-status'),
   potentialSummary: document.querySelector('#potential-summary'),
   potentialSignals: document.querySelector('#potential-signals'),
@@ -120,6 +131,38 @@ const elements = {
   generateSnippet: document.querySelector('#generate-snippet'),
   tailoredSnippet: document.querySelector('#tailored-snippet'),
 };
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: 'same-origin',
+    ...options,
+    headers: options.body instanceof FormData ? options.headers : {
+      'Content-Type': 'application/json',
+      ...(options.headers ?? {}),
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error ?? '请求失败，请稍后再试。');
+  }
+  return payload;
+}
+
+function setAuthenticatedUser(user) {
+  state.currentUser = user;
+  state.mode = user.role === 'hr' ? 'admin' : 'student';
+  elements.loginScreen.hidden = true;
+  elements.appShell.hidden = false;
+  elements.authUserName.textContent = user.name;
+  elements.authRoleLabel.textContent = user.role === 'hr' ? 'HR' : '求职者';
+}
+
+function showLogin(message = '') {
+  state.currentUser = null;
+  elements.appShell.hidden = true;
+  elements.loginScreen.hidden = false;
+  elements.loginError.textContent = message;
+}
 
 function renderTags(container, tags, variant = '') {
   container.replaceChildren(
@@ -255,6 +298,32 @@ function renderPotentialAnalysis() {
   );
 }
 
+function renderResumeHistory() {
+  if (!elements.resumeHistoryList) return;
+  const runs = state.history.matchRuns ?? [];
+  if (!runs.length) {
+    const empty = document.createElement('p');
+    empty.className = 'history-empty';
+    empty.textContent = '登录后上传 PDF 简历，这里会保留解析和匹配记录。';
+    elements.resumeHistoryList.replaceChildren(empty);
+    return;
+  }
+
+  elements.resumeHistoryList.replaceChildren(
+    ...runs.slice(0, 5).map((run) => {
+      const best = run.scores?.[0];
+      const item = document.createElement('article');
+      item.className = 'history-item';
+      const title = document.createElement('strong');
+      title.textContent = run.fileName;
+      const meta = document.createElement('p');
+      meta.textContent = `${new Date(run.createdAt).toLocaleString('zh-CN')} · 最佳匹配：${best ? `${best.title} ${best.score}分` : '暂无评分'}`;
+      item.append(title, meta);
+      return item;
+    }),
+  );
+}
+
 function appendResumeLine(section, line) {
   if (line.startsWith('-')) {
     let list = section.querySelector('ul');
@@ -319,10 +388,6 @@ function renderProfile() {
   const activeWorkspace = state.mode === 'student' ? elements.studentWorkspace : elements.adminWorkspace;
   activeWorkspace.classList.remove('workspace-fade-in');
   window.requestAnimationFrame(() => activeWorkspace.classList.add('workspace-fade-in'));
-  elements.studentMode.classList.toggle('active', state.mode === 'student');
-  elements.adminMode.classList.toggle('active', state.mode === 'admin');
-  elements.studentMode.setAttribute('aria-selected', String(state.mode === 'student'));
-  elements.adminMode.setAttribute('aria-selected', String(state.mode === 'admin'));
   elements.companySubtitle.textContent = `${COMPANY.name} · ${COMPANY.subtitle}`;
   elements.companyName.textContent = COMPANY.name;
   elements.studentName.textContent = state.profile.name;
@@ -331,6 +396,7 @@ function renderProfile() {
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
   renderPotentialAnalysis();
+  renderResumeHistory();
   renderTags(elements.skillList, state.profile.skills);
   renderTags(elements.languageList, state.profile.languages ?? ['未解析到语言要求']);
   renderTags(elements.softSkillList, state.profile.softSkills ?? ['未解析到软技能']);
@@ -772,8 +838,8 @@ function renderAdminJobs() {
 }
 
 function renderCandidates() {
-  elements.candidateCount.textContent = `${CANDIDATES.length} 人`;
-  elements.candidateList.replaceChildren(...CANDIDATES.map(createCandidateCard));
+  elements.candidateCount.textContent = `${state.candidates.length} 人`;
+  elements.candidateList.replaceChildren(...state.candidates.map(createCandidateCard));
 }
 
 function createMatchItem(match) {
@@ -828,7 +894,8 @@ function renderInterviewQuestions(candidate, insight) {
 }
 
 function renderAdminInsight() {
-  const candidate = CANDIDATES.find((item) => item.id === state.selectedCandidateId) ?? CANDIDATES[0];
+  const candidate = state.candidates.find((item) => item.id === state.selectedCandidateId) ?? state.candidates[0];
+  if (!candidate) return;
   state.selectedCandidateId = candidate.id;
   const insight = buildAdminCandidateInsight(candidate, state.jobs);
 
@@ -886,6 +953,55 @@ function renderAnalysis() {
   elements.tailoredSnippet.textContent = snippet;
 }
 
+async function refreshJobs() {
+  const payload = await apiRequest('/api/jobs');
+  if (Array.isArray(payload.jobs) && payload.jobs.length) {
+    state.jobs = payload.jobs.map(enrichJob);
+    if (!state.jobs.some((job) => job.id === state.selectedJobId)) {
+      state.selectedJobId = state.jobs[0].id;
+    }
+  }
+}
+
+async function refreshStudentHistory() {
+  if (state.currentUser?.role !== 'student') return;
+  state.history = await apiRequest('/api/resumes');
+  const latestProfile = state.history.resumes?.[0]?.profile;
+  if (latestProfile?.name) {
+    state.profile = latestProfile;
+  }
+}
+
+function mapUploadedCandidate(candidate) {
+  const submittedJobIds = (candidate.scores ?? []).slice(0, 2).map((score) => score.jobId).filter(Boolean);
+  return {
+    id: candidate.id,
+    name: candidate.name,
+    school: candidate.profile?.headline?.split(' ')[0] ?? '已上传简历',
+    major: candidate.fileName ?? '候选人简历',
+    submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern'],
+    profile: candidate.profile?.name ? candidate.profile : STUDENT_PROFILE,
+  };
+}
+
+async function refreshHrCandidates() {
+  if (state.currentUser?.role !== 'hr') return;
+  const payload = await apiRequest('/api/hr/candidates');
+  const uploaded = (payload.uploadedCandidates ?? []).map(mapUploadedCandidate);
+  const seeded = payload.seededCandidates ?? CANDIDATES;
+  state.candidates = [...uploaded, ...seeded.filter((candidate) => !uploaded.some((item) => item.id === candidate.id))];
+  state.selectedCandidateId = state.candidates[0]?.id ?? state.selectedCandidateId;
+}
+
+async function refreshRoleData() {
+  await refreshJobs();
+  if (state.currentUser?.role === 'student') {
+    await refreshStudentHistory();
+  } else {
+    await refreshHrCandidates();
+  }
+}
+
 function render() {
   renderProfile();
   renderJobs();
@@ -895,20 +1011,49 @@ function render() {
   renderAdminInsight();
 }
 
-elements.parseResume.addEventListener('click', () => {
-  state.profile = parseResumeText(SAMPLE_RESUME_TEXT);
-  state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+async function enterApp(user) {
+  setAuthenticatedUser(user);
+  await refreshRoleData();
   render();
+}
+
+async function bootstrapSession() {
+  try {
+    const payload = await apiRequest('/api/session');
+    await enterApp(payload.user);
+  } catch {
+    renderResumeDocument();
+    showLogin();
+  }
+}
+
+elements.loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  elements.loginError.textContent = '';
+  try {
+    const payload = await apiRequest('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: elements.loginEmail.value,
+        password: elements.loginPassword.value,
+      }),
+    });
+    await enterApp(payload.user);
+  } catch (error) {
+    showLogin(error.message);
+  }
 });
 
-elements.studentMode.addEventListener('click', () => {
-  state.mode = 'student';
-  render();
+document.querySelectorAll('.demo-account-button').forEach((button) => {
+  button.addEventListener('click', () => {
+    elements.loginEmail.value = button.dataset.demoEmail;
+    elements.loginPassword.value = button.dataset.demoPassword;
+  });
 });
 
-elements.adminMode.addEventListener('click', () => {
-  state.mode = 'admin';
-  render();
+elements.logoutButton.addEventListener('click', async () => {
+  await apiRequest('/api/logout', { method: 'POST', body: JSON.stringify({}) }).catch(() => {});
+  showLogin();
 });
 
 elements.generateSnippet.addEventListener('click', () => {
@@ -936,20 +1081,53 @@ elements.adminDialog.addEventListener('click', (event) => {
   }
 });
 
-elements.adminForm.addEventListener('submit', (event) => {
+elements.resumeUploadForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const newJob = analyzeJobDescription({
-    title: elements.adminTitle.value,
-    city: elements.adminCity.value,
-    description: elements.adminDescription.value,
-  });
-  state.jobs = [newJob, ...state.jobs.filter((job) => job.id !== newJob.id)];
-  state.mode = 'admin';
-  state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}；薪资：${newJob.salary}。`;
-  saveAdminJobs(state.jobs);
-  render();
-  elements.adminDialog.close();
+  const file = elements.resumeFile.files?.[0];
+  if (!file) {
+    state.parseStatus = '请先选择一份文本型 PDF 简历。';
+    renderProfile();
+    return;
+  }
+
+  const form = new FormData();
+  form.append('resume', file);
+  state.parseStatus = '正在上传并解析 PDF...';
+  renderProfile();
+
+  try {
+    const payload = await apiRequest('/api/resumes', { method: 'POST', body: form });
+    state.profile = payload.resume.profile;
+    state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+    await refreshStudentHistory();
+    render();
+  } catch (error) {
+    state.parseStatus = error.message;
+    renderProfile();
+  }
+});
+
+elements.adminForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    const payload = await apiRequest('/api/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: elements.adminTitle.value,
+        city: elements.adminCity.value,
+        description: elements.adminDescription.value,
+      }),
+    });
+    const newJob = enrichJob(payload.job);
+    state.jobs = [newJob, ...state.jobs.filter((job) => job.id !== newJob.id)];
+    state.adminResult = `已添加「${newJob.title}」，抽取能力：${newJob.tags.join('、')}；薪资：${newJob.salary}。`;
+    render();
+    elements.adminDialog.close();
+  } catch (error) {
+    state.adminResult = error.message;
+    renderAdminJobs();
+  }
 });
 
 renderResumeDocument();
-render();
+bootstrapSession();

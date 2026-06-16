@@ -7,7 +7,37 @@
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body class="dashboard-page">
-    <main class="app-shell">
+    <section id="login-screen" class="login-screen" aria-label="登录 OfferMate">
+      <form id="login-form" class="login-card">
+        <div>
+          <p class="eyebrow">OfferMate</p>
+          <h1>登录后进入工作台</h1>
+          <p class="login-copy">登录后会根据账号权限进入求职者页面或 HR 页面。</p>
+        </div>
+        <label>
+          邮箱
+          <input id="login-email" type="email" autocomplete="username" value="davide@example.com" required>
+        </label>
+        <label>
+          密码
+          <input id="login-password" type="password" autocomplete="current-password" value="davide123" required>
+        </label>
+        <p id="login-error" class="login-error" role="alert"></p>
+        <button class="primary-button" type="submit">登录</button>
+        <div class="demo-account-grid" aria-label="演示账号">
+          <button class="demo-account-button" type="button" data-demo-email="davide@example.com" data-demo-password="davide123">
+            求职者账号
+            <span>davide@example.com / davide123</span>
+          </button>
+          <button class="demo-account-button" type="button" data-demo-email="hr@davide.tech" data-demo-password="hr123">
+            HR 账号
+            <span>hr@davide.tech / hr123</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <main id="app-shell" class="app-shell" hidden>
       <section class="topbar" aria-label="Demo overview">
         <div>
           <p class="eyebrow">AI 求职智能匹配智能体</p>
@@ -18,10 +48,11 @@
           <p id="company-subtitle" class="top-subtitle"></p>
         </div>
         <div class="top-actions">
-          <div class="mode-switch" role="tablist" aria-label="视角切换">
-            <button id="student-mode" class="mode-button active" type="button" role="tab" aria-selected="true">求职者视角</button>
-            <button id="admin-mode" class="mode-button" type="button" role="tab" aria-selected="false">HR 视角</button>
+          <div class="auth-chip">
+            <strong id="auth-user-name"></strong>
+            <span id="auth-role-label"></span>
           </div>
+          <button id="logout-button" class="secondary-button compact-button" type="button">退出登录</button>
           <div class="status-pill">
             <span class="dot"></span>
             demo
@@ -57,13 +88,21 @@
               <p class="eyebrow">示例简历</p>
               <h3>求职者原始简历</h3>
             </div>
-            <button id="parse-resume" class="primary-button compact-button" type="button">解析简历</button>
+            <form id="resume-upload-form" class="resume-upload-form">
+              <input id="resume-file" type="file" accept="application/pdf">
+              <button class="primary-button compact-button" type="submit">上传并解析 PDF</button>
+            </form>
           </div>
           <div id="resume-document" class="resume-document" aria-label="示例简历"></div>
 
           <div class="profile-block parse-card">
             <h3>已提取画像</h3>
             <p id="parse-status">从示例简历中提取候选人能力、经历证据和求职偏好。</p>
+          </div>
+
+          <div class="profile-block history-card">
+            <h3>历史记录</h3>
+            <div id="resume-history-list" class="history-list"></div>
           </div>
 
           <div class="profile-block">
