@@ -1262,7 +1262,8 @@ async function applyParsedResume(payload) {
   state.resumeText = payload.resume.rawText ?? payload.resume.profile?.rawResume ?? '';
   state.resumeFileName = payload.resume.fileName ?? '';
   state.hasParsedResume = Boolean(state.resumeText.trim());
-  state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+  const parserLabel = state.profile.parser === 'deepseek-v4-pro' ? 'DeepSeek 结构化解析' : '本地规则解析';
+  state.parseStatus = `${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
   await refreshStudentHistory();
   render();
 }

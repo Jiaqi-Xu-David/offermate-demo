@@ -40,6 +40,12 @@ function decodeUtf16Be(bytes) {
   return text;
 }
 
+function decodeUnicodeHex(source) {
+  const bytes = hexToBytes(source);
+  if (bytes.length === 1) return String.fromCharCode(bytes[0]);
+  return decodeUtf16Be(bytes);
+}
+
 function decodeHexString(source) {
   const clean = source.replace(/\s+/g, '');
   const padded = clean.length % 2 === 0 ? clean : `${clean}0`;
@@ -49,6 +55,16 @@ function decodeHexString(source) {
   }
   if (bytes[0] === 0xfe && bytes[1] === 0xff) return decodeUtf16Be(bytes);
   return bytesToBinary(bytes);
+}
+
+function hexToBytes(source) {
+  const clean = source.replace(/\s+/g, '');
+  const padded = clean.length % 2 === 0 ? clean : `${clean}0`;
+  const bytes = new Uint8Array(padded.length / 2);
+  for (let index = 0; index < padded.length; index += 2) {
+    bytes[index / 2] = Number.parseInt(padded.slice(index, index + 2), 16);
+  }
+  return bytes;
 }
 
 function decodeLiteralString(source) {
@@ -113,8 +129,9 @@ function readLiteral(content, start) {
 function readHex(content, start) {
   const end = content.indexOf('>', start + 1);
   if (end === -1) return { token: { type: 'word', value: '<' }, index: start + 1 };
+  const rawHex = content.slice(start + 1, end).replace(/\s+/g, '').toUpperCase();
   return {
-    token: { type: 'string', value: decodeHexString(content.slice(start + 1, end)) },
+    token: { type: 'string', value: decodeHexString(rawHex), rawHex },
     index: end + 1,
   };
 }
@@ -159,13 +176,33 @@ function tokenizeContent(content) {
   return tokens;
 }
 
-function collectTextFromTokens(tokens) {
+function decodeWithCMap(rawHex, unicodeMap) {
+  if (!rawHex || !unicodeMap?.size) return null;
+  const codeLengths = [...new Set([...unicodeMap.keys()].map((key) => key.length))].sort((a, b) => b - a);
+  let index = 0;
+  let output = '';
+
+  while (index < rawHex.length) {
+    const matchedLength = codeLengths.find((length) => unicodeMap.has(rawHex.slice(index, index + length)));
+    if (!matchedLength) return null;
+    output += unicodeMap.get(rawHex.slice(index, index + matchedLength));
+    index += matchedLength;
+  }
+
+  return output;
+}
+
+function tokenText(token, unicodeMap) {
+  return decodeWithCMap(token.rawHex, unicodeMap) ?? token.value;
+}
+
+function collectTextFromTokens(tokens, unicodeMap = new Map()) {
   const lines = [];
 
   tokens.forEach((token, index) => {
     if (token.type !== 'word') return;
     if ((token.value === 'Tj' || token.value === "'" || token.value === '"') && tokens[index - 1]?.type === 'string') {
-      lines.push(tokens[index - 1].value);
+      lines.push(tokenText(tokens[index - 1], unicodeMap));
       return;
     }
     if (token.value !== 'TJ') return;
@@ -176,7 +213,7 @@ function collectTextFromTokens(tokens) {
     const text = tokens
       .slice(start + 1, index)
       .filter((item) => item.type === 'string')
-      .map((item) => item.value)
+      .map((item) => tokenText(item, unicodeMap))
       .join(' ');
     if (text) lines.push(text);
   });
@@ -184,9 +221,46 @@ function collectTextFromTokens(tokens) {
   return lines;
 }
 
-async function extractStreamText(pdfSource) {
+function parseUnicodeCMaps(streams) {
+  const unicodeMap = new Map();
+
+  streams.forEach(({ content }) => {
+    if (!content.includes('beginbfchar') && !content.includes('beginbfrange')) return;
+
+    for (const section of content.matchAll(/\d+\s+beginbfchar([\s\S]*?)endbfchar/g)) {
+      for (const pair of section[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g)) {
+        unicodeMap.set(pair[1].toUpperCase(), decodeUnicodeHex(pair[2]));
+      }
+    }
+
+    for (const section of content.matchAll(/\d+\s+beginbfrange([\s\S]*?)endbfrange/g)) {
+      for (const range of section[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g)) {
+        const start = Number.parseInt(range[1], 16);
+        const end = Number.parseInt(range[2], 16);
+        const destinationStart = Number.parseInt(range[3], 16);
+        const width = range[1].length;
+        for (let code = start; code <= end; code += 1) {
+          unicodeMap.set(code.toString(16).toUpperCase().padStart(width, '0'), String.fromCharCode(destinationStart + code - start));
+        }
+      }
+
+      for (const range of section[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*\[([\s\S]*?)\]/g)) {
+        const start = Number.parseInt(range[1], 16);
+        const width = range[1].length;
+        const destinations = [...range[3].matchAll(/<([0-9A-Fa-f]+)>/g)].map((item) => decodeUnicodeHex(item[1]));
+        destinations.forEach((value, offset) => {
+          unicodeMap.set((start + offset).toString(16).toUpperCase().padStart(width, '0'), value);
+        });
+      }
+    }
+  });
+
+  return unicodeMap;
+}
+
+async function extractStreams(pdfSource) {
   const streamPattern = /<<(.*?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g;
-  const lines = [];
+  const streams = [];
   let match = streamPattern.exec(pdfSource);
 
   while (match) {
@@ -197,11 +271,17 @@ async function extractStreamText(pdfSource) {
       streamBytes = await inflateBytes(streamBytes);
     }
 
-    lines.push(...collectTextFromTokens(tokenizeContent(bytesToBinary(streamBytes))));
+    streams.push({ dictionary, content: bytesToBinary(streamBytes) });
     match = streamPattern.exec(pdfSource);
   }
 
-  return lines;
+  return streams;
+}
+
+async function extractStreamText(pdfSource) {
+  const streams = await extractStreams(pdfSource);
+  const unicodeMap = parseUnicodeCMaps(streams);
+  return streams.flatMap(({ content }) => collectTextFromTokens(tokenizeContent(content), unicodeMap));
 }
 
 export async function extractPdfText(input) {

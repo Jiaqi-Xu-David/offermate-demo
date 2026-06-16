@@ -5,10 +5,10 @@ import {
   STUDENT_PROFILE,
   analyzeJobDescription,
   buildScoreExplanation,
-  parseResumeText,
   rankJobs,
 } from '../matcher.js';
 import { hashPassword } from './auth.js';
+import { parseResumeProfile } from './deepseek.js';
 import { APP_SCHEMA_SQL } from './schema.js';
 
 const DEMO_USERS = [
@@ -128,21 +128,47 @@ async function executeSchema(db) {
   }
 }
 
+async function migrateUsersRoleCheck(db) {
+  const table = await db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").first();
+  if (!table?.sql || table.sql.includes("'admin'")) return;
+
+  await db.prepare('PRAGMA foreign_keys = off').run();
+  await db.prepare('DROP TABLE IF EXISTS users_with_admin').run();
+  await db
+    .prepare(
+      `CREATE TABLE users_with_admin (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('student', 'hr', 'admin')),
+        password_salt TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+    )
+    .run();
+  await db
+    .prepare(
+      `INSERT INTO users_with_admin (id, email, name, role, password_salt, password_hash, created_at)
+       SELECT id, email, name, role, password_salt, password_hash, created_at
+       FROM users`,
+    )
+    .run();
+  await db.prepare('DROP TABLE users').run();
+  await db.prepare('ALTER TABLE users_with_admin RENAME TO users').run();
+  await db.prepare('PRAGMA foreign_keys = on').run();
+}
+
 async function seedUsers(db) {
   for (const user of DEMO_USERS) {
-    try {
-      await db
-        .prepare(
-          `INSERT OR IGNORE INTO users (
-            id, email, name, role, password_salt, password_hash, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(user.id, user.email, user.name, user.role, user.salt, await hashPassword(user.password, user.salt), nowIso())
-        .run();
-    } catch (error) {
-      if (user.role === 'admin' && String(error.message ?? '').includes('CHECK')) continue;
-      throw error;
-    }
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO users (
+          id, email, name, role, password_salt, password_hash, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(user.id, user.email, user.name, user.role, user.salt, await hashPassword(user.password, user.salt), nowIso())
+      .run();
   }
 }
 
@@ -194,6 +220,7 @@ async function seedSampleResume(db) {
 export async function ensureAppData(env) {
   const db = dbFromEnv(env);
   await executeSchema(db);
+  await migrateUsersRoleCheck(db);
   await seedUsers(db);
   await seedJobs(db);
   return db;
@@ -271,7 +298,7 @@ export async function addJob(env, user, input) {
 
 export async function createResumeAndMatchRun(env, user, { fileName, rawText }) {
   const db = await ensureAppData(env);
-  const profile = parseResumeText(rawText);
+  const profile = await parseResumeProfile(env, rawText);
   const resumeId = createId('resume');
   const runId = createId('match');
   const createdAt = nowIso();

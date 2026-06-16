@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { extractPdfText } from '../src/backend/pdf.js';
+import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 
@@ -27,6 +28,37 @@ trailer
 %%EOF`);
 }
 
+function buildPdfWithStreams(streams) {
+  return new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length ${streams.content.length} >>
+stream
+${streams.content}
+endstream
+endobj
+5 0 obj
+<< /Length ${streams.toUnicode.length} >>
+stream
+${streams.toUnicode}
+endstream
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type0 /BaseFont /ABCDEE+ResumeFont /ToUnicode 5 0 R >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+}
+
 test('extracts text from literal, array, and utf16 hex PDF text operators', async () => {
   const pdf = buildMinimalPdf(`BT
     (Davide Resume) Tj
@@ -39,6 +71,85 @@ test('extracts text from literal, array, and utf16 hex PDF text operators', asyn
   assert.match(text, /Davide Resume/);
   assert.match(text, /SQL Python/);
   assert.match(text, /慕尼黑工业大学/);
+});
+
+test('extracts text from PDFs that encode visible text through ToUnicode maps', async () => {
+  const pdf = buildPdfWithStreams({
+    content: `BT
+      /F1 12 Tf
+      <0102030405060708090A0B0C> Tj
+    ET`,
+    toUnicode: `/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+1 begincodespacerange
+<01> <0C>
+endcodespacerange
+12 beginbfchar
+<01> <5927>
+<02> <536B>
+<03> <5FB7>
+<04> <20>
+<05> <0053>
+<06> <0051>
+<07> <004C>
+<08> <20>
+<09> <0050>
+<0A> <0079>
+<0B> <0074>
+<0C> <0068>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end`,
+  });
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /大卫德 SQL Pyth/);
+});
+
+test('parses resume text with DeepSeek JSON mode when an API key is configured', async () => {
+  const calls = [];
+  const profile = await parseResumeWithDeepSeek(
+    { DEEPSEEK_API_KEY: 'test-key' },
+    '李雷\n慕尼黑工业大学 统计学 本科 2026届\n求职意向：数据分析实习\n使用 SQL 和 Python 分析留存。',
+    {
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return Response.json({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  name: '李雷',
+                  gender: '男',
+                  headline: '慕尼黑工业大学 统计学 本科 2026届',
+                  target: '数据分析实习',
+                  cityPreferences: ['上海'],
+                  skills: ['SQL', 'Python'],
+                  languages: ['英文文档阅读'],
+                  softSkills: ['结构化表达'],
+                  experiences: ['使用 SQL 和 Python 分析留存。'],
+                  interests: ['数据分析'],
+                }),
+              },
+            },
+          ],
+        });
+      },
+    },
+  );
+
+  assert.equal(profile.name, '李雷');
+  assert.deepEqual(profile.skills, ['SQL', 'Python']);
+  assert.equal(profile.rawResume.includes('SQL'), true);
+  assert.equal(calls[0].url, 'https://api.deepseek.com/chat/completions');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer test-key');
+  const body = JSON.parse(calls[0].options.body);
+  assert.equal(body.model, 'deepseek-v4-pro');
+  assert.deepEqual(body.response_format, { type: 'json_object' });
 });
 
 test('hashes and verifies passwords without storing plaintext', async () => {
@@ -79,6 +190,9 @@ test('supports account admin users and exposes raw parsed resume text', async ()
 
   assert.ok(APP_SCHEMA_SQL.includes("role IN ('student', 'hr', 'admin')"));
   assert.ok(databaseJs.includes('admin@davide.tech'));
+  assert.ok(databaseJs.includes('migrateUsersRoleCheck'));
+  assert.ok(databaseJs.includes('users_with_admin'));
+  assert.ok(!databaseJs.includes("user.role === 'admin' && String(error.message"));
   assert.ok(databaseJs.includes('rawText: row.raw_text'));
   assert.ok(databaseJs.includes('createAccountUser'));
   assert.ok(databaseJs.includes('deleteAccountUser'));

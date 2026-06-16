@@ -30,6 +30,12 @@ HR：hr@davide.tech / hr123
 npx wrangler d1 execute offermate_visits --file=db/schema.sql
 ```
 
+可选：启用 DeepSeek 简历结构化解析。不要把 API key 写进代码或提交到仓库，使用 Cloudflare secret：
+
+```bash
+npx wrangler secret put DEEPSEEK_API_KEY
+```
+
 ## Test
 
 ```bash
