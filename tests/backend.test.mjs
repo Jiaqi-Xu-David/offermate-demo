@@ -73,6 +73,20 @@ test('defines application tables for auth, jobs, resumes, matches, and applicati
   });
 });
 
+test('supports account admin users and exposes raw parsed resume text', async () => {
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+  const usersApi = await readFile(new URL('../functions/api/admin/users.js', import.meta.url), 'utf8');
+
+  assert.ok(APP_SCHEMA_SQL.includes("role IN ('student', 'hr', 'admin')"));
+  assert.ok(databaseJs.includes('admin@davide.tech'));
+  assert.ok(databaseJs.includes('rawText: row.raw_text'));
+  assert.ok(databaseJs.includes('createAccountUser'));
+  assert.ok(databaseJs.includes('deleteAccountUser'));
+  assert.ok(usersApi.includes("requireUser(context, ['admin'])"));
+  assert.ok(usersApi.includes('onRequestPost'));
+  assert.ok(usersApi.includes('onRequestDelete'));
+});
+
 test('static shell uses login-driven routing and resume upload history', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
@@ -82,7 +96,15 @@ test('static shell uses login-driven routing and resume upload history', async (
   assert.ok(html.includes('id="logout-button"'));
   assert.ok(html.includes('id="resume-upload-form"'));
   assert.ok(html.includes('id="resume-history-list"'));
+  assert.ok(html.includes('id="resume-picker-button"'));
+  assert.ok(html.includes('id="sample-resume-button"'));
+  assert.ok(html.includes('id="selected-file-name"'));
+  assert.ok(html.includes('class="resume-empty-state"'));
+  assert.ok(html.includes('id="account-admin-workspace"'));
+  assert.ok(html.includes('id="account-user-list"'));
   assert.ok(!html.includes('class="mode-switch"'));
   assert.ok(!html.includes('id="student-mode"'));
   assert.ok(!html.includes('id="admin-mode"'));
+  assert.ok(!html.includes('<p class="eyebrow">示例简历</p>'));
+  assert.ok(!html.includes('aria-label="示例简历"'));
 });

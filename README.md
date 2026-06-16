@@ -21,6 +21,7 @@ http://127.0.0.1:4173/
 ```text
 求职者：davide@example.com / davide123
 HR：hr@davide.tech / hr123
+管理员：admin@davide.tech / admin123
 ```
 
 初始化或更新 D1 表结构：

@@ -42,7 +42,8 @@ body.dashboard-page {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -107,7 +108,7 @@ button {
 
 .demo-account-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -188,14 +189,15 @@ button {
 }
 
 .auth-chip {
-  display: grid;
-  gap: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 5px 14px;
+  padding: 5px 12px;
   background: var(--panel);
-  text-align: right;
+  text-align: left;
 }
 
 .auth-chip strong {
@@ -205,6 +207,8 @@ button {
 }
 
 .auth-chip span {
+  border-left: 1px solid var(--line);
+  padding-left: 8px;
   color: var(--brand-dark);
   font-size: 11px;
   font-weight: 850;
@@ -294,8 +298,13 @@ h3 {
   grid-template-columns: minmax(360px, 1fr) minmax(320px, 0.88fr) minmax(380px, 1.08fr);
 }
 
+.account-admin-workspace {
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.78fr);
+}
+
 .admin-workspace[hidden],
-.student-workspace[hidden] {
+.student-workspace[hidden],
+.account-admin-workspace[hidden] {
   display: none;
 }
 
@@ -539,26 +548,65 @@ h3 {
 }
 
 .resume-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-.resume-upload-form {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: min(100%, 360px);
+.resume-toolbar h3 {
+  margin-bottom: 4px;
 }
 
-.resume-upload-form input[type="file"] {
-  max-width: 190px;
-  min-height: 34px;
-  padding: 6px;
+.resume-toolbar-copy {
+  margin: 0;
+  color: var(--muted);
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.resume-upload-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.resume-upload-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px;
+  background: var(--panel-strong);
+}
+
+.native-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#selected-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .compact-button {
@@ -575,6 +623,30 @@ h3 {
   padding: 18px;
   background: #fffefa;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.resume-empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border: 1px dashed rgba(30, 124, 100, 0.28);
+  border-radius: 8px;
+  padding: 18px;
+  background: #f7fbf8;
+  text-align: center;
+}
+
+.resume-empty-state strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.resume-empty-state p {
+  max-width: 30ch;
+  margin: 6px auto 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .resume-header {
@@ -728,7 +800,8 @@ h3 {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -748,7 +821,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: 3px solid rgba(30, 124, 100, 0.18);
   border-color: var(--brand);
 }
@@ -776,6 +850,11 @@ textarea:focus {
   border: 1px solid var(--line);
   background: var(--panel-strong);
   color: var(--ink);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .profile-block+.profile-block {
@@ -847,6 +926,12 @@ textarea:focus {
   font-size: 13px;
 }
 
+.job-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .job-list {
   display: grid;
   gap: 12px;
@@ -886,7 +971,8 @@ textarea:focus {
 
 .admin-job-list,
 .candidate-list,
-.admin-match-list {
+.admin-match-list,
+.account-user-list {
   display: grid;
   gap: 12px;
 }
@@ -899,11 +985,90 @@ textarea:focus {
 
 .admin-job-item,
 .candidate-card,
-.admin-match-item {
+.admin-match-item,
+.account-user-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
   background: var(--panel-strong);
+}
+
+.account-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-user-card.current {
+  border-color: rgba(30, 124, 100, 0.3);
+  background: #f5fbf7;
+}
+
+.account-user-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.account-user-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.account-user-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--blue-soft);
+  color: #194f80;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.role-pill.hr {
+  background: rgba(216, 111, 50, 0.13);
+  color: #9b4316;
+}
+
+.role-pill.admin {
+  background: rgba(30, 124, 100, 0.12);
+  color: var(--brand-dark);
+}
+
+.account-admin-panel {
+  align-content: start;
+}
+
+.account-admin-summary p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.account-user-form {
+  display: grid;
+  gap: 12px;
+}
+
+.account-user-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
 }
 
 a.admin-job-item {
@@ -1923,7 +2088,8 @@ ol {
 @media (max-width: 1120px) {
 
   .workspace,
-  .admin-workspace {
+  .admin-workspace,
+  .account-admin-workspace {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -2015,6 +2181,7 @@ ol {
 
   .workspace,
   .admin-workspace,
+  .account-admin-workspace,
   .analysis-grid,
   .breakdown-list,
   .admin-breakdown-list,
@@ -2104,14 +2271,20 @@ ol {
 
   .resume-toolbar,
   .resume-upload-form,
+  .resume-upload-card,
+  .resume-upload-actions,
   .demo-account-grid {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
   }
 
-  .resume-upload-form input[type="file"] {
-    max-width: none;
+  .job-heading-actions,
+  .account-user-card,
+  .account-user-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .resume-header h2 {

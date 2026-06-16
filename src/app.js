@@ -1,7 +1,6 @@
 import {
   COMPANY,
   SAMPLE_RESUME_TEXT,
-  STUDENT_PROFILE,
   JOBS,
   CANDIDATES,
   rankJobs,
@@ -41,21 +40,43 @@ function saveAdminJobs(jobs) {
 
 const savedAdminJobs = loadAdminJobs();
 
+function createEmptyProfile(name = '求职者') {
+  return {
+    name,
+    gender: '未填写',
+    headline: '上传 PDF 简历后生成候选人画像',
+    target: '上传简历后提取求职偏好',
+    cityPreferences: [],
+    skills: [],
+    languages: [],
+    softSkills: [],
+    skillEvidence: {},
+    interests: [],
+    experiences: [],
+    rawResume: '',
+  };
+}
+
 const state = {
   mode: 'student',
   currentUser: null,
-  profile: STUDENT_PROFILE,
+  profile: createEmptyProfile('大卫德'),
+  resumeText: '',
+  resumeFileName: '',
+  hasParsedResume: false,
   jobs: [...savedAdminJobs, ...JOBS],
   candidates: CANDIDATES,
+  accountUsers: [],
   history: { resumes: [], matchRuns: [] },
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: 'davide',
-  rankings: rankJobs(STUDENT_PROFILE, JOBS),
-  parseStatus: `已自动解析 ${STUDENT_PROFILE.skills.length} 项核心技能、${STUDENT_PROFILE.experiences.length} 条经历证据。`,
+  rankings: rankJobs(createEmptyProfile('大卫德'), JOBS),
+  parseStatus: '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。',
   adminResult:
     savedAdminJobs.length > 0
       ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
       : '粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。',
+  accountResult: '新增后即可用该邮箱和密码登录。',
 };
 
 const elements = {
@@ -70,6 +91,7 @@ const elements = {
   authRoleLabel: document.querySelector('#auth-role-label'),
   studentWorkspace: document.querySelector('#student-workspace'),
   adminWorkspace: document.querySelector('#admin-workspace'),
+  accountAdminWorkspace: document.querySelector('#account-admin-workspace'),
   companySubtitle: document.querySelector('#company-subtitle'),
   companyName: document.querySelector('#company-name'),
   studentName: document.querySelector('#student-name'),
@@ -79,6 +101,9 @@ const elements = {
   resumeDocument: document.querySelector('#resume-document'),
   resumeUploadForm: document.querySelector('#resume-upload-form'),
   resumeFile: document.querySelector('#resume-file'),
+  resumePickerButton: document.querySelector('#resume-picker-button'),
+  selectedFileName: document.querySelector('#selected-file-name'),
+  sampleResumeButton: document.querySelector('#sample-resume-button'),
   resumeHistoryList: document.querySelector('#resume-history-list'),
   parseStatus: document.querySelector('#parse-status'),
   potentialSummary: document.querySelector('#potential-summary'),
@@ -89,6 +114,7 @@ const elements = {
   softSkillList: document.querySelector('#soft-skill-list'),
   jobCount: document.querySelector('#job-count'),
   jobList: document.querySelector('#job-list'),
+  refreshJobsButton: document.querySelector('#refresh-jobs-button'),
   openAdminModal: document.querySelector('#open-admin-modal'),
   closeAdminModal: document.querySelector('#close-admin-modal'),
   adminDialog: document.querySelector('#admin-job-dialog'),
@@ -130,6 +156,14 @@ const elements = {
   rewriteList: document.querySelector('#rewrite-list'),
   generateSnippet: document.querySelector('#generate-snippet'),
   tailoredSnippet: document.querySelector('#tailored-snippet'),
+  accountUserCount: document.querySelector('#account-user-count'),
+  accountUserList: document.querySelector('#account-user-list'),
+  accountUserForm: document.querySelector('#account-user-form'),
+  accountName: document.querySelector('#account-name'),
+  accountEmail: document.querySelector('#account-email'),
+  accountRole: document.querySelector('#account-role'),
+  accountPassword: document.querySelector('#account-password'),
+  accountResult: document.querySelector('#account-result'),
 };
 
 async function apiRequest(path, options = {}) {
@@ -143,18 +177,29 @@ async function apiRequest(path, options = {}) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error ?? '请求失败，请稍后再试。');
+    const fallback =
+      response.status === 404
+        ? '当前页面没有连接后端接口。请用 Cloudflare Pages Functions 本地服务或线上部署地址打开。'
+        : '请求失败，请稍后再试。';
+    throw new Error(payload.error ?? fallback);
   }
   return payload;
 }
 
+function getRoleLabel(role) {
+  return { student: '求职者', hr: 'HR', admin: '管理员' }[role] ?? role;
+}
+
 function setAuthenticatedUser(user) {
   state.currentUser = user;
-  state.mode = user.role === 'hr' ? 'admin' : 'student';
+  state.mode = user.role === 'admin' ? 'account-admin' : user.role === 'hr' ? 'admin' : 'student';
+  if (user.role === 'student' && !state.hasParsedResume) {
+    state.profile = createEmptyProfile(user.name);
+  }
   elements.loginScreen.hidden = true;
   elements.appShell.hidden = false;
   elements.authUserName.textContent = user.name;
-  elements.authRoleLabel.textContent = user.role === 'hr' ? 'HR' : '求职者';
+  elements.authRoleLabel.textContent = getRoleLabel(user.role);
 }
 
 function showLogin(message = '') {
@@ -342,9 +387,26 @@ function appendResumeLine(section, line) {
   section.append(paragraph);
 }
 
-function renderResumeDocument() {
+function renderResumePlaceholder(container = elements.resumeDocument) {
+  const empty = document.createElement('div');
+  empty.className = 'resume-empty-state';
+  const title = document.createElement('strong');
+  title.textContent = '上传 PDF 后展示简历原文';
+  const copy = document.createElement('p');
+  copy.textContent = '旁边的示例按钮只用于演示流程，默认不会预加载示例简历。';
+  empty.append(title, copy);
+  container.replaceChildren(empty);
+}
+
+function renderResumeDocumentFromText(rawText, container = elements.resumeDocument) {
+  const text = String(rawText ?? '').trim();
+  if (!text) {
+    renderResumePlaceholder(container);
+    return;
+  }
+
   const sectionNames = new Set(['教育背景', '核心技能', '语言与软技能', '实习经历', '项目经历', '校园经历']);
-  const lines = SAMPLE_RESUME_TEXT.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
   const header = document.createElement('div');
   header.className = 'resume-header';
   const firstSectionIndex = lines.findIndex((line) => sectionNames.has(line));
@@ -378,28 +440,40 @@ function renderResumeDocument() {
     appendResumeLine(currentSection, line);
   });
 
-  elements.resumeDocument.replaceChildren(header, body);
+  container.replaceChildren(header, body);
 }
 
 function renderProfile() {
   document.body.dataset.mode = state.mode;
   elements.studentWorkspace.hidden = state.mode !== 'student';
   elements.adminWorkspace.hidden = state.mode !== 'admin';
-  const activeWorkspace = state.mode === 'student' ? elements.studentWorkspace : elements.adminWorkspace;
-  activeWorkspace.classList.remove('workspace-fade-in');
-  window.requestAnimationFrame(() => activeWorkspace.classList.add('workspace-fade-in'));
+  elements.accountAdminWorkspace.hidden = state.mode !== 'account-admin';
+  const workspaceMap = {
+    student: elements.studentWorkspace,
+    admin: elements.adminWorkspace,
+    'account-admin': elements.accountAdminWorkspace,
+  };
+  const activeWorkspace = workspaceMap[state.mode];
+  activeWorkspace?.classList.remove('workspace-fade-in');
+  window.requestAnimationFrame(() => activeWorkspace?.classList.add('workspace-fade-in'));
   elements.companySubtitle.textContent = `${COMPANY.name} · ${COMPANY.subtitle}`;
   elements.companyName.textContent = COMPANY.name;
   elements.studentName.textContent = state.profile.name;
   elements.studentHeadline.textContent = state.profile.headline;
-  elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${(state.profile.cityPreferences ?? []).join(' / ')}`;
+  const cityText = state.profile.cityPreferences?.length ? state.profile.cityPreferences.join(' / ') : '城市偏好待解析';
+  elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${cityText}`;
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
+  if (state.resumeText.trim()) {
+    renderResumeDocumentFromText(state.resumeText);
+  } else {
+    renderResumePlaceholder();
+  }
   renderPotentialAnalysis();
   renderResumeHistory();
-  renderTags(elements.skillList, state.profile.skills);
-  renderTags(elements.languageList, state.profile.languages ?? ['未解析到语言要求']);
-  renderTags(elements.softSkillList, state.profile.softSkills ?? ['未解析到软技能']);
+  renderTags(elements.skillList, state.profile.skills?.length ? state.profile.skills : ['上传后生成']);
+  renderTags(elements.languageList, state.profile.languages?.length ? state.profile.languages : ['上传后生成']);
+  renderTags(elements.softSkillList, state.profile.softSkills?.length ? state.profile.softSkills : ['上传后生成']);
 }
 
 function renderMatchDashboard() {
@@ -592,6 +666,10 @@ function createTagGroup(labelText, tags) {
 
 function renderAdminResume(candidate) {
   const { profile } = candidate;
+  if (candidate.rawText?.trim()) {
+    renderResumeDocumentFromText(candidate.rawText, elements.adminResumeDocument);
+    return;
+  }
 
   const header = document.createElement('div');
   header.className = 'admin-resume-header';
@@ -842,6 +920,53 @@ function renderCandidates() {
   elements.candidateList.replaceChildren(...state.candidates.map(createCandidateCard));
 }
 
+function createAccountUserCard(user) {
+  const item = document.createElement('article');
+  item.className = user.id === state.currentUser?.id ? 'account-user-card current' : 'account-user-card';
+
+  const main = document.createElement('div');
+  const name = document.createElement('strong');
+  name.textContent = user.name;
+  const meta = document.createElement('p');
+  meta.textContent = `${user.email} · ${new Date(user.createdAt).toLocaleString('zh-CN')}`;
+  main.append(name, meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'account-user-actions';
+  const role = document.createElement('span');
+  role.className = `role-pill ${user.role}`;
+  role.textContent = getRoleLabel(user.role);
+  const deleteButton = document.createElement('button');
+  deleteButton.className = 'secondary-button compact-button';
+  deleteButton.type = 'button';
+  deleteButton.textContent = user.id === state.currentUser?.id ? '当前账号' : '删除';
+  deleteButton.disabled = user.id === state.currentUser?.id;
+  deleteButton.addEventListener('click', async () => {
+    try {
+      await apiRequest(`/api/admin/users?id=${encodeURIComponent(user.id)}`, { method: 'DELETE' });
+      state.accountResult = `已删除账号：${user.email}`;
+      await refreshAccountUsers();
+      renderAccountUsers();
+    } catch (error) {
+      state.accountResult = error.message;
+      renderAccountUsers();
+    }
+  });
+  actions.append(role, deleteButton);
+  item.append(main, actions);
+  return item;
+}
+
+function renderAccountUsers() {
+  elements.accountUserCount.textContent = `${state.accountUsers.length} 个账号`;
+  elements.accountResult.textContent = state.accountResult;
+  elements.accountUserList.replaceChildren(
+    ...(state.accountUsers.length
+      ? state.accountUsers.map(createAccountUserCard)
+      : [Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无账号。' })]),
+  );
+}
+
 function createMatchItem(match) {
   const item = document.createElement('article');
   item.className = 'admin-match-item';
@@ -893,6 +1018,17 @@ function renderInterviewQuestions(candidate, insight) {
   );
 }
 
+function renderSnippetPrompt(selectedJob) {
+  if (!state.hasParsedResume) {
+    elements.generateSnippet.disabled = true;
+    elements.tailoredSnippet.textContent = '上传并解析简历后，可以基于当前岗位生成一段可放入简历的项目表达。';
+    return;
+  }
+
+  elements.generateSnippet.disabled = false;
+  elements.tailoredSnippet.textContent = `已选择「${selectedJob.title}」。点击生成后，会基于解析出的经历改写简历片段。`;
+}
+
 function renderAdminInsight() {
   const candidate = state.candidates.find((item) => item.id === state.selectedCandidateId) ?? state.candidates[0];
   if (!candidate) return;
@@ -920,7 +1056,6 @@ function renderAnalysis() {
   state.selectedJobId = selectedJob.id;
   const analysis = analyzeJobFit(state.profile, selectedJob);
   const advice = buildResumeAdvice(state.profile, selectedJob);
-  const snippet = buildTailoredResumeSnippet(state.profile, selectedJob);
 
   elements.selectedJobTitle.textContent = `${selectedJob.title} · ${selectedJob.company}`;
   elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
@@ -950,7 +1085,7 @@ function renderAnalysis() {
       return item;
     }),
   );
-  elements.tailoredSnippet.textContent = snippet;
+  renderSnippetPrompt(selectedJob);
 }
 
 async function refreshJobs() {
@@ -966,21 +1101,31 @@ async function refreshJobs() {
 async function refreshStudentHistory() {
   if (state.currentUser?.role !== 'student') return;
   state.history = await apiRequest('/api/resumes');
-  const latestProfile = state.history.resumes?.[0]?.profile;
+  const latestResume = state.history.resumes?.[0];
+  const latestProfile = latestResume?.profile;
   if (latestProfile?.name) {
     state.profile = latestProfile;
+    state.resumeText = latestResume.rawText ?? latestProfile.rawResume ?? '';
+    state.resumeFileName = latestResume.fileName ?? '';
+    state.hasParsedResume = Boolean(state.resumeText.trim());
+  } else if (!state.hasParsedResume) {
+    state.profile = createEmptyProfile(state.currentUser?.name ?? '求职者');
+    state.resumeText = '';
+    state.resumeFileName = '';
   }
 }
 
 function mapUploadedCandidate(candidate) {
   const submittedJobIds = (candidate.scores ?? []).slice(0, 2).map((score) => score.jobId).filter(Boolean);
+  const profile = candidate.profile?.name ? candidate.profile : createEmptyProfile(candidate.name);
   return {
     id: candidate.id,
     name: candidate.name,
-    school: candidate.profile?.headline?.split(' ')[0] ?? '已上传简历',
+    school: profile.headline?.split(' ')[0] ?? '已上传简历',
     major: candidate.fileName ?? '候选人简历',
     submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern'],
-    profile: candidate.profile?.name ? candidate.profile : STUDENT_PROFILE,
+    profile,
+    rawText: candidate.rawText ?? profile.rawResume ?? '',
   };
 }
 
@@ -993,22 +1138,38 @@ async function refreshHrCandidates() {
   state.selectedCandidateId = state.candidates[0]?.id ?? state.selectedCandidateId;
 }
 
+async function refreshAccountUsers() {
+  if (state.currentUser?.role !== 'admin') return;
+  const payload = await apiRequest('/api/admin/users');
+  state.accountUsers = payload.users ?? [];
+}
+
 async function refreshRoleData() {
-  await refreshJobs();
   if (state.currentUser?.role === 'student') {
+    await refreshJobs();
     await refreshStudentHistory();
-  } else {
+  } else if (state.currentUser?.role === 'hr') {
+    await refreshJobs();
     await refreshHrCandidates();
+  } else if (state.currentUser?.role === 'admin') {
+    await refreshAccountUsers();
   }
 }
 
 function render() {
   renderProfile();
-  renderJobs();
-  renderAnalysis();
-  renderAdminJobs();
-  renderCandidates();
-  renderAdminInsight();
+  if (state.mode === 'student') {
+    renderJobs();
+    renderAnalysis();
+  }
+  if (state.mode === 'admin') {
+    renderAdminJobs();
+    renderCandidates();
+    renderAdminInsight();
+  }
+  if (state.mode === 'account-admin') {
+    renderAccountUsers();
+  }
 }
 
 async function enterApp(user) {
@@ -1022,7 +1183,7 @@ async function bootstrapSession() {
     const payload = await apiRequest('/api/session');
     await enterApp(payload.user);
   } catch {
-    renderResumeDocument();
+    renderResumePlaceholder();
     showLogin();
   }
 }
@@ -1056,7 +1217,22 @@ elements.logoutButton.addEventListener('click', async () => {
   showLogin();
 });
 
+elements.refreshJobsButton.addEventListener('click', async () => {
+  try {
+    await refreshJobs();
+    renderJobs();
+    renderAnalysis();
+  } catch (error) {
+    state.parseStatus = error.message;
+    renderProfile();
+  }
+});
+
 elements.generateSnippet.addEventListener('click', () => {
+  if (!state.hasParsedResume) {
+    elements.tailoredSnippet.textContent = '请先上传并解析简历，再生成定制片段。';
+    return;
+  }
   const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
   elements.tailoredSnippet.textContent = buildTailoredResumeSnippet(state.profile, selectedJob);
   elements.tailoredSnippet.classList.add('pulse');
@@ -1081,11 +1257,52 @@ elements.adminDialog.addEventListener('click', (event) => {
   }
 });
 
+async function applyParsedResume(payload) {
+  state.profile = payload.resume.profile;
+  state.resumeText = payload.resume.rawText ?? payload.resume.profile?.rawResume ?? '';
+  state.resumeFileName = payload.resume.fileName ?? '';
+  state.hasParsedResume = Boolean(state.resumeText.trim());
+  state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+  await refreshStudentHistory();
+  render();
+}
+
+async function submitResumeText(body) {
+  state.parseStatus = '正在解析简历文本...';
+  renderProfile();
+  const payload = await apiRequest('/api/resumes', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  await applyParsedResume(payload);
+}
+
+elements.resumePickerButton.addEventListener('click', () => {
+  elements.resumeFile.click();
+});
+
+elements.resumeFile.addEventListener('change', () => {
+  const file = elements.resumeFile.files?.[0];
+  elements.selectedFileName.textContent = file?.name ?? '未选择文件';
+});
+
+elements.sampleResumeButton.addEventListener('click', async () => {
+  try {
+    await submitResumeText({
+      fileName: 'offermate-example-resume.txt',
+      rawText: SAMPLE_RESUME_TEXT,
+    });
+  } catch (error) {
+    state.parseStatus = error.message;
+    renderProfile();
+  }
+});
+
 elements.resumeUploadForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const file = elements.resumeFile.files?.[0];
   if (!file) {
-    state.parseStatus = '请先选择一份文本型 PDF 简历。';
+    state.parseStatus = '请先选择一份文本型 PDF 简历，或点击“使用示例简历”体验完整流程。';
     renderProfile();
     return;
   }
@@ -1097,10 +1314,7 @@ elements.resumeUploadForm.addEventListener('submit', async (event) => {
 
   try {
     const payload = await apiRequest('/api/resumes', { method: 'POST', body: form });
-    state.profile = payload.resume.profile;
-    state.parseStatus = `已解析 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
-    await refreshStudentHistory();
-    render();
+    await applyParsedResume(payload);
   } catch (error) {
     state.parseStatus = error.message;
     renderProfile();
@@ -1129,5 +1343,26 @@ elements.adminForm.addEventListener('submit', async (event) => {
   }
 });
 
-renderResumeDocument();
+elements.accountUserForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    const payload = await apiRequest('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: elements.accountName.value,
+        email: elements.accountEmail.value,
+        role: elements.accountRole.value,
+        password: elements.accountPassword.value,
+      }),
+    });
+    state.accountResult = `已创建账号：${payload.user.email}（${getRoleLabel(payload.user.role)}）`;
+    await refreshAccountUsers();
+    renderAccountUsers();
+  } catch (error) {
+    state.accountResult = error.message;
+    renderAccountUsers();
+  }
+});
+
+renderResumePlaceholder();
 bootstrapSession();

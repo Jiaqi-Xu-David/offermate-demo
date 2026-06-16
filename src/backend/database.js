@@ -28,6 +28,14 @@ const DEMO_USERS = [
     password: 'hr123',
     salt: 'offermate-hr-demo',
   },
+  {
+    id: 'user-admin-davide-tech',
+    email: 'admin@davide.tech',
+    name: '大卫德科技管理员',
+    role: 'admin',
+    password: 'admin123',
+    salt: 'offermate-admin-demo',
+  },
 ];
 
 function dbFromEnv(env) {
@@ -122,14 +130,19 @@ async function executeSchema(db) {
 
 async function seedUsers(db) {
   for (const user of DEMO_USERS) {
-    await db
-      .prepare(
-        `INSERT OR IGNORE INTO users (
-          id, email, name, role, password_salt, password_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(user.id, user.email, user.name, user.role, user.salt, await hashPassword(user.password, user.salt), nowIso())
-      .run();
+    try {
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO users (
+            id, email, name, role, password_salt, password_hash, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(user.id, user.email, user.name, user.role, user.salt, await hashPassword(user.password, user.salt), nowIso())
+        .run();
+    } catch (error) {
+      if (user.role === 'admin' && String(error.message ?? '').includes('CHECK')) continue;
+      throw error;
+    }
   }
 }
 
@@ -183,7 +196,6 @@ export async function ensureAppData(env) {
   await executeSchema(db);
   await seedUsers(db);
   await seedJobs(db);
-  await seedSampleResume(db);
   return db;
 }
 
@@ -294,13 +306,19 @@ export async function createResumeAndMatchRun(env, user, { fileName, rawText }) 
       .run();
   }
 
-  return { resume: { id: resumeId, fileName, createdAt, profile }, run: { id: runId, createdAt, scores: rankings } };
+  return { resume: { id: resumeId, fileName, rawText, createdAt, profile }, run: { id: runId, createdAt, scores: rankings } };
 }
 
 export async function listStudentHistory(env, user) {
   const db = await ensureAppData(env);
   const resumes = await db
-    .prepare('SELECT id, file_name, profile_json, created_at FROM resumes WHERE user_id = ? ORDER BY created_at DESC LIMIT 20')
+    .prepare(
+      `SELECT id, file_name, raw_text, profile_json, created_at
+       FROM resumes
+       WHERE user_id = ? AND id != 'resume-seed-davide'
+       ORDER BY created_at DESC
+       LIMIT 20`,
+    )
     .bind(user.id)
     .all();
   const runs = await db
@@ -308,7 +326,7 @@ export async function listStudentHistory(env, user) {
       `SELECT match_runs.id, match_runs.resume_id, match_runs.created_at, resumes.file_name
        FROM match_runs
        JOIN resumes ON resumes.id = match_runs.resume_id
-       WHERE match_runs.user_id = ?
+       WHERE match_runs.user_id = ? AND resumes.id != 'resume-seed-davide'
        ORDER BY match_runs.created_at DESC
        LIMIT 20`,
     )
@@ -319,6 +337,7 @@ export async function listStudentHistory(env, user) {
     resumes: (resumes.results ?? []).map((row) => ({
       id: row.id,
       fileName: row.file_name,
+      rawText: row.raw_text,
       profile: parseJson(row.profile_json, {}),
       createdAt: row.created_at,
     })),
@@ -353,9 +372,9 @@ export async function listHrCandidates(env) {
   const uploaded = await db
     .prepare(
       `SELECT users.id AS user_id, users.name, users.email, resumes.id AS resume_id,
-              resumes.file_name, resumes.profile_json, resumes.created_at
+              resumes.file_name, resumes.raw_text, resumes.profile_json, resumes.created_at
        FROM users
-       LEFT JOIN resumes ON resumes.user_id = users.id
+       LEFT JOIN resumes ON resumes.user_id = users.id AND resumes.id != 'resume-seed-davide'
        WHERE users.role = 'student'
        ORDER BY resumes.created_at DESC`,
     )
@@ -375,6 +394,7 @@ export async function listHrCandidates(env) {
       email: row.email,
       resumeId: row.resume_id,
       fileName: row.file_name,
+      rawText: row.raw_text,
       profile: parseJson(row.profile_json, {}),
       createdAt: row.created_at,
       scores: latestRun ? await listScoresForRun(db, latestRun.id) : [],
@@ -385,4 +405,58 @@ export async function listHrCandidates(env) {
     seededCandidates: CANDIDATES,
     uploadedCandidates,
   };
+}
+
+export async function listAccountUsers(env) {
+  const db = await ensureAppData(env);
+  const rows = await db.prepare('SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC').all();
+  return {
+    users: (rows.results ?? []).map((row) => ({
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      createdAt: row.created_at,
+    })),
+  };
+}
+
+export async function createAccountUser(env, input) {
+  const db = await ensureAppData(env);
+  const name = String(input.name ?? '').trim();
+  const email = String(input.email ?? '').trim().toLowerCase();
+  const role = String(input.role ?? '').trim();
+  const password = String(input.password ?? '');
+  const allowedRoles = new Set(['student', 'hr', 'admin']);
+
+  if (!name || !email || !allowedRoles.has(role) || password.length < 6) {
+    throw new Error('请填写姓名、邮箱、角色，并设置至少 6 位密码。');
+  }
+
+  const salt = createId('salt');
+  const user = {
+    id: createId('user'),
+    email,
+    name,
+    role,
+    createdAt: nowIso(),
+  };
+
+  await db
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(user.id, user.email, user.name, user.role, salt, await hashPassword(password, salt), user.createdAt)
+    .run();
+
+  return user;
+}
+
+export async function deleteAccountUser(env, currentUser, userId) {
+  const db = await ensureAppData(env);
+  if (!userId) throw new Error('缺少要删除的账号。');
+  if (userId === currentUser.id) throw new Error('不能删除当前登录账号。');
+  await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+  return { deletedId: userId };
 }

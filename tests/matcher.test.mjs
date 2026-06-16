@@ -141,6 +141,40 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(resumeIndex > submittedJobsIndex);
 });
 
+test('starts resume parsing from an upload-first empty state', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('id="resume-picker-button"'));
+  assert.ok(indexHtml.includes('id="sample-resume-button"'));
+  assert.ok(indexHtml.includes('id="selected-file-name"'));
+  assert.ok(indexHtml.includes('class="resume-empty-state"'));
+  assert.ok(indexHtml.includes('上传 PDF 简历'));
+  assert.ok(!indexHtml.includes('<p class="eyebrow">示例简历</p>'));
+  assert.ok(!appJs.includes('renderResumeDocument();\nbootstrapSession();'));
+  assert.ok(appJs.includes('renderResumePlaceholder'));
+  assert.ok(appJs.includes('submitResumeText'));
+  assert.ok(appJs.includes('state.resumeText = payload.resume.rawText'));
+  assert.match(css, /\.resume-upload-card\s*\{/);
+  assert.match(css, /\.native-file-input\s*\{/);
+  assert.match(css, /\.resume-empty-state\s*\{/);
+});
+
+test('renders HR candidate raw resume text and account admin workspace', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('id="account-admin-workspace"'));
+  assert.ok(indexHtml.includes('id="account-user-list"'));
+  assert.ok(indexHtml.includes('data-demo-email="admin@davide.tech"'));
+  assert.ok(appJs.includes("state.mode = user.role === 'admin' ? 'account-admin'"));
+  assert.ok(appJs.includes('candidate.rawText'));
+  assert.ok(appJs.includes('renderAdminResume(candidate)'));
+  assert.ok(appJs.includes('renderResumeDocumentFromText(candidate.rawText'));
+  assert.ok(appJs.includes('refreshAccountUsers'));
+});
+
 test('removes duplicate workflow and low-value advice cards from student view', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 

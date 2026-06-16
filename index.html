@@ -33,6 +33,10 @@
             HR 账号
             <span>hr@davide.tech / hr123</span>
           </button>
+          <button class="demo-account-button" type="button" data-demo-email="admin@davide.tech" data-demo-password="admin123">
+            管理员账号
+            <span>admin@davide.tech / admin123</span>
+          </button>
         </div>
       </form>
     </section>
@@ -85,19 +89,32 @@
 
           <div class="resume-toolbar">
             <div>
-              <p class="eyebrow">示例简历</p>
-              <h3>求职者原始简历</h3>
+              <p class="eyebrow">简历解析</p>
+              <h3>上传 PDF 简历</h3>
+              <p class="resume-toolbar-copy">解析后会展示简历原文，并刷新岗位匹配结果。</p>
             </div>
             <form id="resume-upload-form" class="resume-upload-form">
-              <input id="resume-file" type="file" accept="application/pdf">
-              <button class="primary-button compact-button" type="submit">上传并解析 PDF</button>
+              <div class="resume-upload-card">
+                <input id="resume-file" class="native-file-input" type="file" accept="application/pdf">
+                <button id="resume-picker-button" class="secondary-button compact-button" type="button">选择 PDF</button>
+                <span id="selected-file-name">未选择文件</span>
+              </div>
+              <div class="resume-upload-actions">
+                <button class="primary-button compact-button" type="submit">上传并解析</button>
+                <button id="sample-resume-button" class="secondary-button compact-button" type="button">使用示例简历</button>
+              </div>
             </form>
           </div>
-          <div id="resume-document" class="resume-document" aria-label="示例简历"></div>
+          <div id="resume-document" class="resume-document" aria-label="解析后的简历文本">
+            <div class="resume-empty-state">
+              <strong>上传 PDF 后展示简历原文</strong>
+              <p>旁边的示例按钮只用于演示流程，默认不会预加载示例简历。</p>
+            </div>
+          </div>
 
           <div class="profile-block parse-card">
             <h3>已提取画像</h3>
-            <p id="parse-status">从示例简历中提取候选人能力、经历证据和求职偏好。</p>
+            <p id="parse-status">等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。</p>
           </div>
 
           <div class="profile-block history-card">
@@ -139,7 +156,10 @@
               <p class="eyebrow" id="company-name"></p>
               <h2>同公司岗位池</h2>
             </div>
-            <span id="job-count"></span>
+            <div class="job-heading-actions">
+              <span id="job-count"></span>
+              <button id="refresh-jobs-button" class="secondary-button compact-button" type="button">刷新岗位</button>
+            </div>
           </div>
           <div id="job-list" class="job-list"></div>
         </section>
@@ -301,6 +321,60 @@
             <h3>面试提问建议</h3>
             <div id="interview-question-list" class="interview-question-list"></div>
           </div>
+        </section>
+      </section>
+
+      <section id="account-admin-workspace" class="workspace account-admin-workspace" hidden>
+        <section class="job-panel account-user-panel" aria-label="账号列表">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">账号管理</p>
+              <h2>成员账号</h2>
+            </div>
+            <span id="account-user-count"></span>
+          </div>
+          <div id="account-user-list" class="account-user-list"></div>
+        </section>
+
+        <section class="insight-panel account-admin-panel" aria-label="新增账号">
+          <div class="score-card account-admin-summary">
+            <div>
+              <p class="eyebrow">权限说明</p>
+              <h2>按角色进入不同页面</h2>
+              <p>求职者进入简历解析与岗位匹配页面；HR 进入岗位与候选人评估页面；管理员负责账号新增与删除。</p>
+            </div>
+          </div>
+
+          <form id="account-user-form" class="advice-card account-user-form">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">新增账号</p>
+                <h3>创建登录权限</h3>
+              </div>
+            </div>
+            <label>
+              姓名
+              <input id="account-name" type="text" value="新同学">
+            </label>
+            <label>
+              邮箱
+              <input id="account-email" type="email" value="student@example.com">
+            </label>
+            <label>
+              角色
+              <select id="account-role">
+                <option value="student">求职者</option>
+                <option value="hr">HR</option>
+                <option value="admin">管理员</option>
+              </select>
+            </label>
+            <label>
+              初始密码
+              <input id="account-password" type="text" value="student123">
+            </label>
+            <p id="account-result" class="admin-result">新增后即可用该邮箱和密码登录。</p>
+            <button class="primary-button" type="submit">创建账号</button>
+          </form>
         </section>
       </section>
     </main>
