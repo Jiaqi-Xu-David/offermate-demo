@@ -279,11 +279,17 @@ test('starts resume parsing from an upload-first empty state', async () => {
   assert.ok(indexHtml.includes('id="selected-file-name"'));
   assert.ok(indexHtml.includes('class="resume-empty-state"'));
   assert.ok(indexHtml.includes('上传 PDF 简历'));
+  assert.ok(indexHtml.includes('简历摘要'));
+  assert.ok(!indexHtml.includes('简历原文'));
   assert.ok(!indexHtml.includes('<p class="eyebrow">示例简历</p>'));
   assert.ok(!appJs.includes('renderResumeDocument();\nbootstrapSession();'));
   assert.ok(appJs.includes('renderResumePlaceholder'));
+  assert.ok(appJs.includes('renderResumeExtractionFallback'));
   assert.ok(appJs.includes('submitResumeText'));
-  assert.ok(appJs.includes('state.resumeText = payload.resume.rawText'));
+  assert.ok(appJs.includes('repairProfileFromRawText(latestProfile, rawText)'));
+  assert.ok(appJs.includes('repairProfileFromRawText(payload.resume.profile, rawText)'));
+  assert.ok(appJs.includes('{ showExperiences: false }'));
+  assert.ok(!appJs.includes("heading.textContent = '解析文本';"));
   assert.match(css, /\.resume-upload-card\s*\{/);
   assert.match(css, /\.native-file-input\s*\{/);
   assert.match(css, /\.resume-empty-state\s*\{/);

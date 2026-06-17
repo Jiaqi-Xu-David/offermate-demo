@@ -495,15 +495,30 @@ function renderResumePlaceholder(container = elements.resumeDocument) {
   const empty = document.createElement('div');
   empty.className = 'resume-empty-state';
   const title = document.createElement('strong');
-  title.textContent = '上传 PDF 后展示简历原文';
+  title.textContent = '上传 PDF 后展示简历摘要';
   const copy = document.createElement('p');
-  copy.textContent = '旁边的示例按钮只用于演示流程，默认不会预加载示例简历。';
+  copy.textContent = '页面只展示姓名、学校、求职意向和能力标签，不再直接铺开完整原文。';
   empty.append(title, copy);
   container.replaceChildren(empty);
 }
 
-function renderResumeSummaryCard(profile, container, submittedJobTitles = []) {
+function renderResumeExtractionFallback(rawText, container = elements.resumeDocument) {
+  const empty = document.createElement('div');
+  empty.className = 'resume-empty-state';
+  const title = document.createElement('strong');
+  title.textContent = '暂未识别到稳定简历关键词';
+  const copy = document.createElement('p');
+  const length = String(rawText ?? '').trim().length;
+  copy.textContent = length
+    ? `已读取约 ${length} 个字符，但姓名、学校、技能或经历字段不足。建议上传文字型 PDF，或先对扫描件进行 OCR。`
+    : '请上传文字型 PDF，解析成功后会自动生成摘要和标签。';
+  empty.append(title, copy);
+  container.replaceChildren(empty);
+}
+
+function renderResumeSummaryCard(profile, container, submittedJobTitles = [], options = {}) {
   const summary = buildResumeSummary(profile, submittedJobTitles);
+  const showExperiences = options.showExperiences ?? true;
   const header = document.createElement('div');
   header.className = 'resume-header resume-summary-header';
 
@@ -533,7 +548,7 @@ function renderResumeSummaryCard(profile, container, submittedJobTitles = []) {
 
   const body = document.createElement('div');
   body.className = 'resume-body';
-  if (summary.experiences.length) {
+  if (showExperiences && summary.experiences.length) {
     const experienceSection = document.createElement('section');
     experienceSection.className = 'resume-section resume-compact-experience';
     const heading = document.createElement('h4');
@@ -552,8 +567,9 @@ function renderResumeSummaryCard(profile, container, submittedJobTitles = []) {
 }
 
 function renderResumeDocumentFromText(rawText, container = elements.resumeDocument, options = {}) {
-  if (options.profile?.name && hasResumeEvidence(options.profile)) {
-    renderResumeSummaryCard(options.profile, container, options.submittedJobTitles ?? []);
+  const profile = options.profile ? repairProfileFromRawText(options.profile, rawText) : null;
+  if (profile?.name && hasResumeEvidence(profile)) {
+    renderResumeSummaryCard(profile, container, options.submittedJobTitles ?? [], options.summaryOptions ?? {});
     return;
   }
 
@@ -562,71 +578,7 @@ function renderResumeDocumentFromText(rawText, container = elements.resumeDocume
     renderResumePlaceholder(container);
     return;
   }
-
-  const sectionNames = new Set([
-    '个人信息',
-    '联系方式',
-    '教育背景',
-    '教育经历',
-    '核心技能',
-    '专业技能',
-    '技能',
-    '语言与软技能',
-    '实习经历',
-    '工作经历',
-    '项目经历',
-    '校园经历',
-    '获奖经历',
-    '证书',
-  ]);
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-  const header = document.createElement('div');
-  header.className = 'resume-header';
-  const firstSectionIndex = lines.findIndex((line) => sectionNames.has(line));
-  const headerLines = firstSectionIndex > -1 ? lines.slice(0, firstSectionIndex) : lines.slice(0, Math.min(4, lines.length));
-  const displayName = getDisplayResumeName(headerLines.length ? headerLines : lines);
-
-  const name = document.createElement('h2');
-  name.textContent = displayName.name;
-  header.append(name);
-  headerLines
-    .filter((line) => line !== displayName.sourceLine && !isGenericResumeTitle(line))
-    .forEach((line) => {
-    const paragraph = document.createElement('p');
-    paragraph.textContent = line;
-    header.append(paragraph);
-  });
-
-  const body = document.createElement('div');
-  body.className = 'resume-body';
-  let currentSection;
-
-  const bodyLines = lines.slice(firstSectionIndex > -1 ? firstSectionIndex : headerLines.length);
-  if (firstSectionIndex === -1 && bodyLines.length) {
-    currentSection = document.createElement('section');
-    currentSection.className = 'resume-section';
-    const heading = document.createElement('h4');
-    heading.textContent = '解析文本';
-    currentSection.append(heading);
-    body.append(currentSection);
-  }
-
-  bodyLines.forEach((line) => {
-    if (sectionNames.has(line)) {
-      currentSection = document.createElement('section');
-      currentSection.className = 'resume-section';
-      const heading = document.createElement('h4');
-      heading.textContent = line;
-      currentSection.append(heading);
-      body.append(currentSection);
-      return;
-    }
-
-    if (!currentSection) return;
-    appendResumeLine(currentSection, line);
-  });
-
-  container.replaceChildren(header, body);
+  renderResumeExtractionFallback(text, container);
 }
 
 function renderProfile() {
@@ -644,14 +596,18 @@ function renderProfile() {
   window.requestAnimationFrame(() => activeWorkspace?.classList.add('workspace-fade-in'));
   elements.companySubtitle.textContent = `${COMPANY.name} · ${COMPANY.subtitle}`;
   elements.companyName.textContent = COMPANY.name;
-  elements.studentName.textContent = state.profile.name;
-  elements.studentHeadline.textContent = state.profile.headline;
+  const resumeSummary = buildResumeSummary(state.profile, []);
+  elements.studentName.textContent = resumeSummary.name;
+  elements.studentHeadline.textContent = formatSafeResumeMeta(resumeSummary.metaText, '简历摘要待生成');
   const cityText = state.profile.cityPreferences?.length ? state.profile.cityPreferences.join(' / ') : '城市偏好待解析';
   elements.studentMeta.textContent = `${state.profile.gender ?? '未填写'} · ${cityText}`;
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
   if (state.resumeText.trim()) {
-    renderResumeDocumentFromText(state.resumeText, elements.resumeDocument, { profile: state.profile });
+    renderResumeDocumentFromText(state.resumeText, elements.resumeDocument, {
+      profile: state.profile,
+      summaryOptions: { showExperiences: false },
+    });
   } else {
     renderResumePlaceholder();
   }
@@ -930,7 +886,7 @@ function renderAdminResume(candidate) {
     const title = document.createElement('strong');
     title.textContent = '候选人尚未上传简历';
     const copy = document.createElement('p');
-    copy.textContent = '上传后 HR 可在这里查看解析文本，并下载原始文件。';
+    copy.textContent = '上传后 HR 可在这里查看简历摘要与关键词，并下载原始文件。';
     empty.append(title, copy);
     elements.adminResumeDocument.replaceChildren(empty);
     return;
@@ -1414,11 +1370,12 @@ async function refreshStudentHistory() {
   const latestResume = state.history.resumes?.[0];
   const latestProfile = latestResume?.profile;
   if (latestProfile?.name) {
-    state.profile = latestProfile;
-    state.resumeText = latestResume.rawText ?? latestProfile.rawResume ?? '';
+    const rawText = latestResume.rawText ?? latestProfile.rawResume ?? '';
+    state.profile = repairProfileFromRawText(latestProfile, rawText);
+    state.resumeText = rawText;
     state.resumeFileName = latestResume.fileName ?? '';
     state.hasParsedResume = Boolean(state.resumeText.trim());
-    state.parseStatus = hasResumeEvidence(latestProfile)
+    state.parseStatus = hasResumeEvidence(state.profile)
       ? `已加载最近一次解析：${latestResume.fileName}`
       : '最近一次解析质量不足，建议重新上传文字型 PDF 或先进行 OCR。';
   } else if (!state.hasParsedResume) {
@@ -1577,8 +1534,9 @@ elements.adminDialog.addEventListener('click', (event) => {
 });
 
 async function applyParsedResume(payload) {
-  state.profile = payload.resume.profile;
-  state.resumeText = payload.resume.rawText ?? payload.resume.profile?.rawResume ?? '';
+  const rawText = payload.resume.rawText ?? payload.resume.profile?.rawResume ?? '';
+  state.profile = repairProfileFromRawText(payload.resume.profile, rawText);
+  state.resumeText = rawText;
   state.resumeFileName = payload.resume.fileName ?? '';
   state.hasParsedResume = Boolean(state.resumeText.trim());
   const parserLabel = state.profile.parser === 'deepseek-v4-pro' ? 'DeepSeek 结构化解析' : '本地规则解析';
@@ -1588,7 +1546,7 @@ async function applyParsedResume(payload) {
 }
 
 async function submitResumeText(body) {
-  state.parseStatus = '正在解析简历文本...';
+  state.parseStatus = '正在解析简历...';
   renderProfile();
   const payload = await apiRequest('/api/resumes', {
     method: 'POST',
