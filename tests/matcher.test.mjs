@@ -19,6 +19,7 @@ import {
   buildPotentialAnalysis,
   buildScoreExplanation,
   buildResumeAdvice,
+  buildResumeSummary,
   buildSoftSkillMatchDetails,
   buildStudentWorkflowSummary,
   buildTeamComplement,
@@ -72,6 +73,133 @@ test('parses the realistic sample resume into a student profile', () => {
   assert.ok(profile.cityPreferences.includes('上海'));
   assert.ok(profile.experiences.some((item) => item.includes('10万+ 用户行为数据')));
   assert.ok(profile.skillEvidence.SQL.count >= 2);
+});
+
+test('parses media resume text into compact profile tags instead of one long paragraph', () => {
+  const profile = parseResumeText(`Werf基本资料实习经历电话：15779859005邮箱：2411049771@qq.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江出生年月：2005-12-21学历：专科性别：男政治面貌：群众院校：江西生物科技职业学院专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。掌握技能影视制作：具备从策划、脚本、拍摄到剪辑调色的全流程能力和经验。摄影与后期：可独立完成人像，产品、纪实类拍摄及修图。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
+
+  assert.equal(profile.name, '邓聖喆');
+  assert.equal(profile.gender, '男');
+  assert.equal(profile.target, '影视媒体类方向');
+  assert.ok(profile.headline.includes('江西生物科技职业学院'));
+  assert.ok(profile.headline.includes('动漫媒体制作技术'));
+  assert.ok(profile.skills.includes('PR'));
+  assert.ok(profile.skills.includes('剪映'));
+  assert.ok(profile.skills.includes('影视制作'));
+  assert.ok(profile.softSkills.includes('项目推进'));
+  assert.ok(profile.experiences.some((item) => item.includes('短视频内容编导助理')));
+});
+
+test('parses administration resume text into education, target, and office tags', () => {
+  const profile = parseResumeText(`个人简历
+姓 名: 景萍
+毕业院校: 西华大学
+专 业: 学前教育
+景萍 求职意向：行政（综合管理）
+性别：女
+2022.09-2025.06 西华大学 学前教育（本科）
+2023.10-至今 航空工业成都飞机工业（集团）有限责任公司 行政人员
+协助公司管理制度的编写修订及执行落实；分厂人员工资日常考勤整理上报。人事工作的监督及主导人员招聘配置、培训、及薪资、福利管理；办公室日常管理。
+技能证书｜Skills
+计算机二级，文档写作能力，熟练掌握 OFFICE 办公软件。
+自我评价｜About me
+性格开朗，具有良好的服务意识和组织、沟通协调能力。`);
+
+  assert.equal(profile.name, '景萍');
+  assert.equal(profile.gender, '女');
+  assert.equal(profile.target, '行政（综合管理）');
+  assert.ok(profile.headline.includes('西华大学'));
+  assert.ok(profile.headline.includes('学前教育'));
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(profile.skills.includes('文档写作'));
+  assert.ok(profile.softSkills.includes('沟通协调'));
+  assert.ok(profile.experiences.some((item) => item.includes('行政人员')));
+});
+
+test('prefers the highest recent education when PDF text contains several schools', () => {
+  const profile = parseResumeText(`个人简历
+姓名:景萍
+毕业院校:四川文轩职业学院
+专业:学前教育联系方式:18398206696
+求职意向：行政
+学校：四川文轩职业学院微信：2185009187生日：2000年11月
+2020.09-2023.06四川文轩职业学院学前教育（专科）2021.09-2024.06西华大学学前教育（本科）
+2023.10-至今航空工业成都飞机工业（集团）有限责任公司行政人员协助公司管理制度的编写修订及执行落实；分厂人员工资日常考勤整理上报。`);
+
+  assert.ok(profile.headline.includes('西华大学'));
+  assert.ok(profile.headline.includes('学前教育'));
+  assert.ok(profile.headline.includes('本科'));
+  assert.ok(!profile.headline.includes('联系方式'));
+});
+
+test('keeps parsed experience evidence concise for compact resume cards', () => {
+  const profile = parseResumeText(`个人简历
+姓名:邓聖喆
+求职意向：影视媒体类方向
+性别：男
+院校：江西生物科技职业学院
+专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程，成功与数名同学协作，按时交付成片。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。
+掌握技能 设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
+
+  assert.ok(profile.experiences.length >= 2);
+  assert.ok(profile.experiences.every((item) => item.length <= 120));
+  assert.ok(profile.experiences.every((item) => !item.includes('联系方式')));
+  assert.ok(profile.experiences.every((item) => !item.includes('动漫媒体制作技术湖口县')));
+  assert.ok(profile.experiences.some((item) => item.includes('短视频内容编导助理')));
+});
+
+test('filters self-introduction boilerplate out of parsed experience evidence', () => {
+  const profile = parseResumeText(`个人简历
+姓名:景萍
+求职意向：行政
+2023.10-至今航空工业成都飞机工业（集团）有限责任公司行政人员协助公司管理制度的编写修订及执行落实；分厂人员工资日常考勤整理上报。人事工作的监督及主导人员招聘配置、培训、及薪资、福利管理；办公室日常管理。
+自荐信尊敬的领导：您好!根据自我的学习和实习经历，我有信心有本事做好这份工作，同时我也相信自我在以后的工作生活中能够切实的发扬团队精神。`);
+
+  assert.ok(profile.experiences.some((item) => item.includes('行政人员')));
+  assert.ok(profile.experiences.every((item) => !item.startsWith('至今')));
+  assert.ok(profile.experiences.every((item) => !item.includes('我有信心')));
+  assert.ok(profile.experiences.every((item) => !item.includes('自荐信')));
+});
+
+test('resume summary shows experience-like evidence instead of certificate fragments', () => {
+  const summary = buildResumeSummary({
+    name: '景萍',
+    headline: '西华大学 学前教育 本科',
+    target: '行政',
+    skills: ['Office', '文档写作'],
+    languages: [],
+    softSkills: ['沟通协调'],
+    experiences: [
+      '航空工业成都飞机工业（集团）有限责任公司行政人员协助公司管理制度的编写修订及执行落实',
+      '协助公司管理制度的编写修订及执行落实；分厂人员工资日常考勤整理上报',
+      '培训 SYB 全国计算机等级证书，极具创意的广告策划',
+    ],
+  });
+
+  assert.equal(summary.experiences.length, 1);
+  assert.ok(summary.experiences[0].includes('行政人员'));
+  assert.ok(summary.experiences.every((item) => item.length <= 96));
+  assert.ok(!summary.experiences.some((item) => item.includes('SYB')));
+});
+
+test('builds a resume summary with short meta, submitted jobs, and tag groups', () => {
+  const profile = parseResumeText(`个人简历
+姓名：大卫德
+个人信息：男
+学校：慕尼黑工业大学 统计学 本科 2026届
+求职意向：数据分析 / 产品运营
+技能：SQL、Python、Tableau
+语言与软技能
+英语 CET-6，跨部门沟通、结构化表达`);
+  const summary = buildResumeSummary(profile, ['数据分析实习生', '产品运营实习生']);
+
+  assert.equal(summary.name, '大卫德');
+  assert.equal(summary.metaText, '男 · 慕尼黑工业大学 · 统计学');
+  assert.equal(summary.submittedText, '已提交：数据分析实习生、产品运营实习生');
+  assert.deepEqual(summary.tagGroups[0], { label: '求职意向', tags: ['数据分析', '产品运营'] });
+  assert.ok(summary.tagGroups.some((group) => group.label === '核心技能' && group.tags.includes('SQL')));
+  assert.ok(!summary.metaText.includes('电话'));
+  assert.ok(!summary.metaText.includes('邮箱'));
 });
 
 test('keeps all seeded jobs inside the same company', () => {
@@ -181,6 +309,9 @@ test('keeps empty HR candidates empty and exposes resume download action', async
 
   assert.ok(appJs.includes("submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';"));
   assert.ok(appJs.includes("elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ?"));
+  assert.ok(appJs.includes('parseResumeText(rawText)'));
+  assert.ok(appJs.includes('formatSafeResumeMeta'));
+  assert.ok(!appJs.includes("meta.textContent = `${candidate.profile.gender ?? '未填写'} · ${candidate.school} · ${candidate.major}`;"));
   assert.ok(!appJs.includes("submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern']"));
   assert.ok(appJs.includes('candidate.resumeDownloadUrl'));
   assert.ok(appJs.includes('下载原简历'));

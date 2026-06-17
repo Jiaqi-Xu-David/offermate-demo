@@ -355,7 +355,12 @@ async function extractStreams(pdfSource) {
     const rawStream = match[2];
     let streamBytes = binaryToBytes(rawStream);
     if (/\/Filter\s*\/FlateDecode/.test(dictionary)) {
-      streamBytes = await inflateBytes(streamBytes);
+      try {
+        streamBytes = await inflateBytes(streamBytes);
+      } catch {
+        match = streamPattern.exec(pdfSource);
+        continue;
+      }
     }
 
     streams.push({ dictionary, content: bytesToBinary(streamBytes) });

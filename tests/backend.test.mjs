@@ -125,6 +125,38 @@ test('normalizes glyph-by-glyph resume text into readable lines', async () => {
   assert.match(text, /SQL/);
 });
 
+test('keeps usable PDF text when a later compressed stream is damaged', async () => {
+  const pdf = new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 24 >>
+stream
+BT (景萍 行政简历) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Length 6 /Filter /FlateDecode >>
+stream
+broken
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /景萍 行政简历/);
+});
+
 test('infers the candidate name from labeled resume text instead of generic title', () => {
   const profile = parseResumeText(`个人简历
 姓名：大卫德

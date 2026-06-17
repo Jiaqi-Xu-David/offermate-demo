@@ -56,6 +56,25 @@ const SKILL_DICTIONARY = [
   'PyTorch',
   '推荐算法',
   '数学建模',
+  'PR',
+  'PS',
+  'AE',
+  '达芬奇',
+  '剪映',
+  'Office',
+  '文档写作',
+  '影视制作',
+  '短视频',
+  '摄影',
+  '后期',
+  '脚本撰写',
+  '平面设计',
+  '行政管理',
+  '人事',
+  '招聘',
+  '培训',
+  '考勤',
+  '教案撰写',
 ];
 
 const SOFT_SKILL_DICTIONARY = [
@@ -69,6 +88,11 @@ const SOFT_SKILL_DICTIONARY = [
   '结果导向',
   '汇报表达',
   '自驱力',
+  '沟通协调',
+  '组织协调',
+  '服务意识',
+  '抗压能力',
+  '团队协作',
 ];
 
 const SOFT_SKILL_EVIDENCE_RULES = {
@@ -82,6 +106,11 @@ const SOFT_SKILL_EVIDENCE_RULES = {
   结果导向: ['结果导向', '提升转化率', '优化建议'],
   汇报表达: ['汇报表达', '汇报材料', '报告'],
   自驱力: ['自驱力', '负责人', '主动学习'],
+  沟通协调: ['沟通协调', '沟通', '协调', '交流沟通'],
+  组织协调: ['组织协调', '组织半日活动', '活动组织', '组织策划'],
+  服务意识: ['服务意识', '行政后勤', '办公室日常管理'],
+  抗压能力: ['抗压能力', '承受较大的工作压力', '抗压'],
+  团队协作: ['团队协作', '同学协作', '团队精神', '合作策划'],
 };
 
 const LANGUAGE_RULES = [
@@ -150,6 +179,23 @@ const KEYWORD_ALIASES = {
   用户分层: ['用户分群', '人群分层'],
   转化漏斗: ['注册-激活-留存转化漏斗', '漏斗分析', '转化链路'],
   'A/B测试': ['AB测试', 'A/B test', '实验分析'],
+  PR: ['PR', 'Premiere', 'premiere', 'pr'],
+  PS: ['PS', 'Photoshop', 'photoshop'],
+  AE: ['AE', 'After Effects'],
+  Office: ['Office', 'OFFICE', '办公软件'],
+  文档写作: ['文档写作', '文件编写', '稿件编写'],
+  影视制作: ['影视制作', '视频制作', '短片', '微电影'],
+  短视频: ['短视频', '抖音账号', '视频内容'],
+  摄影: ['摄影', '拍摄', '跟拍'],
+  后期: ['后期', '剪辑', '调色', '修图'],
+  脚本撰写: ['脚本撰写', '脚本'],
+  平面设计: ['平面设计', '海报', 'logo'],
+  行政管理: ['行政管理', '行政人员', '行政后勤', '综合管理'],
+  人事: ['人事', '人力资源', '薪资', '福利管理'],
+  招聘: ['招聘', '招聘配置'],
+  培训: ['培训'],
+  考勤: ['考勤'],
+  教案撰写: ['教案', '撰写教案'],
 };
 
 function unique(items) {
@@ -277,8 +323,70 @@ function extractGender(text) {
 
 const GENERIC_RESUME_TITLES = new Set(['个人简历', '求职简历', '简历', '我的简历', 'Resume', 'CV']);
 
-function normalizeResumeSourceText(text) {
+const RESUME_FIELD_BOUNDARIES = [
+  '个人简历',
+  '基本资料',
+  '教育背景',
+  '教育经历',
+  '毕业院校｜Education',
+  '毕业院校',
+  '实习经历',
+  '工作经历',
+  '校园经历',
+  '项目经历',
+  '掌握技能',
+  '技能证书｜Skills',
+  '技能证书',
+  '自我评价｜About me',
+  '自我评价',
+  '求职意向',
+  '姓名',
+  '姓 名',
+  '姓后',
+  '性别',
+  '院校',
+  '院 校',
+  '学校',
+  '专业',
+  '专 业',
+  '学历',
+  '学 历',
+  '电话',
+  '邮箱',
+  '工作职责',
+  '实习成果',
+  '影视制作',
+  '摄影与后期',
+  '设计软件',
+  '团队与执行',
+];
+
+function normalizeResumeLabels(text) {
   return String(text ?? '')
+    .replace(/姓\s*后/g, '姓名')
+    .replace(/姓\s*名/g, '姓名')
+    .replace(/院\s*校/g, '院校')
+    .replace(/专\s*业/g, '专业')
+    .replace(/学\s*历/g, '学历')
+    .replace(/特话/g, '电话')
+    .replace(/迎箱/g, '邮箱')
+    .replace(/籍设/g, '籍贯')
+    .replace(/与业/g, '专业')
+    .replace(/助漫媒体/g, '动漫媒体')
+    .replace(/秀图/g, '修图')
+    .replace(/搞笑落实/g, '高效落实');
+}
+
+function addResumeBoundaries(text) {
+  const boundaryPattern = new RegExp(`(?<!^)(?<!\\n)(${RESUME_FIELD_BOUNDARIES.map(escapeRegExp).join('|')})\\s*([：:])?`, 'g');
+  return text.replace(boundaryPattern, (match, label, punctuation = '') => {
+    if (match.startsWith('\n')) return match;
+    return `\n${label}${punctuation}`;
+  });
+}
+
+function normalizeResumeSourceText(text) {
+  return addResumeBoundaries(normalizeResumeLabels(text))
     .replace(/\u0000/g, '')
     .split(/\r?\n/)
     .map((line) => line.replace(/[ \t]+/g, ' ').trim())
@@ -305,16 +413,129 @@ function isPlausibleCandidateName(value) {
   return /^[\u4e00-\u9fa5A-Za-z·]{2,24}$/.test(clean);
 }
 
+function stripAfterResumeLabels(value) {
+  const stopPattern = /(籍贯|出生年月|学历|性别|政治面貌|院校|学校|专业|电话|联系方式|邮箱|求职意向|现居|微信|生日)[：:]|[\u4e00-\u9fa5]{2,}(?:有限公司|融媒体|幼儿园)\s*[|｜]/;
+  return String(value ?? '').split(stopPattern)[0].trim();
+}
+
+function extractFieldValue(text, labels) {
+  return stripAfterResumeLabels(extractRawFieldValue(text, labels));
+}
+
+function extractRawFieldValue(text, labels) {
+  const labelPattern = labels.map(escapeRegExp).join('|');
+  const match = text.match(new RegExp(`(?:^|\\n)\\s*(?:${labelPattern})\\s*[：:]\\s*([^\\n]+)`, 'i'));
+  return match?.[1]?.trim() ?? '';
+}
+
+function cleanMajorValue(value) {
+  const clean = String(value ?? '').trim();
+  const knownMajor = clean.match(/^[\u4e00-\u9fa5A-Za-z0-9（）()]{2,32}?(?:制作技术|媒体制作技术|学前教育|统计学|汉语言文学|计算机科学|工商管理|技术|教育|管理|文学|科学)/);
+  if (knownMajor) return knownMajor[0];
+  return stripAfterResumeLabels(clean).slice(0, 24);
+}
+
+const DEGREE_RANK = {
+  博士: 4,
+  硕士: 3,
+  研究生: 3,
+  本科: 2,
+  学士: 2,
+  专科: 1,
+  大专: 1,
+};
+
+function normalizeDegreeValue(value) {
+  const degree = String(value ?? '').match(/博士|硕士|研究生|本科|学士|专科|大专/)?.[0] ?? '';
+  return degree === '大专' ? '专科' : degree;
+}
+
+function cleanSchoolValue(value) {
+  const clean = stripAfterResumeLabels(value);
+  const school = clean.match(/^[\u4e00-\u9fa5A-Za-z（）()·]{2,40}?(?:大学|学院|学校)/);
+  return school?.[0] ?? clean.slice(0, 24);
+}
+
+function pushEducationRecord(records, { school = '', major = '', degree = '', year = 0 }) {
+  const cleanSchool = cleanSchoolValue(school);
+  const cleanMajor = cleanMajorValue(major);
+  const cleanDegree = normalizeDegreeValue(degree);
+  if (!cleanSchool && !cleanMajor && !cleanDegree) return;
+  records.push({
+    school: cleanSchool,
+    major: cleanMajor,
+    degree: cleanDegree,
+    year: Number(year) || 0,
+    rank: DEGREE_RANK[cleanDegree] ?? 0,
+  });
+}
+
+function extractEducationRecords(text) {
+  const records = [];
+  pushEducationRecord(records, {
+    school: extractRawFieldValue(text, ['学校', '院校', '毕业院校']),
+    major: extractRawFieldValue(text, ['专业']),
+    degree: extractRawFieldValue(text, ['学历']),
+  });
+
+  const datedPattern =
+    /(20\d{2})[.\/]\d{2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{2}|至今)\s*([^\d\n]{2,45}?(?:大学|学院|学校))\s*([\u4e00-\u9fa5A-Za-z0-9（）()]{2,28}?)?（?\s*(博士|硕士|研究生|本科|学士|专科|大专)\s*）?/g;
+  for (const match of text.matchAll(datedPattern)) {
+    pushEducationRecord(records, {
+      year: match[1],
+      school: match[2],
+      major: match[3],
+      degree: match[4],
+    });
+  }
+
+  const directPattern =
+    /([\u4e00-\u9fa5A-Za-z（）()·]{2,40}?(?:大学|学院|学校))\s+([\u4e00-\u9fa5A-Za-z0-9（）()]{2,24})\s+(博士|硕士|研究生|本科|学士|专科|大专)/g;
+  for (const match of text.matchAll(directPattern)) {
+    pushEducationRecord(records, {
+      school: match[1],
+      major: match[2],
+      degree: match[3],
+    });
+  }
+
+  return unique(records.map((record) => JSON.stringify(record))).map((record) => JSON.parse(record));
+}
+
+function selectBestEducationRecord(records) {
+  return [...records].sort((a, b) => {
+    if (b.rank !== a.rank) return b.rank - a.rank;
+    if (b.year !== a.year) return b.year - a.year;
+    return Number(Boolean(b.school)) - Number(Boolean(a.school));
+  })[0];
+}
+
 function extractResumeName(lines, text) {
   const explicit = text.match(/(?:^|\n)\s*(?:姓名|Name)\s*[：:\s]*([^\n，,；;|]+)/i);
-  const explicitName = cleanCandidateName(explicit?.[1] ?? '');
+  const explicitName = cleanCandidateName(stripAfterResumeLabels(explicit?.[1] ?? ''));
   if (isPlausibleCandidateName(explicitName)) return explicitName;
+
+  const beforeTarget = text.match(/([\u4e00-\u9fa5A-Za-z·]{2,12})\s*求职(?:意向|目标|偏好)\s*[：:]/);
+  if (isPlausibleCandidateName(beforeTarget?.[1] ?? '')) return cleanCandidateName(beforeTarget[1]);
 
   const firstNameLine = lines.find((line) => isPlausibleCandidateName(line));
   return firstNameLine ? cleanCandidateName(firstNameLine) : '求职者';
 }
 
-function extractEducationHeadline(lines) {
+function inferDegree(text) {
+  const explicit = extractFieldValue(text, ['学历']);
+  if (explicit) return explicit;
+  if (/本科/.test(text)) return '本科';
+  if (/专科/.test(text)) return '专科';
+  if (/硕士/.test(text)) return '硕士';
+  if (/博士/.test(text)) return '博士';
+  return '';
+}
+
+function extractEducationHeadline(lines, text) {
+  const bestRecord = selectBestEducationRecord(extractEducationRecords(text));
+  if (bestRecord) return unique([bestRecord.school, bestRecord.major, bestRecord.degree]).join(' ');
+
   const direct = lines.find((line) => /(本科|硕士|博士|大学|学院).*(届|专业|本科|硕士|博士)|学校[：:]/.test(line));
   if (!direct) return '学生';
   return direct
@@ -323,25 +544,151 @@ function extractEducationHeadline(lines) {
     .trim();
 }
 
-function extractTarget(lines) {
-  const targetLine = lines.find((line) => /^求职(?:意向|目标|偏好)\s*[：:]/.test(line));
-  if (!targetLine) return '数据分析相关实习';
-  return targetLine.replace(/^求职(?:意向|目标|偏好)\s*[：:\s]*/, '').trim() || '数据分析相关实习';
+function extractTarget(text) {
+  const match = text.match(/(?:^|\n|[^\u4e00-\u9fa5])求职(?:意向|目标|偏好)\s*[：:]\s*([^\n]+)/);
+  const target = stripAfterResumeLabels(match?.[1] ?? '');
+  return target || '数据分析相关实习';
+}
+
+function normalizeExperienceLine(line) {
+  return line
+    .replace(/^(工作职责|实习成果)\s*[：:；;]\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const EXPERIENCE_MARKERS = [
+  '短视频内容编导助理',
+  '数据分析实习生',
+  '产品运营实习生',
+  '商业分析实习生',
+  '算法工程实习生',
+  '行政人员',
+  '幼儿教师',
+  '实习记者',
+  '主导',
+  '独立负责',
+  '负责',
+  '协助',
+  '组织',
+  '撰写',
+  '拍摄',
+  '剪辑',
+  '管理制度',
+  '招聘',
+  '培训',
+  '考勤',
+];
+
+function splitExperienceFragments(line) {
+  return line
+    .replace(/(20\d{2}[.\/]\d{2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{2}|至今))/g, '\n$1')
+    .replace(
+      /([\u4e00-\u9fa5A-Za-z（）()·]{2,45}(?:有限公司|集团|幼儿园|融媒体|传媒)[^\n。；;]{0,28}(?:实习记者|短视频内容编导助理|行政人员|幼儿教师))/g,
+      '\n$1',
+    )
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function findFirstExperienceMarker(text) {
+  return EXPERIENCE_MARKERS.reduce((best, marker) => {
+    const index = text.indexOf(marker);
+    if (index === -1) return best;
+    return best === -1 ? index : Math.min(best, index);
+  }, -1);
+}
+
+function truncateExperienceEvidence(text, maxLength = 112) {
+  const clean = text
+    .replace(/(?:主修课程|技能证书|自我评价|自荐信|尊敬的领导|我有信心|掌握技能|个人简历)[\s\S]*$/, '')
+    .replace(/\s*[|｜]\s*/g, ' · ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (clean.length <= maxLength) return clean;
+
+  const preview = clean.slice(0, maxLength);
+  const boundary = Math.max(
+    preview.lastIndexOf('。'),
+    preview.lastIndexOf('；'),
+    preview.lastIndexOf(';'),
+    preview.lastIndexOf('，'),
+    preview.lastIndexOf(','),
+  );
+  const clipped = boundary > 32 ? preview.slice(0, boundary) : preview;
+  return `${clipped.trim()}...`;
+}
+
+function compactExperienceEvidence(line) {
+  const normalized = normalizeExperienceLine(line)
+    .replace(/^(专业|学校|院校|毕业院校)\s*[：:]\s*/, '')
+    .trim();
+  const markerIndex = findFirstExperienceMarker(normalized);
+  const companyMatch = normalized.match(/[\u4e00-\u9fa5A-Za-z（）()·]{2,50}(?:有限公司|集团|幼儿园|融媒体|传媒)/);
+  const companyIndex = companyMatch?.index ?? -1;
+  let startIndex = markerIndex >= 0 ? markerIndex : 0;
+  if (companyIndex >= 0 && (markerIndex < 0 || markerIndex - companyIndex <= 90)) {
+    startIndex = companyIndex;
+  }
+  let compact = normalized
+    .slice(startIndex)
+    .replace(/^(?:20\d{2}[.\/]\d{2}\s*[-—－~]\s*)?(?:20\d{2}[.\/]\d{2}|至今)?/, '')
+    .trim();
+  const localMediaSuffix = compact.match(/[县市区]融媒体/);
+  if (localMediaSuffix && localMediaSuffix.index > 2) compact = compact.slice(localMediaSuffix.index - 2);
+  return truncateExperienceEvidence(compact);
+}
+
+function removeRedundantExperiences(items) {
+  const rolePattern = /(实习|行政人员|教师|记者|编导|工程师|分析师|运营|项目|主导|负责)/;
+  return items.filter((item, index, list) => {
+    const isContained = list.some((other, otherIndex) =>
+      otherIndex !== index && other.length > item.length && other.includes(item),
+    );
+    if (isContained) return false;
+    if (!rolePattern.test(item)) {
+      return !list.some((other, otherIndex) =>
+        otherIndex !== index && rolePattern.test(other) && other.includes(item.slice(0, 18)),
+      );
+    }
+    return true;
+  });
+}
+
+function extractExperienceEvidence(text) {
+  const bulletExperiences = extractBulletExperiences(text).map(compactExperienceEvidence);
+  const fragments = text
+    .split('\n')
+    .flatMap((line) => splitExperienceFragments(normalizeExperienceLine(line)))
+    .filter(Boolean);
+  const evidenceLines = fragments.filter((line) => {
+    if (line.length < 12) return false;
+    if (/^(电话|邮箱|微信|生日|政治面貌|主修课程|个人简历)/.test(line)) return false;
+    if (/^(组织[、,，]|沟通协调|服务意识|性格|具有|能够|有人事|熟悉|了解各项)/.test(line)) return false;
+    if (/(自荐信|尊敬的领导|我有信心|机会留给|诚挚的谢意|求职请求)/.test(line)) return false;
+    return /(实习|工作职责|行政人员|教师|记者|编导|负责|协助|主导|组织|撰写|拍摄|剪辑|管理制度|招聘|培训|考勤)/.test(line);
+  }).map(compactExperienceEvidence).filter((line) =>
+    line.length >= 8 &&
+    !/(自荐信|我有信心|尊敬的领导)/.test(line) &&
+    !/^(组织[、,，]|沟通协调|服务意识|性格|具有|能够|有人事|熟悉|了解各项)/.test(line),
+  );
+  return removeRedundantExperiences(unique([...bulletExperiences, ...evidenceLines])).slice(0, 8);
 }
 
 export function parseResumeText(text) {
   const normalizedText = normalizeResumeSourceText(text);
   const lines = normalizedText.split('\n').map((line) => line.trim()).filter(Boolean);
   const name = extractResumeName(lines, normalizedText);
-  const educationLine = extractEducationHeadline(lines);
-  const target = extractTarget(lines);
+  const educationLine = extractEducationHeadline(lines, normalizedText);
+  const target = extractTarget(normalizedText);
   const skills = extractKnownTerms(normalizedText, SKILL_DICTIONARY);
   const skillEvidence = buildSkillEvidence(normalizedText, skills);
   const interests = unique([...extractKnownTerms(normalizedText, INTEREST_DICTIONARY), ...target.split(/[ /、]+/).filter(Boolean)]);
   const cityPreferences = extractKnownTerms(normalizedText, CITY_DICTIONARY);
   const languages = extractAliasTerms(normalizedText, LANGUAGE_RULES);
   const softSkills = extractKnownTerms(normalizedText, SOFT_SKILL_DICTIONARY);
-  const experiences = extractBulletExperiences(normalizedText);
+  const experiences = extractExperienceEvidence(normalizedText);
 
   return {
     name,
@@ -360,6 +707,63 @@ export function parseResumeText(text) {
 }
 
 export const STUDENT_PROFILE = parseResumeText(SAMPLE_RESUME_TEXT);
+
+function splitTargetTags(target) {
+  return unique(
+    String(target ?? '')
+      .split(/[、/,，|]+/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+  ).slice(0, 4);
+}
+
+function parseHeadlineParts(headline) {
+  const tokens = String(headline ?? '')
+    .replace(/20\d{2}届/g, '')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const school = tokens.find((item) => /大学|学院|学校/.test(item)) ?? '';
+  const major = tokens.find((item) => item !== school && !/本科|专科|硕士|博士|学生/.test(item)) ?? '';
+  return { school, major };
+}
+
+function selectResumeSummaryExperiences(experiences = []) {
+  const experiencePattern = /(实习|行政人员|教师|记者|编导|工程师|分析师|运营|主导|独立负责|使用|设计并|组织 \d|组织\d)/;
+  const excludedPattern = /(证书|自荐信|我有信心|尊敬的领导|求职请求|SYB)/i;
+  const preferred = experiences.filter((item) => experiencePattern.test(item) && !excludedPattern.test(item));
+  return (preferred.length ? preferred : experiences.filter((item) => !excludedPattern.test(item)))
+    .slice(0, 2)
+    .map((item) => truncateExperienceEvidence(item, 96));
+}
+
+export function buildResumeSummary(profile, submittedJobTitles = []) {
+  const { school, major } = parseHeadlineParts(profile.headline);
+  const metaItems = unique([
+    profile.gender && profile.gender !== '未填写' ? profile.gender : '',
+    school,
+    major,
+  ]);
+  const targetTags = splitTargetTags(profile.target);
+  const tagGroups = [
+    { label: '求职意向', tags: targetTags },
+    { label: '核心技能', tags: (profile.skills ?? []).slice(0, 10) },
+    { label: '语言能力', tags: (profile.languages ?? []).slice(0, 4) },
+    { label: '软技能', tags: (profile.softSkills ?? []).slice(0, 6) },
+  ].filter((group) => group.tags.length > 0);
+
+  return {
+    name: profile.name || '求职者',
+    metaText: metaItems.join(' · ') || profile.headline || '简历信息待完善',
+    submittedText: submittedJobTitles.length
+      ? `已提交：${submittedJobTitles.join('、')}`
+      : targetTags.length
+        ? `求职意向：${targetTags.join('、')}`
+        : '求职意向待补充',
+    tagGroups,
+    experiences: selectResumeSummaryExperiences(profile.experiences ?? []),
+  };
+}
 
 function detectRequirementLevel(text, skill) {
   const windows = findTermWindows(text, skill, 12).join(' ');

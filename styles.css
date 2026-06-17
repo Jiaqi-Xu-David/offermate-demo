@@ -671,6 +671,41 @@ h3 {
   line-height: 1.5;
 }
 
+.resume-summary-header {
+  display: grid;
+  gap: 7px;
+}
+
+.resume-summary-meta {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.resume-submitted-line {
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.resume-tag-groups {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.resume-tag-group {
+  display: grid;
+  gap: 8px;
+}
+
+.resume-tag-group>strong {
+  color: var(--brand-dark);
+  font-size: 13px;
+}
+
 .resume-body {
   display: grid;
   gap: 14px;
@@ -702,6 +737,11 @@ h3 {
   padding-left: 18px;
   font-size: 12px;
   line-height: 1.55;
+}
+
+.resume-compact-experience ul {
+  display: grid;
+  gap: 6px;
 }
 
 .parse-card {

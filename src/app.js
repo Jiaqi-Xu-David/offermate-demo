@@ -13,10 +13,12 @@ import {
   buildInterviewQuestions,
   buildPotentialAnalysis,
   buildResumeAdvice,
+  buildResumeSummary,
   buildScoreExplanation,
   buildTeamComplement,
   buildTailoredResumeSnippet,
   enrichJob,
+  parseResumeText,
 } from './matcher.js';
 import { buildJobDetailUrl } from './job-navigation.js';
 
@@ -55,6 +57,25 @@ function createEmptyProfile(name = '求职者') {
     experiences: [],
     rawResume: '',
   };
+}
+
+function repairProfileFromRawText(profile, rawText) {
+  if (!rawText?.trim()) return profile;
+  const reparsedProfile = parseResumeText(rawText);
+  return {
+    ...profile,
+    ...reparsedProfile,
+    rawResume: rawText,
+  };
+}
+
+function formatSafeResumeMeta(metaText, fallback = '简历已解析') {
+  const clean = String(metaText ?? '').replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  if (clean.length > 48 || /(电话|邮箱|联系方式|实习经历|工作职责|个人简历)/.test(clean)) {
+    return fallback;
+  }
+  return clean;
 }
 
 const state = {
@@ -481,7 +502,61 @@ function renderResumePlaceholder(container = elements.resumeDocument) {
   container.replaceChildren(empty);
 }
 
-function renderResumeDocumentFromText(rawText, container = elements.resumeDocument) {
+function renderResumeSummaryCard(profile, container, submittedJobTitles = []) {
+  const summary = buildResumeSummary(profile, submittedJobTitles);
+  const header = document.createElement('div');
+  header.className = 'resume-header resume-summary-header';
+
+  const name = document.createElement('h2');
+  name.textContent = summary.name;
+  const meta = document.createElement('p');
+  meta.className = 'resume-summary-meta';
+  meta.textContent = summary.metaText;
+  const submitted = document.createElement('p');
+  submitted.className = 'resume-submitted-line';
+  submitted.textContent = summary.submittedText;
+  header.append(name, meta, submitted);
+
+  const tagGroups = document.createElement('div');
+  tagGroups.className = 'resume-tag-groups';
+  summary.tagGroups.forEach((group) => {
+    const section = document.createElement('section');
+    section.className = 'resume-tag-group';
+    const label = document.createElement('strong');
+    label.textContent = group.label;
+    const tags = document.createElement('div');
+    tags.className = 'tag-list tight-tags';
+    renderTags(tags, group.tags);
+    section.append(label, tags);
+    tagGroups.append(section);
+  });
+
+  const body = document.createElement('div');
+  body.className = 'resume-body';
+  if (summary.experiences.length) {
+    const experienceSection = document.createElement('section');
+    experienceSection.className = 'resume-section resume-compact-experience';
+    const heading = document.createElement('h4');
+    heading.textContent = '经历证据';
+    const list = document.createElement('ul');
+    summary.experiences.forEach((experience) => {
+      const item = document.createElement('li');
+      item.textContent = experience;
+      list.append(item);
+    });
+    experienceSection.append(heading, list);
+    body.append(experienceSection);
+  }
+
+  container.replaceChildren(header, tagGroups, body);
+}
+
+function renderResumeDocumentFromText(rawText, container = elements.resumeDocument, options = {}) {
+  if (options.profile?.name && hasResumeEvidence(options.profile)) {
+    renderResumeSummaryCard(options.profile, container, options.submittedJobTitles ?? []);
+    return;
+  }
+
   const text = normalizeResumeDisplayText(rawText).trim();
   if (!text) {
     renderResumePlaceholder(container);
@@ -576,7 +651,7 @@ function renderProfile() {
   elements.studentTarget.textContent = state.profile.target;
   elements.parseStatus.textContent = state.parseStatus;
   if (state.resumeText.trim()) {
-    renderResumeDocumentFromText(state.resumeText);
+    renderResumeDocumentFromText(state.resumeText, elements.resumeDocument, { profile: state.profile });
   } else {
     renderResumePlaceholder();
   }
@@ -796,7 +871,9 @@ function createCandidateCard(candidate) {
   const name = document.createElement('h3');
   name.textContent = candidate.name;
   const meta = document.createElement('p');
-  meta.textContent = `${candidate.profile.gender ?? '未填写'} · ${candidate.school} · ${candidate.major}`;
+  const profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
+  const summary = buildResumeSummary(profile, submittedJobs);
+  meta.textContent = formatSafeResumeMeta(summary.metaText, `${profile.gender ?? '未填写'} · 简历已解析`);
   const submitted = document.createElement('p');
   submitted.className = 'candidate-submitted';
   submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';
@@ -830,10 +907,19 @@ function prependAdminResumeDownload(candidate) {
   elements.adminResumeDocument.prepend(action);
 }
 
+function getCandidateSubmittedJobTitles(candidate) {
+  return (candidate.submittedJobIds ?? [])
+    .map((jobId) => state.jobs.find((job) => job.id === jobId)?.title)
+    .filter(Boolean);
+}
+
 function renderAdminResume(candidate) {
-  const { profile } = candidate;
+  const profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
   if (candidate.rawText?.trim()) {
-    renderResumeDocumentFromText(candidate.rawText, elements.adminResumeDocument);
+    renderResumeDocumentFromText(candidate.rawText, elements.adminResumeDocument, {
+      profile,
+      submittedJobTitles: getCandidateSubmittedJobTitles(candidate),
+    });
     prependAdminResumeDownload(candidate);
     return;
   }
@@ -850,35 +936,7 @@ function renderAdminResume(candidate) {
     return;
   }
 
-  const header = document.createElement('div');
-  header.className = 'admin-resume-header';
-  const name = document.createElement('h4');
-  name.textContent = profile.name;
-  const headline = document.createElement('p');
-  headline.textContent = `${profile.gender ?? '未填写'} · ${profile.headline}`;
-  const target = document.createElement('p');
-  target.textContent = `求职意向：${profile.target}`;
-  header.append(name, headline, target);
-
-  const experienceSection = document.createElement('div');
-  experienceSection.className = 'admin-resume-section';
-  const experienceTitle = document.createElement('strong');
-  experienceTitle.textContent = '经历证据';
-  const experienceList = document.createElement('ul');
-  (profile.experiences ?? []).slice(0, 3).forEach((experience) => {
-    const item = document.createElement('li');
-    item.textContent = experience;
-    experienceList.append(item);
-  });
-  experienceSection.append(experienceTitle, experienceList);
-
-  elements.adminResumeDocument.replaceChildren(
-    header,
-    createTagGroup('核心技能', profile.skills ?? []),
-    createTagGroup('语言能力', profile.languages ?? []),
-    createTagGroup('软技能', profile.softSkills ?? []),
-    experienceSection,
-  );
+  renderResumeSummaryCard(profile, elements.adminResumeDocument, getCandidateSubmittedJobTitles(candidate));
   prependAdminResumeDownload(candidate);
 }
 
@@ -1245,9 +1303,11 @@ function renderAdminInsight() {
   const candidate = state.candidates.find((item) => item.id === state.selectedCandidateId) ?? state.candidates[0];
   if (!candidate) return;
   state.selectedCandidateId = candidate.id;
+  candidate.profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
   const insight = buildAdminCandidateInsight(candidate, state.jobs);
+  const summary = buildResumeSummary(candidate.profile, getCandidateSubmittedJobTitles(candidate));
 
-  elements.adminCandidateName.textContent = `${candidate.name} · ${candidate.profile.gender ?? '未填写'} · ${candidate.school}`;
+  elements.adminCandidateName.textContent = `${candidate.name} · ${formatSafeResumeMeta(summary.metaText, `${candidate.profile.gender ?? '未填写'} · 简历已解析`)}`;
   elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ? `${candidate.submittedJobIds.length} 个已投岗位` : '尚未提交岗位';
   renderAdminResume(candidate);
   renderAdminMatchReview(candidate, insight);
@@ -1370,15 +1430,19 @@ async function refreshStudentHistory() {
 
 function mapUploadedCandidate(candidate) {
   const submittedJobIds = candidate.submittedJobIds ?? [];
-  const profile = candidate.profile?.name ? candidate.profile : createEmptyProfile(candidate.name);
+  const rawText = candidate.rawText ?? candidate.profile?.rawResume ?? '';
+  const baseProfile = candidate.profile?.name ? candidate.profile : createEmptyProfile(candidate.name);
+  const profile = repairProfileFromRawText(baseProfile, rawText);
+  const summary = buildResumeSummary(profile, []);
+  const metaParts = formatSafeResumeMeta(summary.metaText, '已上传简历').split(' · ');
   return {
     id: candidate.id,
     name: candidate.name,
-    school: hasResumeEvidence(profile) ? profile.headline?.split(' ')[0] ?? '已上传简历' : '未上传简历',
-    major: candidate.fileName ?? '候选人简历',
+    school: hasResumeEvidence(profile) ? metaParts.find((part) => /大学|学院|学校/.test(part)) ?? '已上传简历' : '未上传简历',
+    major: metaParts.find((part) => !/男|女|大学|学院|学校|简历/.test(part)) ?? candidate.fileName ?? '候选人简历',
     submittedJobIds,
     profile,
-    rawText: candidate.rawText ?? profile.rawResume ?? '',
+    rawText,
     fileName: candidate.fileName ?? '',
     resumeDownloadUrl: candidate.resumeDownloadUrl ?? '',
   };
