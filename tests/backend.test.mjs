@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
+import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
@@ -235,13 +236,23 @@ test('parses resume text with DeepSeek JSON mode when an API key is configured',
 });
 
 test('hashes and verifies passwords without storing plaintext', async () => {
-  const first = await hashPassword('davide123', 'fixed-salt');
-  const second = await hashPassword('davide123', 'fixed-salt');
+  const first = await hashPassword('sample-password-123', 'fixed-salt');
+  const second = await hashPassword('sample-password-123', 'fixed-salt');
 
   assert.equal(first, second);
-  assert.notEqual(first, 'davide123');
-  assert.equal(await verifyPassword('davide123', 'fixed-salt', first), true);
+  assert.notEqual(first, 'sample-password-123');
+  assert.equal(await verifyPassword('sample-password-123', 'fixed-salt', first), true);
   assert.equal(await verifyPassword('wrong-password', 'fixed-salt', first), false);
+});
+
+test('encrypts personal fields before database storage', async () => {
+  const env = { OFFERMATE_ENCRYPTION_KEY: 'unit-test-encryption-key' };
+  const encrypted = await encryptText(env, '蒋纯 · jiangchun@example.com');
+
+  assert.equal(isEncryptedText(encrypted), true);
+  assert.notEqual(encrypted, '蒋纯 · jiangchun@example.com');
+  assert.equal(await decryptText(env, encrypted), '蒋纯 · jiangchun@example.com');
+  assert.equal(await hashLookup(' JiangChun@Example.COM '), await hashLookup('jiangchun@example.com'));
 });
 
 test('parses cookie headers for session lookup', () => {
@@ -288,16 +299,34 @@ test('supports account admin users and exposes raw parsed resume text', async ()
   const usersApi = await readFile(new URL('../functions/api/admin/users.js', import.meta.url), 'utf8');
 
   assert.ok(APP_SCHEMA_SQL.includes("role IN ('student', 'hr', 'admin')"));
-  assert.ok(databaseJs.includes('admin@davide.tech'));
+  assert.ok(databaseJs.includes('seedAdminUser'));
   assert.ok(databaseJs.includes('migrateUsersRoleCheck'));
   assert.ok(databaseJs.includes('users_with_admin'));
   assert.ok(!databaseJs.includes("user.role === 'admin' && String(error.message"));
-  assert.ok(databaseJs.includes('rawText: row.raw_text'));
+  assert.ok(databaseJs.includes('rawText: await decryptResumeRawText'));
   assert.ok(databaseJs.includes('createAccountUser'));
   assert.ok(databaseJs.includes('deleteAccountUser'));
+  assert.ok(databaseJs.includes('DELETE FROM sessions WHERE user_id = ?'));
   assert.ok(usersApi.includes("requireUser(context, ['admin'])"));
   assert.ok(usersApi.includes('onRequestPost'));
   assert.ok(usersApi.includes('onRequestDelete'));
+});
+
+test('stores resume and user personal data through encrypted columns', async () => {
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+
+  assert.ok(APP_SCHEMA_SQL.includes('email_lookup TEXT UNIQUE'));
+  assert.ok(APP_SCHEMA_SQL.includes('email_cipher TEXT'));
+  assert.ok(APP_SCHEMA_SQL.includes('name_cipher TEXT'));
+  assert.ok(APP_SCHEMA_SQL.includes('raw_text_cipher TEXT'));
+  assert.ok(APP_SCHEMA_SQL.includes('profile_json_cipher TEXT'));
+  assert.match(databaseJs, /raw_text,\s*raw_text_cipher,\s*file_data_base64,\s*file_data_cipher,\s*mime_type,\s*profile_json,\s*profile_json_cipher/);
+  assert.ok(databaseJs.includes("raw_text = '[encrypted]'"));
+  assert.ok(databaseJs.includes("profile_json = '{}'"));
+  assert.ok(databaseJs.includes('findUserByEmail'));
+  assert.ok(databaseJs.includes('email_lookup = ?'));
+  assert.ok(!databaseJs.includes('davide123'));
+  assert.ok(!databaseJs.includes('hr123'));
 });
 
 test('public registration is student-only and validates basic account fields', () => {
@@ -360,6 +389,7 @@ test('student-specific resume state is reset when switching accounts', async () 
 
 test('static shell uses login-driven routing and resume upload history', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.ok(html.includes('id="login-screen"'));
   assert.ok(html.includes('id="login-form"'));
@@ -377,6 +407,13 @@ test('static shell uses login-driven routing and resume upload history', async (
   assert.ok(!html.includes('class="mode-switch"'));
   assert.ok(!html.includes('id="student-mode"'));
   assert.ok(!html.includes('id="admin-mode"'));
+  assert.ok(!html.includes('demo-account-grid'));
+  assert.ok(!html.includes('data-demo-email'));
+  assert.ok(!html.includes('davide@example.com'));
+  assert.ok(!html.includes('davide123'));
+  assert.ok(!html.includes('hr@davide.tech'));
+  assert.ok(!html.includes('hr123'));
+  assert.ok(!appJs.includes('demo-account-button'));
   assert.ok(!html.includes('<p class="eyebrow">示例简历</p>'));
   assert.ok(!html.includes('aria-label="示例简历"'));
 });

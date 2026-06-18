@@ -1,3 +1,5 @@
+import { encryptText } from '../src/backend/secure-data.js';
+
 const STATIC_ASSET_PATTERN =
   /\.(?:avif|css|gif|ico|jpeg|jpg|js|json|map|mjs|png|svg|txt|webmanifest|webp|woff2?)$/i;
 const PRIVATE_FILE_PATTERN = /^\/(?:db|functions|tests|src\/backend)\//i;
@@ -49,6 +51,53 @@ function shouldLogVisit(request, url) {
 
 let visitLogSchemaReady = false;
 
+async function ensureVisitLogEncryptionColumn(env) {
+  const columns = await env.VISITS_DB.prepare('PRAGMA table_info(visit_logs)').all();
+  const names = new Set((columns.results ?? []).map((column) => column.name));
+  if (!names.has('visitor_cipher')) {
+    await env.VISITS_DB.prepare('ALTER TABLE visit_logs ADD COLUMN visitor_cipher TEXT').run();
+  }
+}
+
+async function migratePlainVisitLogs(env) {
+  const rows = await env.VISITS_DB.prepare(`
+    SELECT id, ip, visitor_cipher, country, region, city, timezone, colo, as_organization, user_agent, referer
+    FROM visit_logs
+    WHERE visitor_cipher IS NULL OR visitor_cipher = ''
+    LIMIT 100
+  `).all();
+
+  for (const row of rows.results ?? []) {
+    const payload = {
+      ip: row.ip === '[encrypted]' ? '' : row.ip,
+      country: row.country,
+      region: row.region,
+      city: row.city,
+      timezone: row.timezone,
+      colo: row.colo,
+      asOrganization: row.as_organization,
+      userAgent: row.user_agent === '[encrypted]' ? '' : row.user_agent,
+      referer: row.referer,
+    };
+    await env.VISITS_DB.prepare(`
+      UPDATE visit_logs
+      SET ip = '[encrypted]',
+          visitor_cipher = ?,
+          country = NULL,
+          region = NULL,
+          city = NULL,
+          timezone = NULL,
+          colo = NULL,
+          as_organization = NULL,
+          user_agent = '[encrypted]',
+          referer = NULL
+      WHERE id = ?
+    `)
+      .bind(await encryptText(env, JSON.stringify(payload)), row.id)
+      .run();
+  }
+}
+
 async function ensureVisitLogSchema(env) {
   if (visitLogSchemaReady || !env.VISITS_DB) return;
 
@@ -61,6 +110,7 @@ async function ensureVisitLogSchema(env) {
       path TEXT NOT NULL,
       query_present INTEGER NOT NULL DEFAULT 0,
       ip TEXT NOT NULL,
+      visitor_cipher TEXT,
       country TEXT,
       region TEXT,
       city TEXT,
@@ -75,6 +125,8 @@ async function ensureVisitLogSchema(env) {
       status INTEGER
     )
   `).run();
+  await ensureVisitLogEncryptionColumn(env);
+  await migratePlainVisitLogs(env);
   await env.VISITS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_visit_logs_visited_at ON visit_logs (visited_at DESC)').run();
   await env.VISITS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_visit_logs_path ON visit_logs (path)').run();
   visitLogSchemaReady = true;
@@ -89,6 +141,17 @@ async function recordVisit(context, response) {
 
   const userAgent = cleanHeader(request.headers.get('user-agent'), 700);
   const cf = request.cf ?? {};
+  const visitorPayload = {
+    ip: getClientIp(request),
+    country: cleanHeader(cf.country, 12),
+    region: cleanHeader(cf.region, 120),
+    city: cleanHeader(cf.city, 120),
+    timezone: cleanHeader(cf.timezone, 120),
+    colo: cleanHeader(cf.colo, 12),
+    asOrganization: cleanHeader(cf.asOrganization, 180),
+    userAgent,
+    referer: cleanHeader(request.headers.get('referer'), 500),
+  };
 
   await ensureVisitLogSchema(env);
   await env.VISITS_DB.prepare(`
@@ -99,6 +162,7 @@ async function recordVisit(context, response) {
       path,
       query_present,
       ip,
+      visitor_cipher,
       country,
       region,
       city,
@@ -112,7 +176,7 @@ async function recordVisit(context, response) {
       referer,
       status
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
     .bind(
       new Date().toISOString(),
@@ -120,18 +184,19 @@ async function recordVisit(context, response) {
       cleanHeader(url.host, 140),
       cleanHeader(url.pathname, 240),
       url.search ? 1 : 0,
-      getClientIp(request),
-      cleanHeader(cf.country, 12),
-      cleanHeader(cf.region, 120),
-      cleanHeader(cf.city, 120),
-      cleanHeader(cf.timezone, 120),
-      cleanHeader(cf.colo, 12),
-      cleanHeader(cf.asOrganization, 180),
+      '[encrypted]',
+      await encryptText(env, JSON.stringify(visitorPayload)),
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       detectDevice(userAgent),
       detectBrowser(userAgent),
       detectOS(userAgent),
-      userAgent,
-      cleanHeader(request.headers.get('referer'), 500),
+      '[encrypted]',
+      null,
       response.status,
     )
     .run();

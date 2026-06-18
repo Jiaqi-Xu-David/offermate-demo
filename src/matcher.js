@@ -5,7 +5,7 @@ export const COMPANY = {
 
 export const SAMPLE_RESUME_TEXT = `大卫德
 求职意向：数据分析 / 产品运营 / 商业分析实习
-联系方式：davide@example.com · 138-0000-0000
+联系方式：已隐藏
 个人信息：男 · 英语 CET-6 · 每周可实习 4 天
 城市偏好：上海 / 杭州 / 远程
 
@@ -75,6 +75,13 @@ const SKILL_DICTIONARY = [
   '培训',
   '考勤',
   '教案撰写',
+  '电气工程',
+  '自动化',
+  'PLC',
+  '设备巡检',
+  '低压配电',
+  '变压器',
+  '电机',
 ];
 
 const SOFT_SKILL_DICTIONARY = [
@@ -196,6 +203,13 @@ const KEYWORD_ALIASES = {
   培训: ['培训'],
   考勤: ['考勤'],
   教案撰写: ['教案', '撰写教案'],
+  电气工程: ['电气工程', '电气工程及其自动化'],
+  自动化: ['自动化'],
+  PLC: ['PLC', 'plc'],
+  设备巡检: ['设备巡检', '日常巡检', '巡检与维护'],
+  低压配电: ['低压配电', '配电箱'],
+  变压器: ['变压器'],
+  电机: ['电机'],
 };
 
 function unique(items) {
@@ -318,6 +332,8 @@ function buildSkillEvidence(text, skills = SKILL_DICTIONARY) {
 function extractGender(text) {
   const explicitGender = text.match(/(?:性别|个人信息)[：:\s·]*(男|女|非二元|不便透露)/);
   if (explicitGender) return explicitGender[1];
+  const standaloneGender = text.match(/(?:^|\n)\s*(男|女)\s*[·\s]/);
+  if (standaloneGender) return standaloneGender[1];
   return '未填写';
 }
 

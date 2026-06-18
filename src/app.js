@@ -2,7 +2,6 @@ import {
   COMPANY,
   SAMPLE_RESUME_TEXT,
   JOBS,
-  CANDIDATES,
   rankJobs,
   analyzeJobFit,
   analyzeJobDescription,
@@ -82,17 +81,17 @@ function formatSafeResumeMeta(metaText, fallback = '简历已解析') {
 const state = {
   mode: 'student',
   currentUser: null,
-  profile: createEmptyProfile('大卫德'),
+  profile: createEmptyProfile('求职者'),
   resumeText: '',
   resumeFileName: '',
   hasParsedResume: false,
   jobs: [...savedAdminJobs, ...JOBS],
-  candidates: CANDIDATES,
+  candidates: [],
   accountUsers: [],
   history: { resumes: [], matchRuns: [] },
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
-  selectedCandidateId: 'davide',
-  rankings: rankJobs(createEmptyProfile('大卫德'), JOBS),
+  selectedCandidateId: '',
+  rankings: rankJobs(createEmptyProfile('求职者'), JOBS),
   parseStatus: DEFAULT_PARSE_STATUS,
   adminResult:
     savedAdminJobs.length > 0
@@ -891,6 +890,12 @@ function getCandidateSubmittedJobTitles(candidate) {
     .filter(Boolean);
 }
 
+function selectCandidateDisplayName(profile, fallbackName = '求职者') {
+  const parsedName = String(profile?.name ?? '').trim();
+  if (parsedName && !isGenericResumeTitle(parsedName) && parsedName !== '求职者') return parsedName;
+  return fallbackName || '求职者';
+}
+
 function renderAdminResume(candidate) {
   const profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
   if (candidate.rawText?.trim()) {
@@ -1416,7 +1421,7 @@ function mapUploadedCandidate(candidate) {
   const metaParts = formatSafeResumeMeta(summary.metaText, '已上传简历').split(' · ');
   return {
     id: candidate.id,
-    name: candidate.name,
+    name: selectCandidateDisplayName(profile, candidate.name),
     school: hasResumeEvidence(profile) ? metaParts.find((part) => /大学|学院|学校/.test(part)) ?? '已上传简历' : '未上传简历',
     major: metaParts.find((part) => !/男|女|大学|学院|学校|简历/.test(part)) ?? candidate.fileName ?? '候选人简历',
     submittedJobIds,
@@ -1431,8 +1436,7 @@ async function refreshHrCandidates() {
   if (state.currentUser?.role !== 'hr') return;
   const payload = await apiRequest('/api/hr/candidates');
   const uploaded = (payload.uploadedCandidates ?? []).map(mapUploadedCandidate);
-  const seeded = payload.seededCandidates ?? CANDIDATES;
-  state.candidates = [...uploaded, ...seeded.filter((candidate) => !uploaded.some((item) => item.id === candidate.id))];
+  state.candidates = uploaded;
   state.selectedCandidateId = state.candidates[0]?.id ?? state.selectedCandidateId;
 }
 
@@ -1501,13 +1505,6 @@ elements.loginForm.addEventListener('submit', async (event) => {
   } catch (error) {
     showLogin(error.message);
   }
-});
-
-document.querySelectorAll('.demo-account-button').forEach((button) => {
-  button.addEventListener('click', () => {
-    elements.loginEmail.value = button.dataset.demoEmail;
-    elements.loginPassword.value = button.dataset.demoPassword;
-  });
 });
 
 elements.openRegisterModal.addEventListener('click', () => {

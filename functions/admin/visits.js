@@ -1,3 +1,5 @@
+import { decryptText } from '../../src/backend/secure-data.js';
+
 const PAGE_SIZE = 100;
 
 function escapeHtml(value) {
@@ -56,6 +58,27 @@ function buildRows(rows) {
       `;
     })
     .join('');
+}
+
+async function decryptVisitorRow(env, row) {
+  const decrypted = await decryptText(env, row.visitor_cipher, '{}');
+  let visitor = {};
+  try {
+    visitor = JSON.parse(decrypted || '{}');
+  } catch {
+    visitor = {};
+  }
+
+  return {
+    ...row,
+    ip: visitor.ip || (row.ip === '[encrypted]' ? '' : row.ip),
+    country: visitor.country || row.country,
+    region: visitor.region || row.region,
+    city: visitor.city || row.city,
+    as_organization: visitor.asOrganization || row.as_organization,
+    user_agent: visitor.userAgent || (row.user_agent === '[encrypted]' ? '' : row.user_agent),
+    referer: visitor.referer || row.referer,
+  };
 }
 
 function renderDashboard(rows, totalCount) {
@@ -233,6 +256,7 @@ export async function onRequestGet(context) {
       path,
       query_present,
       ip,
+      visitor_cipher,
       country,
       region,
       city,
@@ -251,7 +275,7 @@ export async function onRequestGet(context) {
     .all();
 
   const count = await env.VISITS_DB.prepare('SELECT COUNT(*) AS value FROM visit_logs').first();
-  const rows = list.results ?? [];
+  const rows = await Promise.all((list.results ?? []).map((row) => decryptVisitorRow(env, row)));
 
   if (new URL(request.url).searchParams.get('format') === 'json') {
     return Response.json({ total: count?.value ?? rows.length, rows });

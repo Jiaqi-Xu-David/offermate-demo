@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS visit_logs (
   path TEXT NOT NULL,
   query_present INTEGER NOT NULL DEFAULT 0,
   ip TEXT NOT NULL,
+  visitor_cipher TEXT,
   country TEXT,
   region TEXT,
   city TEXT,
@@ -26,7 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_visit_logs_path ON visit_logs (path);
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
+  email_lookup TEXT UNIQUE,
+  email_cipher TEXT,
   name TEXT NOT NULL,
+  name_cipher TEXT,
   role TEXT NOT NULL CHECK (role IN ('student', 'hr', 'admin')),
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
@@ -63,7 +67,12 @@ CREATE TABLE IF NOT EXISTS resumes (
   user_id TEXT NOT NULL,
   file_name TEXT NOT NULL,
   raw_text TEXT NOT NULL,
+  raw_text_cipher TEXT,
+  file_data_base64 TEXT,
+  file_data_cipher TEXT,
+  mime_type TEXT,
   profile_json TEXT NOT NULL,
+  profile_json_cipher TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
@@ -104,6 +113,7 @@ CREATE TABLE IF NOT EXISTS applications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lookup ON users (email_lookup) WHERE email_lookup IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_match_runs_user_id ON match_runs (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_match_scores_run_id ON match_scores (run_id, score DESC);

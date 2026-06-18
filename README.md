@@ -16,18 +16,16 @@ npx wrangler pages dev . --port 4173
 http://127.0.0.1:4173/
 ```
 
-演示账号：
-
-```text
-求职者：davide@example.com / davide123
-HR：hr@davide.tech / hr123
-管理员：admin@davide.tech / admin123
-```
-
 初始化或更新 D1 表结构：
 
 ```bash
 npx wrangler d1 execute offermate_visits --file=db/schema.sql
+```
+
+生产环境建议设置独立加密密钥，避免使用本地开发默认值：
+
+```bash
+npx wrangler secret put OFFERMATE_ENCRYPTION_KEY
 ```
 
 可选：启用 DeepSeek 简历结构化解析。不要把 API key 写进代码或提交到仓库，使用 Cloudflare secret：

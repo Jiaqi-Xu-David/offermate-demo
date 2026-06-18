@@ -16,29 +16,15 @@
         </div>
         <label>
           邮箱
-          <input id="login-email" type="email" autocomplete="username" value="davide@example.com" required>
+          <input id="login-email" type="email" autocomplete="username" required>
         </label>
         <label>
           密码
-          <input id="login-password" type="password" autocomplete="current-password" value="davide123" required>
+          <input id="login-password" type="password" autocomplete="current-password" required>
         </label>
         <p id="login-error" class="login-error" role="alert"></p>
         <button class="primary-button" type="submit">登录</button>
         <button id="open-register-modal" class="secondary-button" type="button">注册求职者账号</button>
-        <div class="demo-account-grid" aria-label="演示账号">
-          <button class="demo-account-button" type="button" data-demo-email="davide@example.com" data-demo-password="davide123">
-            求职者账号
-            <span>davide@example.com / davide123</span>
-          </button>
-          <button class="demo-account-button" type="button" data-demo-email="hr@davide.tech" data-demo-password="hr123">
-            HR 账号
-            <span>hr@davide.tech / hr123</span>
-          </button>
-          <button class="demo-account-button" type="button" data-demo-email="admin@davide.tech" data-demo-password="admin123">
-            管理员账号
-            <span>admin@davide.tech / admin123</span>
-          </button>
-        </div>
       </form>
     </section>
 
@@ -58,7 +44,7 @@
         </label>
         <label>
           邮箱
-          <input id="register-email" type="email" autocomplete="email" placeholder="student@example.com" required>
+          <input id="register-email" type="email" autocomplete="email" placeholder="请输入邮箱" required>
         </label>
         <label>
           密码
@@ -386,11 +372,11 @@
             </div>
             <label>
               姓名
-              <input id="account-name" type="text" value="新同学">
+              <input id="account-name" type="text" placeholder="输入成员姓名">
             </label>
             <label>
               邮箱
-              <input id="account-email" type="email" value="student@example.com">
+              <input id="account-email" type="email" placeholder="name@example.com">
             </label>
             <label>
               角色
@@ -402,7 +388,7 @@
             </label>
             <label>
               初始密码
-              <input id="account-password" type="text" value="student123">
+              <input id="account-password" type="text" placeholder="至少 6 位">
             </label>
             <p id="account-result" class="admin-result">新增后即可用该邮箱和密码登录。</p>
             <button class="primary-button" type="submit">创建账号</button>

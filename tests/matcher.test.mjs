@@ -163,6 +163,28 @@ test('does not infer section titles as names and parses one-digit education date
   assert.ok(!profile.experiences.some((item) => item.includes('组织行为学')));
 });
 
+test('parses electrical engineering resume identity without falling back to account name', () => {
+  const profile = parseResumeText(`个人简历
+蒋纯
+男 · 电气工程及其自动化
+教育经历
+哈尔滨华德学院 电气工程及其自动化 本科
+求职意向待补充
+经历证据
+负责生产设备的日常巡检与维护，重点检查低压配电箱、变压器、电机运行状态，记录异常并协助师傅完成排查。
+技能证书
+电工基础、PLC 基础、Office`);
+  const summary = buildResumeSummary(profile, []);
+
+  assert.equal(profile.name, '蒋纯');
+  assert.ok(profile.headline.includes('哈尔滨华德学院'));
+  assert.ok(profile.headline.includes('电气工程及其自动化'));
+  assert.equal(profile.target, '求职意向待补充');
+  assert.equal(summary.name, '蒋纯');
+  assert.match(summary.metaText, /男/);
+  assert.match(summary.metaText, /电气工程及其自动化/);
+});
+
 test('keeps parsed experience evidence concise for compact resume cards', () => {
   const profile = parseResumeText(`个人简历
 姓名:邓聖喆
@@ -290,6 +312,7 @@ test('defines a mobile-first dashboard reading flow', async () => {
 
 test('supports HR candidate resume and match review in static markup', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const adminSummaryIndex = indexHtml.indexOf('class="score-card admin-summary-card"');
   const submittedJobsIndex = indexHtml.indexOf('id="submitted-job-list"');
   const resumeIndex = indexHtml.indexOf('id="admin-resume-document"');
@@ -311,6 +334,8 @@ test('supports HR candidate resume and match review in static markup', async () 
   assert.ok(indexHtml.includes('匹配结果与评分'));
   assert.ok(indexHtml.includes('动态能力标签'));
   assert.ok(indexHtml.includes('面试提问建议'));
+  assert.ok(appJs.includes('name: selectCandidateDisplayName(profile, candidate.name)'));
+  assert.ok(!appJs.includes('seededCandidates'));
   assert.ok(submittedJobsIndex > adminSummaryIndex);
   assert.ok(resumeIndex > submittedJobsIndex);
 });
@@ -347,7 +372,7 @@ test('renders HR candidate raw resume text and account admin workspace', async (
 
   assert.ok(indexHtml.includes('id="account-admin-workspace"'));
   assert.ok(indexHtml.includes('id="account-user-list"'));
-  assert.ok(indexHtml.includes('data-demo-email="admin@davide.tech"'));
+  assert.ok(!indexHtml.includes('data-demo-email'));
   assert.ok(appJs.includes("state.mode = user.role === 'admin' ? 'account-admin'"));
   assert.ok(appJs.includes('candidate.rawText'));
   assert.ok(appJs.includes('renderAdminResume(candidate)'));
@@ -715,7 +740,11 @@ test('defines a guarded Cloudflare visit log backend', async () => {
   assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS visit_logs'));
   assert.ok(schema.includes('visited_at TEXT NOT NULL'));
   assert.ok(schema.includes('ip TEXT NOT NULL'));
+  assert.ok(schema.includes('visitor_cipher TEXT'));
   assert.ok(middleware.includes("request.headers.get('cf-connecting-ip')"));
+  assert.ok(middleware.includes('encryptText'));
+  assert.ok(middleware.includes("ip = '[encrypted]'"));
+  assert.ok(middleware.includes('visitor_cipher'));
   assert.ok(middleware.includes('query_present'));
   assert.ok(middleware.includes('ensureVisitLogSchema'));
   assert.ok(middleware.includes('CREATE TABLE IF NOT EXISTS visit_logs'));
@@ -724,6 +753,8 @@ test('defines a guarded Cloudflare visit log backend', async () => {
   assert.ok(middleware.includes("'/wrangler.toml'"));
   assert.ok(middleware.includes('src\\/backend'));
   assert.ok(adminPage.includes('VISIT_ADMIN_TOKEN'));
+  assert.ok(adminPage.includes('decryptText'));
+  assert.ok(adminPage.includes('decryptVisitorRow'));
   assert.ok(adminPage.includes('WWW-Authenticate'));
   assert.ok(adminPage.includes('OfferMate 访问记录'));
   assert.ok(!middleware.includes('localStorage'));

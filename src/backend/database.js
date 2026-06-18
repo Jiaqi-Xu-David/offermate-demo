@@ -1,41 +1,26 @@
 import {
-  CANDIDATES,
   JOBS,
-  SAMPLE_RESUME_TEXT,
-  STUDENT_PROFILE,
   analyzeJobDescription,
   buildScoreExplanation,
   rankJobs,
 } from '../matcher.js';
 import { hashPassword } from './auth.js';
 import { parseResumeProfile } from './deepseek.js';
+import { decryptText, encryptText, hashLookup, isEncryptedText } from './secure-data.js';
 import { APP_SCHEMA_SQL } from './schema.js';
 
-const DEMO_USERS = [
-  {
-    id: 'user-student-davide',
-    email: 'davide@example.com',
-    name: '大卫德',
-    role: 'student',
-    password: 'davide123',
-    salt: 'offermate-student-demo',
-  },
-  {
-    id: 'user-hr-davide-tech',
-    email: 'hr@davide.tech',
-    name: '大卫德科技 HR',
-    role: 'hr',
-    password: 'hr123',
-    salt: 'offermate-hr-demo',
-  },
-  {
-    id: 'user-admin-davide-tech',
-    email: 'admin@davide.tech',
-    name: '大卫德科技管理员',
-    role: 'admin',
-    password: 'admin123',
-    salt: 'offermate-admin-demo',
-  },
+const DEFAULT_ADMIN = {
+  id: 'user-admin-davide-tech',
+  email: 'admin@davide.tech',
+  name: '大卫德管理员',
+  role: 'admin',
+  salt: 'offermate-admin-20260618',
+  passwordHash: '2490fb1512da914301297caa0367ecc587b8b58b76e670b1495a07df8541aa88',
+};
+
+const LEGACY_DEMO_USER_LOOKUPS = [
+  'c44abf87a6d36dc98cab56d6547c69a80631f0820256d0789777476a9aabec80',
+  '333132eff27d0d18f4c4e8ea3dc0985d0afe34a05dff1acde32c4279d191fff2',
 ];
 
 function dbFromEnv(env) {
@@ -88,6 +73,55 @@ function base64ToBytes(value) {
   return new Uint8Array(Buffer.from(raw, 'base64'));
 }
 
+function maskEmail(id) {
+  return `${id}@encrypted.local`;
+}
+
+function maskName(role) {
+  return role === 'admin' ? '加密管理员' : '加密账号';
+}
+
+async function addMissingColumns(db, tableName, columnDefinitions) {
+  const columns = await db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const existing = new Set((columns.results ?? []).map((column) => column.name));
+  for (const [columnName, definition] of columnDefinitions) {
+    if (!existing.has(columnName)) {
+      await db.prepare(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`).run();
+    }
+  }
+}
+
+async function decryptMaybe(env, encryptedValue, fallback = '') {
+  if (!encryptedValue) return fallback;
+  return decryptText(env, encryptedValue, fallback);
+}
+
+async function mapUserRow(env, row) {
+  if (!row) return null;
+  const email = await decryptMaybe(env, row.email_cipher, row.email?.endsWith('@encrypted.local') ? '' : row.email);
+  const name = await decryptMaybe(env, row.name_cipher, row.name?.startsWith('加密') ? '' : row.name);
+  return {
+    ...row,
+    email,
+    name: name || (row.role === 'admin' ? '管理员' : '求职者'),
+  };
+}
+
+async function decryptResumeRawText(env, row) {
+  if (!row) return '';
+  return decryptMaybe(env, row.raw_text_cipher, row.raw_text === '[encrypted]' ? '' : row.raw_text);
+}
+
+async function decryptResumeProfileJson(env, row) {
+  const decrypted = await decryptMaybe(env, row.profile_json_cipher, row.profile_json);
+  return decrypted || '{}';
+}
+
+async function decryptResumeFileData(env, row) {
+  if (!row) return '';
+  return decryptMaybe(env, row.file_data_cipher, row.file_data_base64 ?? '');
+}
+
 function serializeJob(job, source = job.source ?? 'seed', createdBy = job.createdBy ?? null) {
   return {
     ...job,
@@ -138,6 +172,7 @@ function mapScoreRow(row) {
 
 async function executeSchema(db) {
   for (const statement of splitSqlStatements(APP_SCHEMA_SQL)) {
+    if (statement.includes('idx_users_email_lookup')) continue;
     await db.prepare(statement).run();
   }
 }
@@ -153,7 +188,10 @@ async function migrateUsersRoleCheck(db) {
       `CREATE TABLE users_with_admin (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
+        email_lookup TEXT UNIQUE,
+        email_cipher TEXT,
         name TEXT NOT NULL,
+        name_cipher TEXT,
         role TEXT NOT NULL CHECK (role IN ('student', 'hr', 'admin')),
         password_salt TEXT NOT NULL,
         password_hash TEXT NOT NULL,
@@ -174,26 +212,152 @@ async function migrateUsersRoleCheck(db) {
 }
 
 async function ensureResumeFileColumns(db) {
-  const columns = await db.prepare('PRAGMA table_info(resumes)').all();
-  const columnNames = new Set((columns.results ?? []).map((column) => column.name));
-  if (!columnNames.has('file_data_base64')) {
-    await db.prepare('ALTER TABLE resumes ADD COLUMN file_data_base64 TEXT').run();
-  }
-  if (!columnNames.has('mime_type')) {
-    await db.prepare('ALTER TABLE resumes ADD COLUMN mime_type TEXT').run();
+  await addMissingColumns(db, 'resumes', [
+    ['raw_text_cipher', 'TEXT'],
+    ['file_data_base64', 'TEXT'],
+    ['file_data_cipher', 'TEXT'],
+    ['mime_type', 'TEXT'],
+    ['profile_json_cipher', 'TEXT'],
+  ]);
+}
+
+async function ensureUserEncryptionColumns(db, env) {
+  await addMissingColumns(db, 'users', [
+    ['email_lookup', 'TEXT'],
+    ['email_cipher', 'TEXT'],
+    ['name_cipher', 'TEXT'],
+  ]);
+  await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lookup ON users (email_lookup) WHERE email_lookup IS NOT NULL').run();
+
+  const rows = await db.prepare('SELECT id, email, email_lookup, email_cipher, name, name_cipher, role FROM users').all();
+  for (const row of rows.results ?? []) {
+    const decryptedEmail = await decryptMaybe(env, row.email_cipher, '');
+    const decryptedName = await decryptMaybe(env, row.name_cipher, '');
+    const legacyEmail = row.email && !String(row.email).endsWith('@encrypted.local') ? row.email : '';
+    const legacyName = row.name && !String(row.name).startsWith('加密') ? row.name : '';
+    const email = decryptedEmail || legacyEmail;
+    const name = decryptedName || legacyName || maskName(row.role);
+    const emailLookup = row.email_lookup || (email ? await hashLookup(email) : await hashLookup(row.id));
+    const emailCipher = isEncryptedText(row.email_cipher) ? row.email_cipher : await encryptText(env, email || row.id);
+    const nameCipher = isEncryptedText(row.name_cipher) ? row.name_cipher : await encryptText(env, name);
+
+    await db
+      .prepare(
+        `UPDATE users
+         SET email = ?, name = ?, email_lookup = ?, email_cipher = ?, name_cipher = ?
+         WHERE id = ?`,
+      )
+      .bind(maskEmail(row.id), maskName(row.role), emailLookup, emailCipher, nameCipher, row.id)
+      .run();
   }
 }
 
-async function seedUsers(db) {
-  for (const user of DEMO_USERS) {
+async function ensureResumeEncryptionColumns(db, env) {
+  await ensureResumeFileColumns(db);
+  const rows = await db
+    .prepare('SELECT id, raw_text, raw_text_cipher, file_data_base64, file_data_cipher, profile_json, profile_json_cipher FROM resumes')
+    .all();
+
+  for (const row of rows.results ?? []) {
+    const rawText = await decryptMaybe(env, row.raw_text_cipher, row.raw_text === '[encrypted]' ? '' : row.raw_text);
+    const profileJson = await decryptMaybe(env, row.profile_json_cipher, row.profile_json === '{}' ? '' : row.profile_json);
+    const fileData = await decryptMaybe(env, row.file_data_cipher, row.file_data_base64 ?? '');
+    const rawTextCipher = isEncryptedText(row.raw_text_cipher) ? row.raw_text_cipher : await encryptText(env, rawText);
+    const profileJsonCipher = isEncryptedText(row.profile_json_cipher) ? row.profile_json_cipher : await encryptText(env, profileJson || '{}');
+    const fileDataCipher = fileData && !isEncryptedText(row.file_data_cipher) ? await encryptText(env, fileData) : row.file_data_cipher;
+
     await db
       .prepare(
-        `INSERT OR IGNORE INTO users (
-          id, email, name, role, password_salt, password_hash, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `UPDATE resumes
+         SET raw_text = '[encrypted]',
+             raw_text_cipher = ?,
+             file_data_base64 = NULL,
+             file_data_cipher = ?,
+             profile_json = '{}',
+             profile_json_cipher = ?
+         WHERE id = ?`,
       )
-      .bind(user.id, user.email, user.name, user.role, user.salt, await hashPassword(user.password, user.salt), nowIso())
+      .bind(rawTextCipher, fileDataCipher ?? null, profileJsonCipher, row.id)
       .run();
+  }
+}
+
+async function seedAdminUser(db, env) {
+  const email = String(env.OFFERMATE_ADMIN_EMAIL ?? DEFAULT_ADMIN.email).trim().toLowerCase();
+  const name = String(env.OFFERMATE_ADMIN_NAME ?? DEFAULT_ADMIN.name).trim();
+  const emailLookup = await hashLookup(email);
+  const passwordHash = env.OFFERMATE_ADMIN_PASSWORD_HASH ?? DEFAULT_ADMIN.passwordHash;
+  const existing = await db.prepare("SELECT id FROM users WHERE role = 'admin' OR email_lookup = ? ORDER BY created_at ASC LIMIT 1").bind(emailLookup).first();
+  if (existing) {
+    await db
+      .prepare(
+        `UPDATE users
+         SET email = ?,
+             email_lookup = ?,
+             email_cipher = ?,
+             name = ?,
+             name_cipher = ?,
+             role = 'admin',
+             password_salt = ?,
+             password_hash = ?
+         WHERE id = ?`,
+      )
+      .bind(
+        maskEmail(existing.id),
+        emailLookup,
+        await encryptText(env, email),
+        maskName(DEFAULT_ADMIN.role),
+        await encryptText(env, name),
+        DEFAULT_ADMIN.salt,
+        passwordHash,
+        existing.id,
+      )
+      .run();
+    return;
+  }
+
+  await db
+    .prepare(
+      `INSERT INTO users (
+        id, email, email_lookup, email_cipher, name, name_cipher, role, password_salt, password_hash, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      DEFAULT_ADMIN.id,
+      maskEmail(DEFAULT_ADMIN.id),
+      emailLookup,
+      await encryptText(env, email),
+      maskName(DEFAULT_ADMIN.role),
+      await encryptText(env, name),
+      DEFAULT_ADMIN.role,
+      DEFAULT_ADMIN.salt,
+      passwordHash,
+      nowIso(),
+    )
+    .run();
+}
+
+async function deleteUserCascade(db, userId) {
+  await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+  await db.prepare('DELETE FROM applications WHERE user_id = ?').bind(userId).run();
+  await db
+    .prepare(
+      `DELETE FROM match_scores
+       WHERE run_id IN (SELECT id FROM match_runs WHERE user_id = ?)`,
+    )
+    .bind(userId)
+    .run();
+  await db.prepare('DELETE FROM match_runs WHERE user_id = ?').bind(userId).run();
+  await db.prepare('DELETE FROM resumes WHERE user_id = ?').bind(userId).run();
+  return db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+}
+
+async function purgeLegacyDemoUsers(db) {
+  for (const lookup of LEGACY_DEMO_USER_LOOKUPS) {
+    const user = await db.prepare('SELECT id FROM users WHERE email_lookup = ?').bind(lookup).first();
+    if (user?.id) {
+      await deleteUserCascade(db, user.id);
+    }
   }
 }
 
@@ -228,56 +392,38 @@ async function seedJobs(db) {
   }
 }
 
-async function seedSampleResume(db) {
-  const existing = await db.prepare('SELECT id FROM resumes WHERE id = ?').bind('resume-seed-davide').first();
-  if (existing) return;
-
-  await db
-    .prepare(
-      `INSERT INTO resumes (
-        id, user_id, file_name, raw_text, file_data_base64, mime_type, profile_json, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      'resume-seed-davide',
-      'user-student-davide',
-      'davide-sample-resume.txt',
-      SAMPLE_RESUME_TEXT,
-      null,
-      'text/plain;charset=utf-8',
-      JSON.stringify(STUDENT_PROFILE),
-      nowIso(),
-    )
-    .run();
-}
-
 export async function ensureAppData(env) {
   const db = dbFromEnv(env);
   await executeSchema(db);
   await migrateUsersRoleCheck(db);
-  await ensureResumeFileColumns(db);
-  await seedUsers(db);
+  await ensureUserEncryptionColumns(db, env);
+  await ensureResumeEncryptionColumns(db, env);
+  await seedAdminUser(db, env);
+  await purgeLegacyDemoUsers(db);
   await seedJobs(db);
   return db;
 }
 
 export async function findUserByEmail(env, email) {
   const db = await ensureAppData(env);
-  return db.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').bind(email).first();
+  const lookup = await hashLookup(email);
+  const row = await db.prepare('SELECT * FROM users WHERE email_lookup = ?').bind(lookup).first();
+  return mapUserRow(env, row);
 }
 
 export async function findSessionUser(env, token) {
   if (!token) return null;
   const db = await ensureAppData(env);
-  return db
+  const row = await db
     .prepare(
-      `SELECT users.id, users.email, users.name, users.role, sessions.id AS session_id
+      `SELECT users.id, users.email, users.email_cipher, users.name, users.name_cipher, users.role, sessions.id AS session_id
        FROM sessions
        JOIN users ON users.id = sessions.user_id
        WHERE sessions.id = ? AND sessions.expires_at > ?`,
     )
     .bind(token, nowIso())
     .first();
+  return mapUserRow(env, row);
 }
 
 export async function createSession(env, userId, token) {
@@ -359,10 +505,23 @@ export async function createResumeAndMatchRun(env, user, { fileName, rawText, fi
   await db
     .prepare(
       `INSERT INTO resumes (
-        id, user_id, file_name, raw_text, file_data_base64, mime_type, profile_json, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, file_name, raw_text, raw_text_cipher, file_data_base64, file_data_cipher,
+        mime_type, profile_json, profile_json_cipher, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(resumeId, user.id, fileName, rawText, fileDataBase64, mimeType, JSON.stringify(profile), createdAt)
+    .bind(
+      resumeId,
+      user.id,
+      fileName,
+      '[encrypted]',
+      await encryptText(env, rawText),
+      null,
+      fileDataBase64 ? await encryptText(env, fileDataBase64) : null,
+      mimeType,
+      '{}',
+      await encryptText(env, JSON.stringify(profile)),
+      createdAt,
+    )
     .run();
   await db.prepare('INSERT INTO match_runs (id, user_id, resume_id, created_at) VALUES (?, ?, ?, ?)').bind(runId, user.id, resumeId, createdAt).run();
 
@@ -395,7 +554,7 @@ export async function listStudentHistory(env, user) {
   const db = await ensureAppData(env);
   const resumes = await db
     .prepare(
-      `SELECT id, file_name, raw_text, profile_json, created_at
+      `SELECT id, file_name, raw_text, raw_text_cipher, profile_json, profile_json_cipher, created_at
        FROM resumes
        WHERE user_id = ? AND id != 'resume-seed-davide'
        ORDER BY created_at DESC
@@ -416,13 +575,15 @@ export async function listStudentHistory(env, user) {
     .all();
 
   return {
-    resumes: (resumes.results ?? []).map((row) => ({
-      id: row.id,
-      fileName: row.file_name,
-      rawText: row.raw_text,
-      profile: parseJson(row.profile_json, {}),
-      createdAt: row.created_at,
-    })),
+    resumes: await Promise.all(
+      (resumes.results ?? []).map(async (row) => ({
+        id: row.id,
+        fileName: row.file_name,
+        rawText: await decryptResumeRawText(env, row),
+        profile: parseJson(await decryptResumeProfileJson(env, row), {}),
+        createdAt: row.created_at,
+      })),
+    ),
     matchRuns: await Promise.all(
       (runs.results ?? []).map(async (row) => ({
         id: row.id,
@@ -461,8 +622,9 @@ export async function listHrCandidates(env) {
 
   const uploaded = await db
     .prepare(
-      `SELECT users.id AS user_id, users.name, users.email, resumes.id AS resume_id,
-              resumes.file_name, resumes.raw_text, resumes.profile_json, resumes.created_at
+      `SELECT users.id AS user_id, users.name, users.name_cipher, users.email, users.email_cipher,
+              resumes.id AS resume_id, resumes.file_name, resumes.raw_text, resumes.raw_text_cipher,
+              resumes.profile_json, resumes.profile_json_cipher, resumes.created_at
        FROM users
        LEFT JOIN resumes ON resumes.user_id = users.id AND resumes.id != 'resume-seed-davide'
        WHERE users.role = 'student'
@@ -478,14 +640,24 @@ export async function listHrCandidates(env) {
     const latestRun = row.resume_id
       ? await db.prepare('SELECT id FROM match_runs WHERE resume_id = ? ORDER BY created_at DESC LIMIT 1').bind(row.resume_id).first()
       : null;
+    const user = await mapUserRow(env, {
+      id: row.user_id,
+      email: row.email,
+      email_cipher: row.email_cipher,
+      name: row.name,
+      name_cipher: row.name_cipher,
+      role: 'student',
+    });
+    const rawText = await decryptResumeRawText(env, row);
+    const profile = parseJson(await decryptResumeProfileJson(env, row), {});
     uploadedCandidates.push({
       id: row.user_id,
-      name: row.name,
-      email: row.email,
+      name: profile?.name && profile.name !== '求职者' ? profile.name : user.name,
+      email: user.email,
       resumeId: row.resume_id,
       fileName: row.file_name,
-      rawText: row.raw_text,
-      profile: parseJson(row.profile_json, {}),
+      rawText,
+      profile,
       submittedJobIds: applicationsByUser.get(row.user_id) ?? [],
       resumeDownloadUrl: row.resume_id ? `/api/hr/resume-download?id=${encodeURIComponent(row.resume_id)}` : '',
       createdAt: row.created_at,
@@ -494,7 +666,7 @@ export async function listHrCandidates(env) {
   }
 
   return {
-    seededCandidates: CANDIDATES,
+    seededCandidates: [],
     uploadedCandidates,
   };
 }
@@ -502,37 +674,44 @@ export async function listHrCandidates(env) {
 export async function getResumeFileForHr(env, resumeId) {
   const db = await ensureAppData(env);
   const row = await db
-    .prepare('SELECT id, file_name, raw_text, file_data_base64, mime_type FROM resumes WHERE id = ?')
+    .prepare('SELECT id, file_name, raw_text, raw_text_cipher, file_data_base64, file_data_cipher, mime_type FROM resumes WHERE id = ?')
     .bind(resumeId)
     .first();
   if (!row) return null;
 
-  if (row.file_data_base64) {
+  const fileDataBase64 = await decryptResumeFileData(env, row);
+  if (fileDataBase64) {
     return {
       fileName: row.file_name || `${row.id}.pdf`,
       mimeType: row.mime_type || 'application/octet-stream',
-      bytes: base64ToBytes(row.file_data_base64),
+      bytes: base64ToBytes(fileDataBase64),
     };
   }
 
+  const rawText = await decryptResumeRawText(env, row);
   return {
     fileName: `${(row.file_name || row.id).replace(/\.[^.]+$/, '')}.txt`,
     mimeType: 'text/plain;charset=utf-8',
-    bytes: new TextEncoder().encode(row.raw_text ?? ''),
+    bytes: new TextEncoder().encode(rawText),
   };
 }
 
 export async function listAccountUsers(env) {
   const db = await ensureAppData(env);
-  const rows = await db.prepare('SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC').all();
+  const rows = await db.prepare('SELECT id, email, email_cipher, name, name_cipher, role, created_at FROM users ORDER BY created_at DESC').all();
   return {
-    users: (rows.results ?? []).map((row) => ({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      role: row.role,
-      createdAt: row.created_at,
-    })),
+    users: await Promise.all(
+      (rows.results ?? []).map(async (row) => {
+        const user = await mapUserRow(env, row);
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          createdAt: row.created_at,
+        };
+      }),
+    ),
   };
 }
 
@@ -549,6 +728,7 @@ export async function createAccountUser(env, input) {
   }
 
   const salt = createId('salt');
+  const emailLookup = await hashLookup(email);
   const user = {
     id: createId('user'),
     email,
@@ -559,10 +739,21 @@ export async function createAccountUser(env, input) {
 
   await db
     .prepare(
-      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, email, email_lookup, email_cipher, name, name_cipher, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(user.id, user.email, user.name, user.role, salt, await hashPassword(password, salt), user.createdAt)
+    .bind(
+      user.id,
+      maskEmail(user.id),
+      emailLookup,
+      await encryptText(env, user.email),
+      maskName(user.role),
+      await encryptText(env, user.name),
+      user.role,
+      salt,
+      await hashPassword(password, salt),
+      user.createdAt,
+    )
     .run();
 
   return user;
@@ -606,6 +797,12 @@ export async function deleteAccountUser(env, currentUser, userId) {
   const db = await ensureAppData(env);
   if (!userId) throw new Error('缺少要删除的账号。');
   if (userId === currentUser.id) throw new Error('不能删除当前登录账号。');
-  await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+  const target = await db.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  if (!target) throw new Error('账号不存在或已经被删除。');
+  if (target.role === 'admin') {
+    const adminCount = await db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'").first();
+    if ((adminCount?.count ?? 0) <= 1) throw new Error('至少需要保留一个管理员账号。');
+  }
+  await deleteUserCascade(db, userId);
   return { deletedId: userId };
 }

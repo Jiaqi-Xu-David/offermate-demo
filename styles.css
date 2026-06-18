@@ -115,32 +115,6 @@ button {
   font-size: 13px;
 }
 
-.demo-account-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.demo-account-button {
-  display: grid;
-  gap: 5px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--panel-strong);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 850;
-  text-align: left;
-}
-
-.demo-account-button span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
 .dashboard-page .app-shell {
   display: flex;
   flex-direction: column;
@@ -2349,8 +2323,7 @@ ol {
   .resume-toolbar,
   .resume-upload-form,
   .resume-upload-card,
-  .resume-upload-actions,
-  .demo-account-grid {
+  .resume-upload-actions {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
