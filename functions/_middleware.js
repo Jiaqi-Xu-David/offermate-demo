@@ -47,6 +47,39 @@ function shouldLogVisit(request, url) {
   return accept.includes('text/html') || url.pathname === '/' || url.pathname.endsWith('.html');
 }
 
+let visitLogSchemaReady = false;
+
+async function ensureVisitLogSchema(env) {
+  if (visitLogSchemaReady || !env.VISITS_DB) return;
+
+  await env.VISITS_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS visit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visited_at TEXT NOT NULL,
+      method TEXT NOT NULL,
+      host TEXT NOT NULL,
+      path TEXT NOT NULL,
+      query_present INTEGER NOT NULL DEFAULT 0,
+      ip TEXT NOT NULL,
+      country TEXT,
+      region TEXT,
+      city TEXT,
+      timezone TEXT,
+      colo TEXT,
+      as_organization TEXT,
+      device_type TEXT,
+      browser_family TEXT,
+      os_family TEXT,
+      user_agent TEXT,
+      referer TEXT,
+      status INTEGER
+    )
+  `).run();
+  await env.VISITS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_visit_logs_visited_at ON visit_logs (visited_at DESC)').run();
+  await env.VISITS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_visit_logs_path ON visit_logs (path)').run();
+  visitLogSchemaReady = true;
+}
+
 async function recordVisit(context, response) {
   const { request, env } = context;
   if (!env.VISITS_DB) return;
@@ -57,6 +90,7 @@ async function recordVisit(context, response) {
   const userAgent = cleanHeader(request.headers.get('user-agent'), 700);
   const cf = request.cf ?? {};
 
+  await ensureVisitLogSchema(env);
   await env.VISITS_DB.prepare(`
     INSERT INTO visit_logs (
       visited_at,

@@ -671,6 +671,8 @@ test('defines a guarded Cloudflare visit log backend', async () => {
   assert.ok(schema.includes('ip TEXT NOT NULL'));
   assert.ok(middleware.includes("request.headers.get('cf-connecting-ip')"));
   assert.ok(middleware.includes('query_present'));
+  assert.ok(middleware.includes('ensureVisitLogSchema'));
+  assert.ok(middleware.includes('CREATE TABLE IF NOT EXISTS visit_logs'));
   assert.ok(middleware.includes("url.pathname.startsWith('/admin/')"));
   assert.ok(middleware.includes('PRIVATE_FILE_PATTERN'));
   assert.ok(middleware.includes("'/wrangler.toml'"));
