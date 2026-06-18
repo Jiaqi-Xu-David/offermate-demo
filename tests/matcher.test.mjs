@@ -51,6 +51,21 @@ test('produces resume advice with missing keywords and rewrite suggestions', () 
   assert.ok(advice.nextActions.length >= 3);
 });
 
+test('resume advice does not fabricate data-analysis templates for HR resumes', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const profile = parseResumeText(`专业赛事
+教育经历2023.9-至今哈尔滨华德学院人力资源管理本科主修人力资源管理、组织行为学、劳动法、招聘与选拔等核心课程，系统掌握了人力资源管理
+通财务有限公司人事实习生半职责范围:协助人力资源部门完成日常人事管理工作，包括员工档案整理、考勤统计及入职离职手续办理；参与公司招聘流程，负责简历初步筛选及面试邀约协调；独立完成10份员工档案电子化归档工作`);
+  const advice = buildResumeAdvice(profile, targetJob);
+  const rewrittenText = advice.rewrites.map((item) => item.after).join(' ');
+
+  assert.ok(rewrittenText.includes('人事') || rewrittenText.includes('招聘') || rewrittenText.includes('档案'));
+  assert.ok(!rewrittenText.includes('SQL'));
+  assert.ok(!rewrittenText.includes('Python'));
+  assert.ok(!rewrittenText.includes('10万+'));
+  assert.ok(!rewrittenText.includes('校园 App'));
+});
+
 test('treats adjacent product operations evidence as a viable role match', () => {
   const targetJob = JOBS.find((job) => job.id === 'product-ops-intern');
   const analysis = analyzeJobFit(STUDENT_PROFILE, targetJob);
@@ -132,6 +147,22 @@ test('prefers the highest recent education when PDF text contains several school
   assert.ok(!profile.headline.includes('联系方式'));
 });
 
+test('does not infer section titles as names and parses one-digit education dates', () => {
+  const profile = parseResumeText(`专业赛事
+教育经历2023.9-至今哈尔滨华德学院人力资源管理本科主修人力资源管理、组织行为学、劳动法、招聘与选拔等核心课程，系统掌握了人力资源管理
+通财务有限公司人事实习生半职责范围:协助人力资源部门完成日常人事管理工作，包括员工档案整理、考勤统计及入职离职手续办理；参与公司招聘流程，负责简历初步筛选及面试邀约协调；独立完成10份员工档案电子化归档工作`);
+
+  assert.equal(profile.name, '求职者');
+  assert.ok(profile.headline.includes('哈尔滨华德学院'));
+  assert.ok(profile.headline.includes('人力资源管理'));
+  assert.ok(profile.headline.includes('本科'));
+  assert.equal(profile.target, '求职意向待补充');
+  assert.ok(profile.skills.includes('人事'));
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(profile.experiences.some((item) => item.includes('人事实习生')));
+  assert.ok(!profile.experiences.some((item) => item.includes('组织行为学')));
+});
+
 test('keeps parsed experience evidence concise for compact resume cards', () => {
   const profile = parseResumeText(`个人简历
 姓名:邓聖喆
@@ -200,6 +231,21 @@ test('builds a resume summary with short meta, submitted jobs, and tag groups', 
   assert.ok(summary.tagGroups.some((group) => group.label === '核心技能' && group.tags.includes('SQL')));
   assert.ok(!summary.metaText.includes('电话'));
   assert.ok(!summary.metaText.includes('邮箱'));
+});
+
+test('resume summary does not show a placeholder target as a real tag', () => {
+  const summary = buildResumeSummary({
+    name: '求职者',
+    headline: '哈尔滨华德学院 人力资源管理 本科',
+    target: '求职意向待补充',
+    skills: ['人事', '招聘'],
+    languages: [],
+    softSkills: [],
+    experiences: [],
+  });
+
+  assert.equal(summary.submittedText, '求职意向待补充');
+  assert.ok(!summary.tagGroups.some((group) => group.label === '求职意向'));
 });
 
 test('keeps all seeded jobs inside the same company', () => {

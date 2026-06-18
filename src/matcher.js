@@ -409,7 +409,7 @@ function isGenericResumeTitle(line) {
 function isPlausibleCandidateName(value) {
   const clean = cleanCandidateName(value);
   if (!clean || isGenericResumeTitle(clean)) return false;
-  if (/求职|意向|电话|邮箱|学校|教育|经历|技能|项目|个人信息/.test(clean)) return false;
+  if (/求职|意向|电话|邮箱|学校|教育|经历|技能|项目|个人信息|专业|赛事|课程|招聘|选拔|职责|范围|管理/.test(clean)) return false;
   return /^[\u4e00-\u9fa5A-Za-z·]{2,24}$/.test(clean);
 }
 
@@ -479,7 +479,7 @@ function extractEducationRecords(text) {
   });
 
   const datedPattern =
-    /(20\d{2})[.\/]\d{2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{2}|至今)\s*([^\d\n]{2,45}?(?:大学|学院|学校))\s*([\u4e00-\u9fa5A-Za-z0-9（）()]{2,28}?)?（?\s*(博士|硕士|研究生|本科|学士|专科|大专)\s*）?/g;
+    /(20\d{2})[.\/]\d{1,2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{1,2}|至今)\s*([^\d\n]{2,45}?(?:大学|学院|学校))\s*([\u4e00-\u9fa5A-Za-z0-9（）()]{2,28}?)?（?\s*(博士|硕士|研究生|本科|学士|专科|大专)\s*）?/g;
   for (const match of text.matchAll(datedPattern)) {
     pushEducationRecord(records, {
       year: match[1],
@@ -547,7 +547,7 @@ function extractEducationHeadline(lines, text) {
 function extractTarget(text) {
   const match = text.match(/(?:^|\n|[^\u4e00-\u9fa5])求职(?:意向|目标|偏好)\s*[：:]\s*([^\n]+)/);
   const target = stripAfterResumeLabels(match?.[1] ?? '');
-  return target || '数据分析相关实习';
+  return target || '求职意向待补充';
 }
 
 function normalizeExperienceLine(line) {
@@ -564,6 +564,7 @@ const EXPERIENCE_MARKERS = [
   '商业分析实习生',
   '算法工程实习生',
   '行政人员',
+  '人事实习生',
   '幼儿教师',
   '实习记者',
   '主导',
@@ -582,9 +583,9 @@ const EXPERIENCE_MARKERS = [
 
 function splitExperienceFragments(line) {
   return line
-    .replace(/(20\d{2}[.\/]\d{2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{2}|至今))/g, '\n$1')
+    .replace(/(20\d{2}[.\/]\d{1,2}\s*[-—－~]\s*(?:20\d{2}[.\/]\d{1,2}|至今))/g, '\n$1')
     .replace(
-      /([\u4e00-\u9fa5A-Za-z（）()·]{2,45}(?:有限公司|集团|幼儿园|融媒体|传媒)[^\n。；;]{0,28}(?:实习记者|短视频内容编导助理|行政人员|幼儿教师))/g,
+      /([\u4e00-\u9fa5A-Za-z（）()·]{2,45}(?:有限公司|集团|幼儿园|融媒体|传媒)[^\n。；;]{0,28}(?:实习记者|短视频内容编导助理|行政人员|人事实习生|幼儿教师))/g,
       '\n$1',
     )
     .split('\n')
@@ -633,7 +634,7 @@ function compactExperienceEvidence(line) {
   }
   let compact = normalized
     .slice(startIndex)
-    .replace(/^(?:20\d{2}[.\/]\d{2}\s*[-—－~]\s*)?(?:20\d{2}[.\/]\d{2}|至今)?/, '')
+    .replace(/^(?:20\d{2}[.\/]\d{1,2}\s*[-—－~]\s*)?(?:20\d{2}[.\/]\d{1,2}|至今)?/, '')
     .trim();
   const localMediaSuffix = compact.match(/[县市区]融媒体/);
   if (localMediaSuffix && localMediaSuffix.index > 2) compact = compact.slice(localMediaSuffix.index - 2);
@@ -667,6 +668,7 @@ function extractExperienceEvidence(text) {
     if (/^(电话|邮箱|微信|生日|政治面貌|主修课程|个人简历)/.test(line)) return false;
     if (/^(组织[、,，]|沟通协调|服务意识|性格|具有|能够|有人事|熟悉|了解各项)/.test(line)) return false;
     if (/(自荐信|尊敬的领导|我有信心|机会留给|诚挚的谢意|求职请求)/.test(line)) return false;
+    if (/(主修|核心课程|组织行为学|劳动法|招聘与选拔)/.test(line) && !/(实习|工作职责|负责|协助|独立完成)/.test(line)) return false;
     return /(实习|工作职责|行政人员|教师|记者|编导|负责|协助|主导|组织|撰写|拍摄|剪辑|管理制度|招聘|培训|考勤)/.test(line);
   }).map(compactExperienceEvidence).filter((line) =>
     line.length >= 8 &&
@@ -709,6 +711,7 @@ export function parseResumeText(text) {
 export const STUDENT_PROFILE = parseResumeText(SAMPLE_RESUME_TEXT);
 
 function splitTargetTags(target) {
+  if (!target || target === '求职意向待补充') return [];
   return unique(
     String(target ?? '')
       .split(/[、/,，|]+/)
@@ -1574,8 +1577,66 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
 export function buildResumeAdvice(profile, job) {
   const analysis = analyzeJobFit(profile, job);
   const firstGap = analysis.gaps[0] ?? job.tags[0];
-  const primaryExperience = profile.experiences[0] ?? '参与数据分析项目';
+  const primaryExperience = profile.experiences[0] ?? '暂无可直接改写的经历';
   const researchExperience = profile.experiences.find((item) => item.includes('问卷')) ?? profile.experiences[1] ?? primaryExperience;
+  const courseEvidence =
+    String(profile.rawResume ?? '')
+      .split('\n')
+      .find((line) => /(主修|核心课程|组织行为学|劳动法|招聘与选拔)/.test(line)) ?? researchExperience;
+  const profileText = [
+    profile.target,
+    ...(profile.skills ?? []),
+    ...(profile.experiences ?? []),
+    profile.rawResume ?? '',
+  ].join(' ');
+  const hasDataEvidence = /(SQL|Python|Tableau|Excel|A\/B测试|数据清洗|转化漏斗|数据看板)/i.test(profileText);
+  const hasHrEvidence = /(人事|人力资源|招聘|考勤|员工档案|入职|离职|行政管理|Office|文档写作)/i.test(profileText);
+  const rewrites = hasDataEvidence
+    ? [
+        {
+          before: primaryExperience,
+          after:
+            '基于 SQL 与 Python 清洗 10万+ 用户行为数据，搭建注册-激活-留存转化漏斗，定位关键流失节点并输出看板洞察。',
+        },
+        {
+          before: researchExperience,
+          after:
+            '围绕校园 App 新用户体验设计问卷，回收并整理 80 份反馈，将问题归因到功能认知、路径阻塞和内容吸引力三类。',
+        },
+      ]
+    : hasHrEvidence
+      ? [
+          {
+            before: primaryExperience,
+            after:
+              '围绕人事管理、招聘支持与员工档案整理，承担考勤统计、入离职手续协助和面试邀约协调等工作，沉淀可复盘的人事流程经验。',
+          },
+          {
+            before: courseEvidence,
+            after:
+              '系统学习人力资源管理、组织行为学、劳动法、招聘与选拔等课程，可将课程知识迁移到招聘筛选、员工关系和日常人事支持场景。',
+          },
+        ]
+      : [
+          {
+            before: primaryExperience,
+            after:
+              '围绕目标岗位要求，补充一段真实经历，写清具体任务、使用工具、协作对象和可量化结果，避免只罗列课程或职责。',
+          },
+        ];
+  const nextActions = hasDataEvidence
+    ? [
+        `在简历技能区补充 ${firstGap} 的真实使用场景`,
+        '把最相关项目放到简历第一页上半部分',
+        '每段经历补充动作、工具、规模、结果四个要素',
+        '投递前准备 30 秒岗位匹配自我介绍',
+      ]
+    : [
+        `如果确实具备 ${firstGap}，补充真实使用场景；如果没有，避免包装成不存在的能力`,
+        '优先选择与当前经历更接近的人事、行政、运营支持或组织协调类岗位',
+        '把课程、实习职责改写为“任务、动作、结果”的经历证据',
+        '投递前准备 30 秒岗位匹配自我介绍',
+      ];
 
   return {
     coveredKeywords: analysis.matchedTags,
@@ -1586,24 +1647,8 @@ export function buildResumeAdvice(profile, job) {
         : analysis.score >= 65
           ? '具备投递基础，建议先补强关键能力表述'
           : '当前证据支撑不足，建议先补充项目经历',
-    rewrites: [
-      {
-        before: primaryExperience,
-        after:
-          '基于 SQL 与 Python 清洗 10万+ 用户行为数据，搭建注册-激活-留存转化漏斗，定位关键流失节点并输出看板洞察。',
-      },
-      {
-        before: researchExperience,
-        after:
-          '围绕校园 App 新用户体验设计问卷，回收并整理 80 份反馈，将问题归因到功能认知、路径阻塞和内容吸引力三类。',
-      },
-    ],
-    nextActions: [
-      `在简历技能区补充 ${firstGap} 的真实使用场景`,
-      '把最相关项目放到简历第一页上半部分',
-      '每段经历补充动作、工具、规模、结果四个要素',
-      '投递前准备 30 秒岗位匹配自我介绍',
-    ],
+    rewrites,
+    nextActions,
   };
 }
 
