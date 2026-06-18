@@ -568,6 +568,40 @@ export async function createAccountUser(env, input) {
   return user;
 }
 
+export function normalizeStudentRegistrationInput(input) {
+  const name = String(input.name ?? '').trim();
+  const email = String(input.email ?? '').trim().toLowerCase();
+  const password = String(input.password ?? '');
+  const confirmPassword = String(input.confirmPassword ?? password);
+
+  if (!name || name.length > 32) {
+    throw new Error('请填写 32 字以内的姓名。');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('邮箱格式不正确。');
+  }
+  if (password.length < 6) {
+    throw new Error('密码至少 6 位。');
+  }
+  if (confirmPassword !== password) {
+    throw new Error('两次密码输入不一致。');
+  }
+
+  return {
+    name,
+    email,
+    password,
+    role: 'student',
+  };
+}
+
+export async function createStudentRegistration(env, input) {
+  const userInput = normalizeStudentRegistrationInput(input);
+  const existing = await findUserByEmail(env, userInput.email);
+  if (existing) throw new Error('这个邮箱已经注册，请直接登录。');
+  return createAccountUser(env, userInput);
+}
+
 export async function deleteAccountUser(env, currentUser, userId) {
   const db = await ensureAppData(env);
   if (!userId) throw new Error('缺少要删除的账号。');

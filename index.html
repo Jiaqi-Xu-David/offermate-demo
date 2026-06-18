@@ -24,6 +24,7 @@
         </label>
         <p id="login-error" class="login-error" role="alert"></p>
         <button class="primary-button" type="submit">登录</button>
+        <button id="open-register-modal" class="secondary-button" type="button">注册求职者账号</button>
         <div class="demo-account-grid" aria-label="演示账号">
           <button class="demo-account-button" type="button" data-demo-email="davide@example.com" data-demo-password="davide123">
             求职者账号
@@ -40,6 +41,37 @@
         </div>
       </form>
     </section>
+
+    <dialog id="register-dialog" class="modal-dialog auth-dialog" aria-labelledby="register-dialog-title">
+      <form id="register-form" class="login-card register-card" aria-label="注册求职者账号">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">求职者注册</p>
+            <h3 id="register-dialog-title">创建求职者账号</h3>
+            <p class="login-copy">注册后会直接进入求职者页面。HR 和管理员账号由管理员创建。</p>
+          </div>
+          <button id="close-register-modal" class="secondary-button compact-button" type="button">关闭</button>
+        </div>
+        <label>
+          姓名
+          <input id="register-name" type="text" autocomplete="name" placeholder="例如：李同学" required>
+        </label>
+        <label>
+          邮箱
+          <input id="register-email" type="email" autocomplete="email" placeholder="student@example.com" required>
+        </label>
+        <label>
+          密码
+          <input id="register-password" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+        <label>
+          确认密码
+          <input id="register-confirm-password" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+        <p id="register-error" class="login-error" role="alert"></p>
+        <button class="primary-button" type="submit">注册并进入</button>
+      </form>
+    </dialog>
 
     <main id="app-shell" class="app-shell" hidden>
       <section class="topbar" aria-label="Demo overview">

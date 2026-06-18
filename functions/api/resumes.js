@@ -2,6 +2,8 @@ import { extractPdfText } from '../../src/backend/pdf.js';
 import { createResumeAndMatchRun, listStudentHistory } from '../../src/backend/database.js';
 import { jsonResponse, requireUser } from '../_lib/api.js';
 
+const MAX_STORED_RESUME_FILE_BYTES = 700_000;
+
 function bytesToBase64(bytes) {
   if (typeof btoa === 'function') {
     let binary = '';
@@ -21,6 +23,20 @@ function textToBase64(text) {
   return bytesToBase64(new TextEncoder().encode(text));
 }
 
+function createStoredResumeFilePayload(buffer, mimeType) {
+  if (buffer.byteLength > MAX_STORED_RESUME_FILE_BYTES) {
+    return {
+      storedFileDataBase64: null,
+      storedMimeType: null,
+    };
+  }
+
+  return {
+    storedFileDataBase64: arrayBufferToBase64(buffer),
+    storedMimeType: mimeType || 'application/pdf',
+  };
+}
+
 async function readResumeText(request) {
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('multipart/form-data')) {
@@ -29,11 +45,12 @@ async function readResumeText(request) {
     if (file && typeof file.arrayBuffer === 'function') {
       const buffer = await file.arrayBuffer();
       const text = await extractPdfText(buffer);
+      const { storedFileDataBase64, storedMimeType } = createStoredResumeFilePayload(buffer, file.type);
       return {
         fileName: file.name || 'resume.pdf',
         rawText: text,
-        fileDataBase64: arrayBufferToBase64(buffer),
-        mimeType: file.type || 'application/pdf',
+        fileDataBase64: storedFileDataBase64,
+        mimeType: storedMimeType,
       };
     }
     const rawText = String(form.get('rawText') ?? '');

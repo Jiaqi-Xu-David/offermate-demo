@@ -25,6 +25,7 @@ import { buildJobDetailUrl } from './job-navigation.js';
 const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
 const HIGHLIGHT_CLASS = 'hl-target';
 const HIGHLIGHT_FLASH_CLASS = 'hl-flash';
+const DEFAULT_PARSE_STATUS = '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。';
 
 function loadAdminJobs() {
   try {
@@ -92,7 +93,7 @@ const state = {
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: 'davide',
   rankings: rankJobs(createEmptyProfile('大卫德'), JOBS),
-  parseStatus: '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。',
+  parseStatus: DEFAULT_PARSE_STATUS,
   adminResult:
     savedAdminJobs.length > 0
       ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
@@ -107,6 +108,15 @@ const elements = {
   loginEmail: document.querySelector('#login-email'),
   loginPassword: document.querySelector('#login-password'),
   loginError: document.querySelector('#login-error'),
+  openRegisterModal: document.querySelector('#open-register-modal'),
+  registerDialog: document.querySelector('#register-dialog'),
+  closeRegisterModal: document.querySelector('#close-register-modal'),
+  registerForm: document.querySelector('#register-form'),
+  registerName: document.querySelector('#register-name'),
+  registerEmail: document.querySelector('#register-email'),
+  registerPassword: document.querySelector('#register-password'),
+  registerConfirmPassword: document.querySelector('#register-confirm-password'),
+  registerError: document.querySelector('#register-error'),
   logoutButton: document.querySelector('#logout-button'),
   authUserName: document.querySelector('#auth-user-name'),
   authRoleLabel: document.querySelector('#auth-role-label'),
@@ -187,6 +197,17 @@ const elements = {
   accountResult: document.querySelector('#account-result'),
 };
 
+function resetStudentWorkspaceState(name = '求职者') {
+  state.profile = createEmptyProfile(name);
+  state.resumeText = '';
+  state.resumeFileName = '';
+  state.hasParsedResume = false;
+  state.history = { resumes: [], matchRuns: [] };
+  state.parseStatus = '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。';
+  if (elements.selectedFileName) elements.selectedFileName.textContent = '未选择文件';
+  if (elements.resumeFile) elements.resumeFile.value = '';
+}
+
 async function apiRequest(path, options = {}) {
   const response = await fetch(path, {
     credentials: 'same-origin',
@@ -214,8 +235,8 @@ function getRoleLabel(role) {
 function setAuthenticatedUser(user) {
   state.currentUser = user;
   state.mode = user.role === 'admin' ? 'account-admin' : user.role === 'hr' ? 'admin' : 'student';
-  if (user.role === 'student' && !state.hasParsedResume) {
-    state.profile = createEmptyProfile(user.name);
+  if (user.role === 'student') {
+    resetStudentWorkspaceState(user.name);
   }
   elements.loginScreen.hidden = true;
   elements.appShell.hidden = false;
@@ -225,6 +246,7 @@ function setAuthenticatedUser(user) {
 
 function showLogin(message = '') {
   state.currentUser = null;
+  resetStudentWorkspaceState();
   elements.appShell.hidden = true;
   elements.loginScreen.hidden = false;
   elements.loginError.textContent = message;
@@ -1486,6 +1508,51 @@ document.querySelectorAll('.demo-account-button').forEach((button) => {
     elements.loginEmail.value = button.dataset.demoEmail;
     elements.loginPassword.value = button.dataset.demoPassword;
   });
+});
+
+elements.openRegisterModal.addEventListener('click', () => {
+  elements.registerError.textContent = '';
+  elements.registerForm.reset();
+  if (typeof elements.registerDialog.showModal === 'function') {
+    elements.registerDialog.showModal();
+    return;
+  }
+  elements.registerDialog.setAttribute('open', '');
+});
+
+elements.closeRegisterModal.addEventListener('click', () => {
+  elements.registerDialog.close();
+});
+
+elements.registerDialog.addEventListener('click', (event) => {
+  if (event.target === elements.registerDialog) {
+    elements.registerDialog.close();
+  }
+});
+
+elements.registerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  elements.registerError.textContent = '';
+  if (elements.registerPassword.value !== elements.registerConfirmPassword.value) {
+    elements.registerError.textContent = '两次密码输入不一致。';
+    return;
+  }
+
+  try {
+    const payload = await apiRequest('/api/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: elements.registerName.value,
+        email: elements.registerEmail.value,
+        password: elements.registerPassword.value,
+        confirmPassword: elements.registerConfirmPassword.value,
+      }),
+    });
+    elements.registerDialog.close();
+    await enterApp(payload.user);
+  } catch (error) {
+    elements.registerError.textContent = error.message;
+  }
 });
 
 elements.logoutButton.addEventListener('click', async () => {

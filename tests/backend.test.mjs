@@ -5,6 +5,7 @@ import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
+import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
 
 function buildMinimalPdf(streamBody) {
@@ -170,6 +171,27 @@ test('infers the candidate name from labeled resume text instead of generic titl
   assert.ok(profile.skills.includes('SQL'));
 });
 
+test('extracts and structures one-line Chinese resume PDF text into profile tags', async () => {
+  const pdf = buildMinimalPdf(`BT
+    (Werf基本资料实习经历电话：13800000000邮箱：student@example.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江学历：专科性别：男院校：江西生物科技职业学院专业：助漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江主导多部短片/微电影创作，负责创意策划、脚本撰写、现场拍摄和后期剪辑调色。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映。团队与执行：具有团队协作意识和项目推进能力。) Tj
+  ET`);
+
+  const text = await extractPdfText(pdf);
+  const profile = parseResumeText(text);
+
+  assert.equal(profile.name, '邓聖喆');
+  assert.equal(profile.gender, '男');
+  assert.equal(profile.target, '影视媒体类方向');
+  assert.ok(profile.headline.includes('江西生物科技职业学院'));
+  assert.ok(profile.headline.includes('动漫媒体制作技术'));
+  assert.ok(profile.skills.includes('PR'));
+  assert.ok(profile.skills.includes('剪映'));
+  assert.ok(profile.softSkills.includes('团队协作'));
+  assert.ok(profile.experiences.some((item) => item.includes('实习记者')));
+  assert.ok(!profile.headline.includes('电话'));
+  assert.ok(!profile.headline.includes('邮箱'));
+});
+
 test('parses resume text with DeepSeek JSON mode when an API key is configured', async () => {
   const calls = [];
   const profile = await parseResumeWithDeepSeek(
@@ -247,6 +269,7 @@ test('defines application tables for auth, jobs, resumes, matches, and applicati
 test('schema and HR APIs support original resume download', async () => {
   const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
   const downloadApi = await readFile(new URL('../functions/api/hr/resume-download.js', import.meta.url), 'utf8');
+  const resumesApi = await readFile(new URL('../functions/api/resumes.js', import.meta.url), 'utf8');
 
   assert.ok(APP_SCHEMA_SQL.includes('file_data_base64 TEXT'));
   assert.ok(APP_SCHEMA_SQL.includes('mime_type TEXT'));
@@ -255,6 +278,9 @@ test('schema and HR APIs support original resume download', async () => {
   assert.ok(databaseJs.includes('resumeDownloadUrl'));
   assert.ok(downloadApi.includes("requireUser(context, ['hr'])"));
   assert.ok(downloadApi.includes('Content-Disposition'));
+  assert.ok(resumesApi.includes('MAX_STORED_RESUME_FILE_BYTES'));
+  assert.ok(resumesApi.includes('createStoredResumeFilePayload'));
+  assert.ok(resumesApi.includes('fileDataBase64: storedFileDataBase64'));
 });
 
 test('supports account admin users and exposes raw parsed resume text', async () => {
@@ -274,11 +300,70 @@ test('supports account admin users and exposes raw parsed resume text', async ()
   assert.ok(usersApi.includes('onRequestDelete'));
 });
 
+test('public registration is student-only and validates basic account fields', () => {
+  const normalized = normalizeStudentRegistrationInput({
+    name: '新同学',
+    email: 'New.Student@Example.COM ',
+    password: 'student123',
+    confirmPassword: 'student123',
+    role: 'admin',
+  });
+
+  assert.deepEqual(normalized, {
+    name: '新同学',
+    email: 'new.student@example.com',
+    password: 'student123',
+    role: 'student',
+  });
+  assert.throws(
+    () => normalizeStudentRegistrationInput({ name: '新同学', email: 'broken', password: 'student123' }),
+    /邮箱格式/,
+  );
+  assert.throws(
+    () => normalizeStudentRegistrationInput({ name: '新同学', email: 'a@example.com', password: '123' }),
+    /至少 6 位/,
+  );
+  assert.throws(
+    () => normalizeStudentRegistrationInput({
+      name: '新同学',
+      email: 'a@example.com',
+      password: 'student123',
+      confirmPassword: 'student456',
+    }),
+    /两次密码/,
+  );
+});
+
+test('registration API creates a student session without exposing role selection', async () => {
+  const registerApi = await readFile(new URL('../functions/api/register.js', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+
+  assert.ok(registerApi.includes('createStudentRegistration'));
+  assert.ok(registerApi.includes('createSessionCookie'));
+  assert.ok(registerApi.includes('Set-Cookie'));
+  assert.ok(!html.includes('id="register-role"'));
+  assert.ok(html.includes('id="register-form"'));
+  assert.ok(html.includes('id="open-register-modal"'));
+  assert.ok(appJs.includes("apiRequest('/api/register'"));
+  assert.ok(appJs.includes('await enterApp(payload.user)'));
+});
+
+test('student-specific resume state is reset when switching accounts', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('function resetStudentWorkspaceState'));
+  assert.ok(appJs.includes('resetStudentWorkspaceState(user.name)'));
+  assert.ok(appJs.includes('resetStudentWorkspaceState()'));
+  assert.ok(appJs.includes("state.parseStatus = '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。';"));
+});
+
 test('static shell uses login-driven routing and resume upload history', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
   assert.ok(html.includes('id="login-screen"'));
   assert.ok(html.includes('id="login-form"'));
+  assert.ok(html.includes('id="register-dialog"'));
   assert.ok(html.includes('id="app-shell"'));
   assert.ok(html.includes('id="logout-button"'));
   assert.ok(html.includes('id="resume-upload-form"'));

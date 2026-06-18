@@ -1,6 +1,7 @@
 name = "offermate-demo"
 pages_build_output_dir = "."
 compatibility_date = "2026-06-05"
+compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "VISITS_DB"
