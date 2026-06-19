@@ -407,6 +407,26 @@ test('removes duplicate workflow and low-value advice cards from student view', 
   assert.ok(!indexHtml.includes('final-report'));
 });
 
+test('separates student progress guidance from the job selector', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const workflowIndex = indexHtml.indexOf('id="workflow-checklist"');
+  const dashboardIndex = indexHtml.indexOf('id="match-dashboard-list"');
+  const priorityIndex = indexHtml.indexOf('id="priority-action-panel"');
+  const explainerIndex = indexHtml.indexOf('class="score-explainer"');
+
+  assert.ok(workflowIndex > -1);
+  assert.ok(dashboardIndex > workflowIndex);
+  assert.ok(priorityIndex > -1);
+  assert.ok(explainerIndex > priorityIndex);
+  assert.ok(!indexHtml.includes('<h2>快速切换</h2>'));
+  assert.ok(appJs.includes('renderWorkflowChecklist()'));
+  assert.ok(appJs.includes('renderPriorityActionPanel(selectedJob, analysis, advice)'));
+  assert.match(css, /\.workflow-checklist\s*\{/);
+  assert.match(css, /\.priority-action-panel\s*\{/);
+});
+
 test('keeps the student profile ordered like a resume summary', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const skillIndex = indexHtml.indexOf('<h3>核心技能</h3>');

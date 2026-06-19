@@ -138,6 +138,7 @@ const elements = {
   parseStatus: document.querySelector('#parse-status'),
   potentialSummary: document.querySelector('#potential-summary'),
   potentialSignals: document.querySelector('#potential-signals'),
+  workflowChecklist: document.querySelector('#workflow-checklist'),
   matchDashboardList: document.querySelector('#match-dashboard-list'),
   skillList: document.querySelector('#skill-list'),
   languageList: document.querySelector('#language-list'),
@@ -174,6 +175,7 @@ const elements = {
   selectedJobMeta: document.querySelector('#selected-job-meta'),
   scoreRing: document.querySelector('#score-ring'),
   scoreValue: document.querySelector('#score-value'),
+  priorityActionPanel: document.querySelector('#priority-action-panel'),
   compositeList: document.querySelector('#composite-list'),
   scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
@@ -640,21 +642,142 @@ function renderProfile() {
   renderTags(elements.softSkillList, state.profile.softSkills?.length ? state.profile.softSkills : emptyTag);
 }
 
+function createWorkflowStep(number, label, detail, status) {
+  const item = document.createElement('article');
+  item.className = `workflow-step ${status}`;
+
+  const index = document.createElement('span');
+  index.className = 'workflow-step-index';
+  index.textContent = String(number).padStart(2, '0');
+
+  const content = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = label;
+  const copy = document.createElement('p');
+  copy.textContent = detail;
+  content.append(title, copy);
+  item.append(index, content);
+  return item;
+}
+
+function renderWorkflowChecklist() {
+  if (!elements.workflowChecklist) return;
+  const hasEvidence = hasResumeEvidence(state.profile);
+  const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
+  const selectedAnalysis = state.rankings.find((analysis) => analysis.job.id === selectedJob?.id);
+  const gaps = hasEvidence ? (selectedAnalysis?.gaps ?? []).filter(Boolean).slice(0, 2) : [];
+  const firstOpenStep = hasEvidence ? (gaps.length ? 3 : 0) : 1;
+  const steps = [
+    {
+      label: hasEvidence ? '简历已解析' : '上传简历',
+      detail: hasEvidence
+        ? `${state.profile.skills.length} 项能力，${state.profile.experiences.length} 条经历证据`
+        : '先上传文字型 PDF，避免只看示例数据',
+      done: hasEvidence,
+    },
+    {
+      label: selectedJob ? '已选目标岗位' : '选择目标岗位',
+      detail: selectedJob ? selectedJob.title : '从岗位池选择一个岗位查看分析',
+      done: Boolean(selectedJob),
+    },
+    {
+      label: hasEvidence ? '补强关键缺口' : '查看匹配结果',
+      detail: hasEvidence
+        ? gaps.length ? `优先补：${gaps.join('、')}` : '关键词覆盖较完整，可进入投递准备'
+        : `${state.jobs.length} 个岗位等待匹配`,
+      done: hasEvidence && gaps.length === 0,
+    },
+  ];
+
+  elements.workflowChecklist.replaceChildren(
+    ...steps.map((step, index) => {
+      const status = step.done ? 'done' : firstOpenStep === index + 1 ? 'active' : 'pending';
+      return createWorkflowStep(index + 1, step.label, step.detail, status);
+    }),
+  );
+}
+
+function createPrioritySection(labelText, children) {
+  const section = document.createElement('section');
+  const label = document.createElement('span');
+  label.textContent = labelText;
+  section.append(label, ...children);
+  return section;
+}
+
+function renderPriorityActionPanel(selectedJob, analysis, advice) {
+  if (!elements.priorityActionPanel) return;
+
+  if (!hasResumeEvidence(state.profile)) {
+    const title = document.createElement('strong');
+    title.textContent = '先上传可识别 PDF 简历';
+    const copy = document.createElement('p');
+    copy.textContent = '上传后会抽取姓名、学校、经历证据和能力标签，再生成岗位匹配分与简历改写建议。';
+    elements.priorityActionPanel.replaceChildren(title, copy);
+    return;
+  }
+
+  const missingKeywords = (advice.missingKeywords ?? []).slice(0, 4);
+  const coveredKeywords = (advice.coveredKeywords ?? []).slice(0, 4);
+  const actions = (advice.nextActions ?? []).slice(0, 3);
+  const recommendation =
+    analysis.score >= 80 ? '建议投递前做一次定向润色' : analysis.score >= 65 ? '先补强关键证据再投递' : '先换更贴近的岗位或补项目';
+
+  const header = document.createElement('div');
+  header.className = 'priority-action-header';
+  const titleBlock = document.createElement('div');
+  const eyebrow = document.createElement('span');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = '优先处理';
+  const title = document.createElement('strong');
+  title.textContent = recommendation;
+  titleBlock.append(eyebrow, title);
+  const status = document.createElement('em');
+  status.textContent = `${selectedJob.title} · ${analysis.score}分`;
+  header.append(titleBlock, status);
+
+  const gapTags = document.createElement('div');
+  gapTags.className = 'tag-list tight-tags priority-tags';
+  renderTags(gapTags, missingKeywords.length ? missingKeywords : ['暂无明显关键词缺口'], missingKeywords.length ? 'gap' : 'covered');
+
+  const coveredTags = document.createElement('div');
+  coveredTags.className = 'tag-list tight-tags priority-tags';
+  renderTags(coveredTags, coveredKeywords.length ? coveredKeywords : ['等待更多证据'], 'covered');
+
+  const actionList = document.createElement('ol');
+  actions.forEach((action) => {
+    const item = document.createElement('li');
+    item.textContent = action;
+    actionList.append(item);
+  });
+
+  const grid = document.createElement('div');
+  grid.className = 'priority-action-grid';
+  grid.append(
+    createPrioritySection('关键词缺口', [gapTags]),
+    createPrioritySection('已覆盖能力', [coveredTags]),
+    createPrioritySection('建议动作', [actionList]),
+  );
+
+  elements.priorityActionPanel.replaceChildren(header, grid);
+}
+
 function renderMatchDashboard() {
+  renderWorkflowChecklist();
   if (!hasResumeEvidence(state.profile)) {
     const summary = document.createElement('article');
     summary.className = 'match-dashboard-summary';
     const summaryLabel = document.createElement('span');
-    summaryLabel.textContent = '匹配状态';
+    summaryLabel.textContent = '岗位池';
     const summaryTitle = document.createElement('strong');
-    summaryTitle.textContent = '上传可识别简历后生成';
+    summaryTitle.textContent = `${state.jobs.length} 个岗位待分析`;
     const summaryMeta = document.createElement('p');
-    summaryMeta.textContent = `${state.jobs.length} 个岗位等待分析`;
+    summaryMeta.textContent = '先上传简历，再生成推荐顺序';
     summary.append(summaryLabel, summaryTitle, summaryMeta);
 
     elements.matchDashboardList.replaceChildren(
       summary,
-      ...state.jobs.map((job) => {
+      ...state.jobs.slice(0, 3).map((job) => {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = job.id === state.selectedJobId ? 'match-dashboard-card pending active' : 'match-dashboard-card pending';
@@ -673,7 +796,7 @@ function renderMatchDashboard() {
         const title = document.createElement('strong');
         title.textContent = job.title;
         const level = document.createElement('p');
-        level.textContent = '待解析';
+        level.textContent = '等待匹配';
         content.append(title, level);
         card.append(ring, content);
         return card;
@@ -697,7 +820,7 @@ function renderMatchDashboard() {
 
   elements.matchDashboardList.replaceChildren(
     summary,
-    ...state.rankings.map((analysis, index) => {
+    ...state.rankings.slice(0, 3).map((analysis, index) => {
       const tone = getScoreTone(analysis.score);
       const card = document.createElement('button');
       card.type = 'button';
@@ -1322,6 +1445,7 @@ function renderAnalysis() {
     elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
     elements.scoreValue.textContent = '--';
     elements.scoreRing.style.setProperty('--score', 0);
+    renderPriorityActionPanel(selectedJob, { score: 0 }, {});
     clearHighlights(elements.resumeDocument);
     clearHighlights(elements.jobList);
     elements.compositeList.replaceChildren(
@@ -1354,6 +1478,7 @@ function renderAnalysis() {
   elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
+  renderPriorityActionPanel(selectedJob, analysis, advice);
   clearHighlights(elements.resumeDocument);
   clearHighlights(elements.jobList);
   elements.scoreRing.classList.remove('score-bump');
