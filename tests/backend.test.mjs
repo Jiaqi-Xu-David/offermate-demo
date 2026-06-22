@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { extractPdfText } from '../src/backend/pdf.js';
-import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
+import { parseResumeProfile, parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { extractResumeTextFromPdf, extractResumeTextWithOpenAI, shouldUseOcrTextExtraction } from '../src/backend/ocr.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
@@ -234,6 +234,42 @@ test('parses resume text with DeepSeek JSON mode when an API key is configured',
   const body = JSON.parse(calls[0].options.body);
   assert.equal(body.model, 'deepseek-v4-pro');
   assert.deepEqual(body.response_format, { type: 'json_object' });
+});
+
+test('parses OCR resume text with OpenAI structured output when DeepSeek is absent', async () => {
+  const calls = [];
+  const profile = await parseResumeProfile(
+    { OPENAI_API_KEY: 'openai-test-key', OPENAI_PROFILE_MODEL: 'gpt-4o-mini' },
+    '姓名：蒋纯\n性别：男\n学校：慕尼黑工业大学\n专业：电气工程及其自动化\n求职意向：设备运维实习\n技能：PLC、电气调试、AutoCAD',
+    {
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return Response.json({
+          output_text: JSON.stringify({
+            name: '蒋纯',
+            gender: '男',
+            headline: '慕尼黑工业大学 电气工程及其自动化 本科',
+            target: '设备运维实习',
+            cityPreferences: ['上海'],
+            skills: ['PLC', '电气调试', 'AutoCAD'],
+            languages: [],
+            softSkills: ['现场沟通'],
+            experiences: ['负责生产设备日常巡检与维护，检查低压配电箱、变压器、电机运行状态。'],
+            interests: ['设备运维'],
+          }),
+        });
+      },
+    },
+  );
+
+  assert.equal(profile.name, '蒋纯');
+  assert.equal(profile.parser, 'openai-responses');
+  assert.deepEqual(profile.skills.slice(0, 3), ['PLC', '电气调试', 'AutoCAD']);
+  assert.equal(calls[0].url, 'https://api.openai.com/v1/responses');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer openai-test-key');
+  const body = JSON.parse(calls[0].options.body);
+  assert.equal(body.model, 'gpt-4o-mini');
+  assert.match(body.input[0].content[0].text, /严格 JSON/);
 });
 
 test('decides when PDF text extraction should fall back to OCR', () => {

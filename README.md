@@ -40,7 +40,7 @@ npx wrangler secret put DEEPSEEK_API_KEY
 npx wrangler secret put OPENAI_API_KEY
 ```
 
-如需单独给 OCR 使用另一把 key，也可以设置 `OCR_OPENAI_API_KEY`；模型默认 `gpt-4o-mini`，可通过 `OPENAI_OCR_MODEL` 覆盖。默认是自动判断是否需要 OCR；演示时如果想让所有 PDF 都走 OCR，可以设置 `OCR_MODE=always`。
+同一把 `OPENAI_API_KEY` 也会用于 OCR 后的结构化简历画像解析；如果同时配置了 `DEEPSEEK_API_KEY`，系统会优先用 DeepSeek 做结构化解析。OCR 模型默认 `gpt-4o-mini`，可通过 `OPENAI_OCR_MODEL` 覆盖；结构化解析模型可通过 `OPENAI_PROFILE_MODEL` 覆盖。演示时如果想让所有 PDF 都走 OCR，可以设置 `OCR_MODE=always`。
 
 ## Test
 

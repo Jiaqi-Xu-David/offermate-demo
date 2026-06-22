@@ -1734,7 +1734,12 @@ async function applyParsedResume(payload) {
       : payload.resume.textSource === 'pdf-text-fallback'
         ? 'PDF 文本提取保底'
         : 'PDF 文本提取';
-  const parserLabel = state.profile.parser === 'deepseek-v4-pro' ? 'DeepSeek 结构化解析' : '本地规则解析';
+  const parserLabel =
+    state.profile.parser === 'deepseek-v4-pro'
+      ? 'DeepSeek 结构化解析'
+      : state.profile.parser === 'openai-responses'
+        ? 'OpenAI 结构化解析'
+        : '本地规则解析';
   state.parseStatus = `${extractionLabel} + ${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
   await refreshStudentHistory();
   render();

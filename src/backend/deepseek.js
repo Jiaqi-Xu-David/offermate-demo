@@ -2,6 +2,8 @@ import { parseResumeText } from '../matcher.js';
 
 const DEEPSEEK_ENDPOINT = 'https://api.deepseek.com/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-v4-pro';
+const OPENAI_RESPONSES_ENDPOINT = 'https://api.openai.com/v1/responses';
+const OPENAI_PROFILE_MODEL = 'gpt-4o-mini';
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
@@ -28,7 +30,7 @@ function parseJsonObject(content) {
   }
 }
 
-function mergeProfile(rawText, parsed) {
+function mergeProfile(rawText, parsed, parser = DEEPSEEK_MODEL) {
   const fallback = parseResumeText(rawText);
   const skills = unique([...normalizeArray(parsed.skills), ...(fallback.skills ?? [])]);
   const languages = unique([...normalizeArray(parsed.languages), ...(fallback.languages ?? [])]);
@@ -50,7 +52,7 @@ function mergeProfile(rawText, parsed) {
     interests,
     experiences,
     rawResume: rawText,
-    parser: DEEPSEEK_MODEL,
+    parser,
   };
 }
 
@@ -114,16 +116,109 @@ export async function parseResumeWithDeepSeek(env, rawText, options = {}) {
   return mergeProfile(rawText, parseJsonObject(content));
 }
 
+function getOpenAIProfileApiKey(env = {}) {
+  return cleanText(env.OPENAI_PROFILE_API_KEY ?? env.OPENAI_API_KEY);
+}
+
+function getOpenAIProfileModel(env = {}) {
+  return cleanText(env.OPENAI_PROFILE_MODEL) || OPENAI_PROFILE_MODEL;
+}
+
+function extractOpenAIOutputText(payload) {
+  if (typeof payload?.output_text === 'string') return payload.output_text;
+  const chunks = [];
+  for (const item of payload?.output ?? []) {
+    for (const content of item?.content ?? []) {
+      if (typeof content?.text === 'string') chunks.push(content.text);
+      if (typeof content?.value === 'string') chunks.push(content.value);
+    }
+  }
+  return chunks.join('\n');
+}
+
+function buildOpenAIProfilePrompt(rawText) {
+  return `你是专业招聘数据分析助手。请把下面的 OCR/简历文本解析成严格 JSON，不要输出解释，不要 Markdown。
+
+JSON 字段：
+{
+  "name": "姓名",
+  "gender": "男/女/未填写",
+  "headline": "学校 专业 学历 年级",
+  "target": "求职意向",
+  "cityPreferences": ["城市"],
+  "skills": ["硬技能或工具"],
+  "languages": ["语言能力"],
+  "softSkills": ["软技能"],
+  "experiences": ["可作为岗位匹配证据的经历句子"],
+  "interests": ["职业兴趣或行业方向"]
+}
+
+要求：
+1. 只基于简历文本，不要编造。
+2. 姓名不要取“个人简历”“专业赛事”“基本资料”等栏目标题。
+3. experiences 只保留能支撑岗位匹配的经历，不要塞入电话、邮箱、自荐信或大段课程介绍。
+4. 字段缺失时用空数组或“未填写”。
+
+简历文本：
+${rawText.slice(0, 12000)}`;
+}
+
+export async function parseResumeWithOpenAI(env, rawText, options = {}) {
+  const apiKey = getOpenAIProfileApiKey(env);
+  if (!apiKey) throw new Error('OPENAI_API_KEY or OPENAI_PROFILE_API_KEY is not configured');
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const response = await fetchImpl(OPENAI_RESPONSES_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: getOpenAIProfileModel(env),
+      input: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: buildOpenAIProfilePrompt(rawText),
+            },
+          ],
+        },
+      ],
+      max_output_tokens: 1800,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`OpenAI resume parsing failed: ${response.status} ${errorText.slice(0, 160)}`);
+  }
+
+  const payload = await response.json();
+  return mergeProfile(rawText, parseJsonObject(extractOpenAIOutputText(payload)), 'openai-responses');
+}
+
 export async function parseResumeProfile(env, rawText, options = {}) {
   const fallback = { ...parseResumeText(rawText), parser: 'rules' };
-  if (!cleanText(env?.DEEPSEEK_API_KEY)) return fallback;
+  const warnings = [];
 
-  try {
-    return await parseResumeWithDeepSeek(env, rawText, options);
-  } catch (error) {
-    return {
-      ...fallback,
-      parserWarning: error.message,
-    };
+  if (cleanText(env?.DEEPSEEK_API_KEY)) {
+    try {
+      return await parseResumeWithDeepSeek(env, rawText, options);
+    } catch (error) {
+      warnings.push(error.message);
+    }
   }
+
+  if (getOpenAIProfileApiKey(env)) {
+    try {
+      return await parseResumeWithOpenAI(env, rawText, options);
+    } catch (error) {
+      warnings.push(error.message);
+    }
+  }
+
+  return warnings.length ? { ...fallback, parserWarning: warnings.join('；') } : fallback;
 }
