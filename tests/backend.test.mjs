@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
+import { extractResumeTextFromPdf, extractResumeTextWithOpenAI, shouldUseOcrTextExtraction } from '../src/backend/ocr.js';
 import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
@@ -235,6 +236,112 @@ test('parses resume text with DeepSeek JSON mode when an API key is configured',
   assert.deepEqual(body.response_format, { type: 'json_object' });
 });
 
+test('decides when PDF text extraction should fall back to OCR', () => {
+  assert.equal(shouldUseOcrTextExtraction(''), true);
+  assert.equal(shouldUseOcrTextExtraction('个亲简历 特话 迎箱 与业'), true);
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：大卫德\n学校：慕尼黑工业大学\n专业：统计学\n技能：SQL、Python、Tableau\n求职意向：数据分析实习\n实习经历：使用 SQL 分析用户留存，并用 Python 清洗数据生成看板。'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：大卫德 学校：慕尼黑工业大学 专业：统计学 技能：SQL Python Tableau 实习经历：'.repeat(12)),
+    true,
+  );
+});
+
+test('extracts resume text through OpenAI PDF OCR when configured', async () => {
+  const calls = [];
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key', OPENAI_OCR_MODEL: 'gpt-4o-mini' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+      localText: '个亲简历',
+    },
+    {
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return Response.json({
+          output: [
+            {
+              content: [
+                {
+                  text: '姓名：蒋纯\n性别：男\n学校：慕尼黑工业大学\n专业：电气工程及其自动化\n技能：PLC、电气调试',
+                },
+              ],
+            },
+          ],
+        });
+      },
+    },
+  );
+
+  assert.equal(text.includes('姓名：蒋纯'), true);
+  assert.equal(calls[0].url, 'https://api.openai.com/v1/responses');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer openai-test-key');
+  const body = JSON.parse(calls[0].options.body);
+  assert.equal(body.model, 'gpt-4o-mini');
+  assert.equal(body.input[0].content[0].type, 'input_file');
+  assert.equal(body.input[0].content[0].filename, 'resume.pdf');
+  assert.match(body.input[0].content[0].file_data, /^data:application\/pdf;base64,/);
+  assert.equal(body.input[0].content[1].type, 'input_text');
+  assert.match(body.input[0].content[1].text, /OCR\/文本抽取/);
+});
+
+test('routes low-quality PDF extraction through OCR before matching', async () => {
+  const calls = [];
+  const result = await extractResumeTextFromPdf(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+    {
+      fileName: 'scan.pdf',
+      mimeType: 'application/pdf',
+      extractTextImpl: async () => '',
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return Response.json({ output_text: '姓名：景萍\n求职意向：行政实习\n技能：Office、招聘协助' });
+      },
+    },
+  );
+
+  assert.equal(result.source, 'openai-ocr');
+  assert.equal(result.text.includes('行政实习'), true);
+  assert.equal(calls.length, 1);
+});
+
+test('can force all uploaded PDFs through OCR for demo mode', async () => {
+  const result = await extractResumeTextFromPdf(
+    { OPENAI_API_KEY: 'openai-test-key', OCR_MODE: 'always' },
+    new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+    {
+      fileName: 'clean.pdf',
+      extractTextImpl: async () => '姓名：大卫德\n学校：慕尼黑工业大学\n专业：统计学\n技能：SQL、Python\n实习经历：使用 SQL 分析用户留存。',
+      fetchImpl: async () => Response.json({ output_text: '姓名：大卫德\n学校：慕尼黑工业大学\n专业：统计学\n技能：SQL、Python、Tableau' }),
+    },
+  );
+
+  assert.equal(result.source, 'openai-ocr');
+  assert.match(result.text, /Tableau/);
+});
+
+test('falls back to local PDF text if OCR is unavailable but text exists', async () => {
+  const result = await extractResumeTextFromPdf(
+    {},
+    new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+    {
+      extractTextImpl: async () => '姓名：大卫德 学校：慕尼黑工业大学 专业：统计学 技能：SQL Python Tableau 实习经历：'.repeat(12),
+      fetchImpl: async () => {
+        throw new Error('should not be called');
+      },
+    },
+  );
+
+  assert.equal(result.source, 'pdf-text-fallback');
+  assert.match(result.warning, /OPENAI_API_KEY/);
+  assert.match(result.text, /慕尼黑工业大学/);
+});
+
 test('hashes and verifies passwords without storing plaintext', async () => {
   const first = await hashPassword('sample-password-123', 'fixed-salt');
   const second = await hashPassword('sample-password-123', 'fixed-salt');
@@ -292,6 +399,8 @@ test('schema and HR APIs support original resume download', async () => {
   assert.ok(resumesApi.includes('MAX_STORED_RESUME_FILE_BYTES'));
   assert.ok(resumesApi.includes('createStoredResumeFilePayload'));
   assert.ok(resumesApi.includes('fileDataBase64: storedFileDataBase64'));
+  assert.ok(resumesApi.includes('extractResumeTextFromPdf(env, buffer'));
+  assert.ok(resumesApi.includes('textSource: extraction.source'));
 });
 
 test('supports account admin users and exposes raw parsed resume text', async () => {

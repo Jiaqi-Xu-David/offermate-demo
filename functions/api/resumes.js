@@ -1,4 +1,4 @@
-import { extractPdfText } from '../../src/backend/pdf.js';
+import { extractResumeTextFromPdf } from '../../src/backend/ocr.js';
 import { createResumeAndMatchRun, listStudentHistory } from '../../src/backend/database.js';
 import { jsonResponse, requireUser } from '../_lib/api.js';
 
@@ -37,20 +37,25 @@ function createStoredResumeFilePayload(buffer, mimeType) {
   };
 }
 
-async function readResumeText(request) {
+async function readResumeText(request, env) {
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('multipart/form-data')) {
     const form = await request.formData();
     const file = form.get('resume');
     if (file && typeof file.arrayBuffer === 'function') {
       const buffer = await file.arrayBuffer();
-      const text = await extractPdfText(buffer);
+      const extraction = await extractResumeTextFromPdf(env, buffer, {
+        fileName: file.name || 'resume.pdf',
+        mimeType: file.type || 'application/pdf',
+      });
       const { storedFileDataBase64, storedMimeType } = createStoredResumeFilePayload(buffer, file.type);
       return {
         fileName: file.name || 'resume.pdf',
-        rawText: text,
+        rawText: extraction.text,
         fileDataBase64: storedFileDataBase64,
         mimeType: storedMimeType,
+        textSource: extraction.source,
+        extractionWarning: extraction.warning,
       };
     }
     const rawText = String(form.get('rawText') ?? '');
@@ -83,9 +88,14 @@ export async function onRequestPost(context) {
   const auth = await requireUser(context, ['student']);
   if (auth.response) return auth.response;
 
-  const resume = await readResumeText(context.request);
+  let resume;
+  try {
+    resume = await readResumeText(context.request, context.env);
+  } catch (error) {
+    return jsonResponse({ error: `PDF OCR 解析失败：${error.message}` }, 422);
+  }
   if (!resume.rawText.trim()) {
-    return jsonResponse({ error: '没有从 PDF 中提取到文字。请上传文本型 PDF，扫描版图片 PDF 需要 OCR。' }, 400);
+    return jsonResponse({ error: '没有从简历中提取到文字。请确认 PDF 内容清晰，或配置 OPENAI_API_KEY 启用 OCR。' }, 400);
   }
 
   try {

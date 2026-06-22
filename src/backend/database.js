@@ -490,11 +490,12 @@ function isLikelyUnusableResumeProfile(profile, rawText) {
   return evidenceCount === 0 && (compactText.length < 80 || extractionLooksCorrupt || (brokenName && profile.headline === '学生'));
 }
 
-export async function createResumeAndMatchRun(env, user, { fileName, rawText, fileDataBase64 = null, mimeType = null }) {
+export async function createResumeAndMatchRun(env, user, { fileName, rawText, fileDataBase64 = null, mimeType = null, textSource = 'pdf-text' }) {
   const db = await ensureAppData(env);
   const profile = await parseResumeProfile(env, rawText);
   if (isLikelyUnusableResumeProfile(profile, rawText)) {
-    throw new Error('PDF 文本提取质量过低，无法可靠生成匹配结果。请上传文字型 PDF，扫描件需要先 OCR，或使用示例简历确认流程。');
+    const sourceLabel = textSource === 'openai-ocr' ? 'OCR 后文本质量仍然不足' : 'PDF 文本提取质量过低';
+    throw new Error(`${sourceLabel}，无法可靠生成匹配结果。请确认 PDF 清晰度，或换一份文字更完整的简历。`);
   }
   const resumeId = createId('resume');
   const runId = createId('match');
@@ -547,7 +548,7 @@ export async function createResumeAndMatchRun(env, user, { fileName, rawText, fi
       .run();
   }
 
-  return { resume: { id: resumeId, fileName, rawText, createdAt, profile }, run: { id: runId, createdAt, scores: rankings } };
+  return { resume: { id: resumeId, fileName, rawText, createdAt, profile, textSource }, run: { id: runId, createdAt, scores: rankings } };
 }
 
 export async function listStudentHistory(env, user) {

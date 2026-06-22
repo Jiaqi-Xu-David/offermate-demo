@@ -34,6 +34,14 @@ npx wrangler secret put OFFERMATE_ENCRYPTION_KEY
 npx wrangler secret put DEEPSEEK_API_KEY
 ```
 
+可选：启用 OpenAI PDF OCR。当 PDF 文本提取为空、疑似乱码，或整份简历被挤成一长段时，会自动调用 OCR/视觉模型重新抽取简历文本：
+
+```bash
+npx wrangler secret put OPENAI_API_KEY
+```
+
+如需单独给 OCR 使用另一把 key，也可以设置 `OCR_OPENAI_API_KEY`；模型默认 `gpt-4o-mini`，可通过 `OPENAI_OCR_MODEL` 覆盖。默认是自动判断是否需要 OCR；演示时如果想让所有 PDF 都走 OCR，可以设置 `OCR_MODE=always`。
+
 ## Test
 
 ```bash

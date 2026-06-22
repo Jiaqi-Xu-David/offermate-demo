@@ -533,8 +533,8 @@ function renderResumeExtractionFallback(rawText, container = elements.resumeDocu
   const copy = document.createElement('p');
   const length = String(rawText ?? '').trim().length;
   copy.textContent = length
-    ? `已读取约 ${length} 个字符，但姓名、学校、技能或经历字段不足。建议上传文字型 PDF，或先对扫描件进行 OCR。`
-    : '请上传文字型 PDF，解析成功后会自动生成摘要和标签。';
+    ? `已读取约 ${length} 个字符，但姓名、学校、技能或经历字段不足。请确认 PDF 清晰度，配置 OCR 后可自动重试。`
+    : '请上传清晰 PDF，解析成功后会自动生成摘要和标签。';
   empty.append(title, copy);
   container.replaceChildren(empty);
 }
@@ -1529,7 +1529,7 @@ async function refreshStudentHistory() {
     state.hasParsedResume = Boolean(state.resumeText.trim());
     state.parseStatus = hasResumeEvidence(state.profile)
       ? `已加载最近一次解析：${latestResume.fileName}`
-      : '最近一次解析质量不足，建议重新上传文字型 PDF 或先进行 OCR。';
+      : '最近一次解析质量不足，建议重新上传更清晰的 PDF，或配置 OCR 后再次解析。';
   } else if (!state.hasParsedResume) {
     state.profile = createEmptyProfile(state.currentUser?.name ?? '求职者');
     state.resumeText = '';
@@ -1728,8 +1728,14 @@ async function applyParsedResume(payload) {
   state.resumeText = rawText;
   state.resumeFileName = payload.resume.fileName ?? '';
   state.hasParsedResume = Boolean(state.resumeText.trim());
+  const extractionLabel =
+    payload.resume.textSource === 'openai-ocr'
+      ? 'OpenAI OCR 提取'
+      : payload.resume.textSource === 'pdf-text-fallback'
+        ? 'PDF 文本提取保底'
+        : 'PDF 文本提取';
   const parserLabel = state.profile.parser === 'deepseek-v4-pro' ? 'DeepSeek 结构化解析' : '本地规则解析';
-  state.parseStatus = `${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+  state.parseStatus = `${extractionLabel} + ${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
   await refreshStudentHistory();
   render();
 }
