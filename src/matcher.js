@@ -218,6 +218,7 @@ const KEYWORD_ALIASES = {
   招聘: ['招聘', '招聘配置'],
   培训: ['培训'],
   考勤: ['考勤'],
+  远程: ['线上', '可远程', '远程办公', '全国远程', 'Remote', 'remote'],
   教案撰写: ['教案', '撰写教案'],
   电气工程: ['电气工程', '电气工程及其自动化'],
   自动化: ['自动化'],
@@ -960,6 +961,16 @@ const hasTextMatch = (items, keyword) => {
 
 const clampScore = (score) => Math.max(0, Math.min(100, score));
 
+function isRemoteLocation(value) {
+  return /远程|线上|remote/i.test(String(value ?? ''));
+}
+
+function isCityMatch(profileCities = [], jobCity = '') {
+  if (profileCities.includes(jobCity)) return true;
+  if (isRemoteLocation(jobCity) && profileCities.some(isRemoteLocation)) return true;
+  return jobCity === '远程';
+}
+
 function profileToSearchText(profile) {
   return [
     ...(profile.skills ?? []),
@@ -1127,7 +1138,7 @@ function getMatchInputs(profile, job) {
   ];
   const matchedTags = (job.tags ?? []).filter((tag) => hasTextMatch(profileText, tag));
   const matchedNiceToHave = (job.niceToHave ?? []).filter((tag) => hasTextMatch(profileText, tag));
-  const cityMatch = (profile.cityPreferences ?? []).includes(job.city) || job.city === '远程';
+  const cityMatch = isCityMatch(profile.cityPreferences ?? [], job.city);
 
   return {
     matchedTags,

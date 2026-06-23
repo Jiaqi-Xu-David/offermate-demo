@@ -559,6 +559,26 @@ test('finds a job by id with parsed JD fields preserved', () => {
   assert.ok(job.softSkills.includes('跨部门沟通'));
 });
 
+test('matches remote and online city aliases as remote-friendly preferences', () => {
+  const profile = parseResumeText(`个人简历
+姓名：程远
+学校：浙江大学 计算机科学 本科
+求职意向：AI 应用开发实习
+城市偏好：线上 / 可远程
+技能：Python、RAG`);
+  const remoteJob = analyzeJobDescription({
+    title: 'AI 应用开发实习生',
+    city: '全国远程',
+    description: '远程协作，使用 Python 和 RAG 开发求职匹配智能体。',
+  });
+  const breakdown = getScoreBreakdown(profile, remoteJob);
+  const city = breakdown.find((item) => item.label === '地点匹配');
+
+  assert.ok(profile.cityPreferences.includes('远程'));
+  assert.equal(city.points, 10);
+  assert.match(city.detail, /远程/);
+});
+
 test('parses JD text into compensation, hard skills, soft skills, and language requirements', () => {
   const parsed = parseJobDescription(JOBS[0].description);
   const sql = parsed.hardSkillRequirements.find((item) => item.name === 'SQL');
