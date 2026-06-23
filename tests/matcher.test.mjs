@@ -592,6 +592,22 @@ test('parses JD text into compensation, hard skills, soft skills, and language r
   assert.ok(parsed.languageRequirements.includes('英语 CET-6'));
 });
 
+test('infers admin-added job city from JD text when the city field is empty', () => {
+  const job = analyzeJobDescription({
+    title: 'AI 产品实习生',
+    city: '',
+    description: '工作地点：深圳。负责 AI 求职智能体需求分析，使用 SQL 复盘用户转化。',
+  });
+  const remoteJob = analyzeJobDescription({
+    title: '远程增长运营实习生',
+    city: '',
+    description: '地点：可远程。负责用户增长活动复盘，使用 SQL 分析转化漏斗。',
+  });
+
+  assert.equal(job.city, '深圳');
+  assert.equal(remoteJob.city, '远程');
+});
+
 test('builds potential, composite capability, and heatmap outputs', () => {
   const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
   const potential = buildPotentialAnalysis(STUDENT_PROFILE);

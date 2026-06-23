@@ -1545,6 +1545,14 @@ export function buildStudentWorkflowSummary(profile, jobs = JOBS) {
   };
 }
 
+function inferJobCityFromText(text) {
+  const source = String(text ?? '');
+  const explicit = source.match(/(?:工作地点|办公地点|地点|城市|base|Base)\s*[：:\s]*([^\n。；;，,]+)/);
+  const fieldText = explicit?.[1] ?? source;
+  if (isRemoteLocation(fieldText)) return '远程';
+  return CITY_DICTIONARY.find((city) => city !== '远程' && fieldText.includes(city)) ?? '';
+}
+
 export function analyzeJobDescription({ title, city, description, company = COMPANY.name }) {
   const sourceText = `${title}\n${city}\n${description}`;
   const parsed = parseJobDescription(sourceText);
@@ -1560,7 +1568,7 @@ export function analyzeJobDescription({ title, city, description, company = COMP
     id: `admin-${Math.abs(hashText(sourceText))}`,
     title: title.trim() || '新增实习岗位',
     company,
-    city: city.trim() || '上海',
+    city: city.trim() || inferJobCityFromText(sourceText) || '上海',
     tags: (tags.length > 0 ? tags : ['SQL', '用户调研', '数据看板']).slice(0, 8),
     responsibilities: (responsibilities.length > 0 ? responsibilities : ['岗位任务执行', '跨团队协作']).slice(0, 4),
     niceToHave: niceToHave.slice(0, 4),
