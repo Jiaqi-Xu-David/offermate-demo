@@ -984,7 +984,10 @@ function createCandidateCard(candidate) {
   const submitted = document.createElement('p');
   submitted.className = 'candidate-submitted';
   submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';
-  button.append(name, meta, submitted);
+  const matchSummary = document.createElement('p');
+  matchSummary.className = 'candidate-match-summary';
+  matchSummary.textContent = candidate.matchSummary;
+  button.append(name, meta, submitted, matchSummary);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;
     render();
@@ -1018,6 +1021,16 @@ function getCandidateSubmittedJobTitles(candidate) {
   return (candidate.submittedJobIds ?? [])
     .map((jobId) => state.jobs.find((job) => job.id === jobId)?.title)
     .filter(Boolean);
+}
+
+function buildCandidateMatchSummary(candidate) {
+  if (!hasResumeEvidence(candidate.profile)) return '等待简历解析后生成匹配摘要';
+  const insight = buildAdminCandidateInsight(candidate, state.jobs);
+  const bestSubmitted = insight.submittedJobs[0];
+  if (bestSubmitted) return `最佳已投：${bestSubmitted.title} ${bestSubmitted.score}分`;
+  const bestSuggested = insight.suggestedJobs[0];
+  if (bestSuggested) return `推荐转看：${bestSuggested.title} ${bestSuggested.score}分`;
+  return '已解析简历，等待岗位匹配';
 }
 
 function selectCandidateDisplayName(profile, fallbackName = '求职者') {
@@ -1421,7 +1434,7 @@ function renderAdminInsight() {
   const summary = buildResumeSummary(candidate.profile, getCandidateSubmittedJobTitles(candidate));
 
   elements.adminCandidateName.textContent = `${candidate.name} · ${formatSafeResumeMeta(summary.metaText, `${candidate.profile.gender ?? '未填写'} · 简历已解析`)}`;
-  elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ? `${candidate.submittedJobIds.length} 个已投岗位` : '尚未提交岗位';
+  elements.adminCandidateStatus.textContent = candidate.matchSummary;
   renderAdminResume(candidate);
   renderAdminMatchReview(candidate, insight);
   renderTeamComplement(candidate);
@@ -1551,7 +1564,7 @@ function mapUploadedCandidate(candidate) {
   const profile = repairProfileFromRawText(baseProfile, rawText);
   const summary = buildResumeSummary(profile, []);
   const metaParts = formatSafeResumeMeta(summary.metaText, '已上传简历').split(' · ');
-  return {
+  const mappedCandidate = {
     id: candidate.id,
     name: selectCandidateDisplayName(profile, candidate.name),
     school: hasResumeEvidence(profile) ? metaParts.find((part) => /大学|学院|学校/.test(part)) ?? '已上传简历' : '未上传简历',
@@ -1562,6 +1575,8 @@ function mapUploadedCandidate(candidate) {
     fileName: candidate.fileName ?? '',
     resumeDownloadUrl: candidate.resumeDownloadUrl ?? '',
   };
+  mappedCandidate.matchSummary = buildCandidateMatchSummary(mappedCandidate);
+  return mappedCandidate;
 }
 
 async function refreshHrCandidates() {

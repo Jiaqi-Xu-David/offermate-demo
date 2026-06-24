@@ -434,7 +434,7 @@ test('keeps empty HR candidates empty and exposes resume download action', async
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
   assert.ok(appJs.includes("submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';"));
-  assert.ok(appJs.includes("elements.adminCandidateStatus.textContent = candidate.submittedJobIds.length ?"));
+  assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));
   assert.ok(appJs.includes('parseResumeText(rawText)'));
   assert.ok(appJs.includes('formatSafeResumeMeta'));
   assert.ok(!appJs.includes("meta.textContent = `${candidate.profile.gender ?? '未填写'} · ${candidate.school} · ${candidate.major}`;"));
@@ -442,6 +442,19 @@ test('keeps empty HR candidates empty and exposes resume download action', async
   assert.ok(appJs.includes('candidate.resumeDownloadUrl'));
   assert.ok(appJs.includes('下载原简历'));
   assert.match(css, /\.admin-resume-download\s*\{/);
+});
+
+test('surfaces a quick fit summary in HR candidate cards and status copy', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('buildAdminCandidateInsight'));
+  assert.ok(appJs.includes('candidate.matchSummary'));
+  assert.ok(appJs.includes('candidate-match-summary'));
+  assert.ok(appJs.includes('最佳已投'));
+  assert.ok(appJs.includes('推荐转看'));
+  assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));
+  assert.match(css, /\.candidate-match-summary\s*\{/);
 });
 
 test('removes duplicate workflow and low-value advice cards from student view', async () => {

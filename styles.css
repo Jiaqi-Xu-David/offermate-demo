@@ -1234,6 +1234,12 @@ a.admin-job-item:focus-visible {
   margin-top: 8px;
 }
 
+.candidate-match-summary {
+  margin-top: 4px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .job-card {
   display: grid;
   gap: 10px;
