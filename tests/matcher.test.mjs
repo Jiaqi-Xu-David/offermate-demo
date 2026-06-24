@@ -114,6 +114,31 @@ test('recognizes AI and frontend engineering aliases in resumes and JDs', () => 
   assert.ok(job.tags.includes('LangChain'));
 });
 
+test('recognizes modern frontend and AI platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周宁
+学校：同济大学 软件工程 本科
+求职意向：AI 产品工程实习
+技能：Next.js、Vue3、Tailwind CSS、OpenAI API、Vercel
+项目经历：使用 Next.js 和 Tailwind CSS 搭建 AI 求职产品前端，通过 OpenAI API 接入简历解析与问答能力，并部署到 Vercel。`);
+  const job = analyzeJobDescription({
+    title: 'AI 产品工程实习生',
+    city: '上海',
+    description: '负责使用 Next.js、Vue、TailwindCSS 和 OpenAI API 开发 AI 求职产品前端，并完成 Vercel 部署。',
+  });
+
+  assert.ok(profile.skills.includes('Next.js'));
+  assert.ok(profile.skills.includes('Vue'));
+  assert.ok(profile.skills.includes('Tailwind CSS'));
+  assert.ok(profile.skills.includes('OpenAI API'));
+  assert.ok(profile.skills.includes('Vercel'));
+  assert.ok(job.tags.includes('Next.js'));
+  assert.ok(job.tags.includes('Vue'));
+  assert.ok(job.tags.includes('Tailwind CSS'));
+  assert.ok(job.tags.includes('OpenAI API'));
+  assert.ok(job.tags.includes('Vercel'));
+});
+
 test('parses media resume text into compact profile tags instead of one long paragraph', () => {
   const profile = parseResumeText(`Werf基本资料实习经历电话：15779859005邮箱：2411049771@qq.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江出生年月：2005-12-21学历：专科性别：男政治面貌：群众院校：江西生物科技职业学院专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。掌握技能影视制作：具备从策划、脚本、拍摄到剪辑调色的全流程能力和经验。摄影与后期：可独立完成人像，产品、纪实类拍摄及修图。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
 
