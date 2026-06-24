@@ -272,6 +272,26 @@ test('parses OCR resume text with OpenAI structured output when DeepSeek is abse
   assert.match(body.input[0].content[0].text, /严格 JSON/);
 });
 
+test('keeps parser fallback warnings when model-based resume parsing fails', async () => {
+  const profile = await parseResumeProfile(
+    { DEEPSEEK_API_KEY: 'deepseek-test-key', OPENAI_API_KEY: 'openai-test-key' },
+    '姓名：景萍\n求职意向：行政\n技能：Office、招聘',
+    {
+      fetchImpl: async (url) => {
+        if (url.includes('deepseek')) {
+          return new Response('upstream timeout', { status: 504 });
+        }
+        return new Response('bad gateway', { status: 502 });
+      },
+    },
+  );
+
+  assert.equal(profile.parser, 'rules');
+  assert.match(profile.parserWarning, /DeepSeek resume parsing failed: 504/);
+  assert.match(profile.parserWarning, /OpenAI resume parsing failed: 502/);
+  assert.ok(profile.skills.includes('Office'));
+});
+
 test('decides when PDF text extraction should fall back to OCR', () => {
   assert.equal(shouldUseOcrTextExtraction(''), true);
   assert.equal(shouldUseOcrTextExtraction('个亲简历 特话 迎箱 与业'), true);
@@ -561,4 +581,16 @@ test('static shell uses login-driven routing and resume upload history', async (
   assert.ok(!appJs.includes('demo-account-button'));
   assert.ok(!html.includes('<p class="eyebrow">示例简历</p>'));
   assert.ok(!html.includes('aria-label="示例简历"'));
+});
+
+test('resume upload keeps extraction and parser warnings visible in the client status copy', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const resumesApi = await readFile(new URL('../functions/api/resumes.js', import.meta.url), 'utf8');
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('payload.resume.extractionWarning'));
+  assert.ok(appJs.includes('profile.parserWarning'));
+  assert.ok(appJs.includes("warnings.join('；')"));
+  assert.ok(resumesApi.includes('extractionWarning: resume.extractionWarning'));
+  assert.ok(databaseJs.includes('extractionWarning'));
 });

@@ -99,7 +99,17 @@ export async function onRequestPost(context) {
   }
 
   try {
-    return jsonResponse(await createResumeAndMatchRun(context.env, auth.user, resume), 201);
+    const payload = await createResumeAndMatchRun(context.env, auth.user, resume);
+    return jsonResponse(
+      {
+        ...payload,
+        resume: {
+          ...payload.resume,
+          extractionWarning: resume.extractionWarning,
+        },
+      },
+      201,
+    );
   } catch (error) {
     return jsonResponse({ error: error.message }, 422);
   }

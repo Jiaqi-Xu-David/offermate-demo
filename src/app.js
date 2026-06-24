@@ -333,6 +333,13 @@ function getDisplayResumeName(lines) {
   return { name: candidateLine ?? lines[0] ?? '求职者', sourceLine: candidateLine ?? lines[0] ?? '' };
 }
 
+function buildResumeStatusWarnings(payload, profile) {
+  const warnings = [];
+  if (payload.resume.extractionWarning) warnings.push(`OCR 回退：${payload.resume.extractionWarning}`);
+  if (profile.parserWarning) warnings.push(`结构化回退：${profile.parserWarning}`);
+  return warnings;
+}
+
 function createLabelValue(tagName, labelText, valueText, className = '') {
   const item = document.createElement(tagName);
   if (className) item.className = className;
@@ -1740,7 +1747,8 @@ async function applyParsedResume(payload) {
       : state.profile.parser === 'openai-responses'
         ? 'OpenAI 结构化解析'
         : '本地规则解析';
-  state.parseStatus = `${extractionLabel} + ${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。`;
+  const warnings = buildResumeStatusWarnings(payload, state.profile);
+  state.parseStatus = `${extractionLabel} + ${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。${warnings.length ? ` ${warnings.join('；')}` : ''}`;
   await refreshStudentHistory();
   render();
 }

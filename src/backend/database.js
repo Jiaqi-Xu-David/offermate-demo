@@ -490,7 +490,18 @@ function isLikelyUnusableResumeProfile(profile, rawText) {
   return evidenceCount === 0 && (compactText.length < 80 || extractionLooksCorrupt || (brokenName && profile.headline === '学生'));
 }
 
-export async function createResumeAndMatchRun(env, user, { fileName, rawText, fileDataBase64 = null, mimeType = null, textSource = 'pdf-text' }) {
+export async function createResumeAndMatchRun(
+  env,
+  user,
+  {
+    fileName,
+    rawText,
+    fileDataBase64 = null,
+    mimeType = null,
+    textSource = 'pdf-text',
+    extractionWarning = '',
+  },
+) {
   const db = await ensureAppData(env);
   const profile = await parseResumeProfile(env, rawText);
   if (isLikelyUnusableResumeProfile(profile, rawText)) {
@@ -548,7 +559,18 @@ export async function createResumeAndMatchRun(env, user, { fileName, rawText, fi
       .run();
   }
 
-  return { resume: { id: resumeId, fileName, rawText, createdAt, profile, textSource }, run: { id: runId, createdAt, scores: rankings } };
+  return {
+    resume: {
+      id: resumeId,
+      fileName,
+      rawText,
+      createdAt,
+      profile,
+      textSource,
+      extractionWarning,
+    },
+    run: { id: runId, createdAt, scores: rankings },
+  };
 }
 
 export async function listStudentHistory(env, user) {
