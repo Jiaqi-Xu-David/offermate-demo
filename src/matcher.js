@@ -1635,6 +1635,24 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
   };
 }
 
+export function buildCandidateFitHighlights(candidate, jobs = JOBS) {
+  const insight = buildAdminCandidateInsight(candidate, jobs);
+  const anchorJob = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+  if (!anchorJob) return [];
+
+  const primaryGap =
+    anchorJob.gaps?.[0] ??
+    insight.submittedJobs.find((job) => job.gaps?.length)?.gaps?.[0] ??
+    insight.suggestedJobs.find((job) => job.gaps?.length)?.gaps?.[0] ??
+    '';
+  const hasGap = Boolean(primaryGap);
+  const matched = (anchorJob.matchedTags ?? [])
+    .slice(0, hasGap ? 2 : 3)
+    .map((tag) => ({ type: 'match', label: `强项：${tag}` }));
+  const gap = primaryGap ? [{ type: 'gap', label: `待补：${primaryGap}` }] : [];
+  return [...matched, ...gap].slice(0, 3);
+}
+
 export function buildResumeAdvice(profile, job) {
   const analysis = analyzeJobFit(profile, job);
   const firstGap = analysis.gaps[0] ?? job.tags[0];

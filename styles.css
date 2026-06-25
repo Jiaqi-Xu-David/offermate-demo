@@ -1240,6 +1240,34 @@ a.admin-job-item:focus-visible {
   font-weight: 700;
 }
 
+.candidate-fit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-fit-tags {
+  margin-top: 12px;
+}
+
+.fit-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(30, 124, 100, 0.1);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fit-chip.gap {
+  background: var(--accent-soft);
+  color: #9b4316;
+}
+
 .job-card {
   display: grid;
   gap: 10px;

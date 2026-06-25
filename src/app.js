@@ -6,6 +6,7 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
+  buildCandidateFitHighlights,
   buildCompositeCapabilityDetails,
   buildEvidenceConfidenceSummary,
   buildEvidenceTrace,
@@ -160,6 +161,7 @@ const elements = {
   candidateList: document.querySelector('#candidate-list'),
   adminCandidateName: document.querySelector('#admin-candidate-name'),
   adminCandidateStatus: document.querySelector('#admin-candidate-status'),
+  adminCandidateHighlights: document.querySelector('#admin-candidate-highlights'),
   adminResumeDocument: document.querySelector('#admin-resume-document'),
   adminMatchTitle: document.querySelector('#admin-match-title'),
   adminMatchFormula: document.querySelector('#admin-match-formula'),
@@ -987,12 +989,27 @@ function createCandidateCard(candidate) {
   const matchSummary = document.createElement('p');
   matchSummary.className = 'candidate-match-summary';
   matchSummary.textContent = candidate.matchSummary;
-  button.append(name, meta, submitted, matchSummary);
+  const fitHighlights = document.createElement('div');
+  fitHighlights.className = 'candidate-fit-tags';
+  renderFitHighlights(fitHighlights, buildCandidateFitHighlights(candidate, state.jobs));
+  button.append(name, meta, submitted, matchSummary, fitHighlights);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;
     render();
   });
   return button;
+}
+
+function renderFitHighlights(container, highlights) {
+  const items = highlights?.length ? highlights : [{ type: 'neutral', label: '等待更多匹配证据' }];
+  container.replaceChildren(
+    ...items.map((item) => {
+      const chip = document.createElement('span');
+      chip.className = item.type === 'gap' ? 'fit-chip gap' : 'fit-chip';
+      chip.textContent = item.label;
+      return chip;
+    }),
+  );
 }
 
 function createTagGroup(labelText, tags) {
@@ -1435,6 +1452,7 @@ function renderAdminInsight() {
 
   elements.adminCandidateName.textContent = `${candidate.name} · ${formatSafeResumeMeta(summary.metaText, `${candidate.profile.gender ?? '未填写'} · 简历已解析`)}`;
   elements.adminCandidateStatus.textContent = candidate.matchSummary;
+  renderFitHighlights(elements.adminCandidateHighlights, buildCandidateFitHighlights(candidate, state.jobs));
   renderAdminResume(candidate);
   renderAdminMatchReview(candidate, insight);
   renderTeamComplement(candidate);
