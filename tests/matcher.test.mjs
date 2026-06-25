@@ -139,6 +139,33 @@ test('recognizes modern frontend and AI platform aliases in resumes and JDs', ()
   assert.ok(job.tags.includes('Vercel'));
 });
 
+test('recognizes OCR-spaced frontend and experiment aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：陈果
+学校：华东师范大学 软件工程 本科
+求职意向：增长产品工程实习
+技能：Java Script、Type Script、Node js、Next js、Open AI API、A B测试
+项目经历：使用 Java Script 和 Next js 搭建增长实验平台，通过 Open AI API 生成活动文案，并用 A B测试验证转化效果。`);
+  const job = analyzeJobDescription({
+    title: '增长产品工程实习生',
+    city: '上海',
+    description: '负责 Java Script / Type Script 前端开发，使用 Node js、Next js 和 Open AI API 支撑实验平台，并持续推进 A B测试。',
+  });
+
+  assert.ok(profile.skills.includes('JavaScript'));
+  assert.ok(profile.skills.includes('TypeScript'));
+  assert.ok(profile.skills.includes('Node.js'));
+  assert.ok(profile.skills.includes('Next.js'));
+  assert.ok(profile.skills.includes('OpenAI API'));
+  assert.ok(profile.skills.includes('A/B测试'));
+  assert.ok(job.tags.includes('JavaScript'));
+  assert.ok(job.tags.includes('TypeScript'));
+  assert.ok(job.tags.includes('Node.js'));
+  assert.ok(job.tags.includes('Next.js'));
+  assert.ok(job.tags.includes('OpenAI API'));
+  assert.ok(job.tags.includes('A/B测试'));
+});
+
 test('parses media resume text into compact profile tags instead of one long paragraph', () => {
   const profile = parseResumeText(`Werf基本资料实习经历电话：15779859005邮箱：2411049771@qq.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江出生年月：2005-12-21学历：专科性别：男政治面貌：群众院校：江西生物科技职业学院专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。掌握技能影视制作：具备从策划、脚本、拍摄到剪辑调色的全流程能力和经验。摄影与后期：可独立完成人像，产品、纪实类拍摄及修图。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
 
