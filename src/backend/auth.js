@@ -1,5 +1,17 @@
 const SESSION_COOKIE = 'om_session';
 
+function safeDecodeCookieValue(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function buildCookieExpiry(maxAgeSeconds) {
+  return new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
+}
+
 function bytesToHex(bytes) {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -33,7 +45,7 @@ export function parseCookieHeader(header = '') {
       .map((part) => {
         const splitAt = part.indexOf('=');
         if (splitAt === -1) return [part, ''];
-        return [part.slice(0, splitAt), decodeURIComponent(part.slice(splitAt + 1))];
+        return [part.slice(0, splitAt), safeDecodeCookieValue(part.slice(splitAt + 1))];
       }),
   );
 }
@@ -50,10 +62,10 @@ export function createSessionToken() {
 
 export function createSessionCookie(token, requestUrl, maxAgeSeconds = 60 * 60 * 24 * 7) {
   const secure = new URL(requestUrl).protocol === 'https:' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure}`;
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}; Expires=${buildCookieExpiry(maxAgeSeconds)}${secure}`;
 }
 
 export function clearSessionCookie(requestUrl) {
   const secure = new URL(requestUrl).protocol === 'https:' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
 }

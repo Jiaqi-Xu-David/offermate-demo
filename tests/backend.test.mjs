@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeProfile, parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { extractResumeTextFromPdf, extractResumeTextWithOpenAI, shouldUseOcrTextExtraction } from '../src/backend/ocr.js';
-import { hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
+import { clearSessionCookie, createSessionCookie, hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
@@ -424,6 +424,29 @@ test('parses cookie headers for session lookup', () => {
     om_session: 'abc123',
     role: 'student',
   });
+});
+
+test('keeps session parsing resilient for malformed cookies and sets explicit expiry attributes', () => {
+  assert.deepEqual(parseCookieHeader('theme=light; om_session=%E0%A4%A; role=student'), {
+    theme: 'light',
+    om_session: '%E0%A4%A',
+    role: 'student',
+  });
+
+  const secureCookie = createSessionCookie('abc123', 'https://offermate.example.com/login', 3600);
+  assert.match(secureCookie, /om_session=abc123/);
+  assert.match(secureCookie, /HttpOnly/);
+  assert.match(secureCookie, /SameSite=Lax/);
+  assert.match(secureCookie, /Max-Age=3600/);
+  assert.match(secureCookie, /Expires=/);
+  assert.match(secureCookie, /Secure/);
+
+  const localCookie = createSessionCookie('abc123', 'http://127.0.0.1:4173/login', 3600);
+  assert.doesNotMatch(localCookie, /Secure/);
+
+  const clearedCookie = clearSessionCookie('https://offermate.example.com/logout');
+  assert.match(clearedCookie, /Max-Age=0/);
+  assert.match(clearedCookie, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
 });
 
 test('defines application tables for auth, jobs, resumes, matches, and applications', () => {
