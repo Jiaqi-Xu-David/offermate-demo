@@ -167,6 +167,31 @@ test('recognizes OCR-spaced frontend and experiment aliases in resumes and JDs',
   assert.ok(job.tags.includes('A/B测试'));
 });
 
+test('recognizes OCR-spaced analytics and ML aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：高晨
+学校：同济大学 数据科学 本科
+求职意向：数据智能实习
+技能：PowerBI、Git Hub、Machine Learning、Deep Learning、Py Torch
+项目经历：使用 PowerBI 搭建经营看板，在 Git Hub 维护实验代码，并基于 Machine Learning / Deep Learning 完成用户流失预测。`);
+  const job = analyzeJobDescription({
+    title: '数据智能实习生',
+    city: '上海',
+    description: '负责 Power BI 数据看板、GitHub 协作开发，并应用 Machine Learning、Deep Learning 与 PyTorch 完成建模分析。',
+  });
+
+  assert.ok(profile.skills.includes('Power BI'));
+  assert.ok(profile.skills.includes('GitHub'));
+  assert.ok(profile.skills.includes('机器学习'));
+  assert.ok(profile.skills.includes('深度学习'));
+  assert.ok(profile.skills.includes('PyTorch'));
+  assert.ok(job.tags.includes('Power BI'));
+  assert.ok(job.tags.includes('GitHub'));
+  assert.ok(job.tags.includes('机器学习'));
+  assert.ok(job.tags.includes('深度学习'));
+  assert.ok(job.tags.includes('PyTorch'));
+});
+
 test('parses media resume text into compact profile tags instead of one long paragraph', () => {
   const profile = parseResumeText(`Werf基本资料实习经历电话：15779859005邮箱：2411049771@qq.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江出生年月：2005-12-21学历：专科性别：男政治面貌：群众院校：江西生物科技职业学院专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。掌握技能影视制作：具备从策划、脚本、拍摄到剪辑调色的全流程能力和经验。摄影与后期：可独立完成人像，产品、纪实类拍摄及修图。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
 
