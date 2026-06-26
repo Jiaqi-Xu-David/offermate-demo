@@ -433,12 +433,13 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
     role: 'student',
   });
 
-  const secureCookie = createSessionCookie('abc123', 'https://offermate.example.com/login', 3600);
+  const secureCookie = createSessionCookie('abc123', 'https://offermate.example.com/login', 3600.8);
   assert.match(secureCookie, /om_session=abc123/);
   assert.match(secureCookie, /HttpOnly/);
   assert.match(secureCookie, /SameSite=Lax/);
   assert.match(secureCookie, /Max-Age=3600/);
   assert.match(secureCookie, /Expires=/);
+  assert.match(secureCookie, /Priority=High/);
   assert.match(secureCookie, /Secure/);
 
   const localCookie = createSessionCookie('abc123', 'http://127.0.0.1:4173/login', 3600);

@@ -12,6 +12,12 @@ function buildCookieExpiry(maxAgeSeconds) {
   return new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
 }
 
+function normalizeCookieMaxAge(maxAgeSeconds) {
+  const parsed = Number(maxAgeSeconds);
+  if (!Number.isFinite(parsed)) return 60 * 60 * 24 * 7;
+  return Math.max(0, Math.floor(parsed));
+}
+
 function bytesToHex(bytes) {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -61,8 +67,9 @@ export function createSessionToken() {
 }
 
 export function createSessionCookie(token, requestUrl, maxAgeSeconds = 60 * 60 * 24 * 7) {
+  const normalizedMaxAge = normalizeCookieMaxAge(maxAgeSeconds);
   const secure = new URL(requestUrl).protocol === 'https:' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}; Expires=${buildCookieExpiry(maxAgeSeconds)}${secure}`;
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Priority=High; Max-Age=${normalizedMaxAge}; Expires=${buildCookieExpiry(normalizedMaxAge)}${secure}`;
 }
 
 export function clearSessionCookie(requestUrl) {
