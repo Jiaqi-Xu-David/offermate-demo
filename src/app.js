@@ -6,6 +6,7 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
+  buildCandidateMatchSummary,
   buildCandidateFitHighlights,
   buildCompositeCapabilityDetails,
   buildEvidenceConfidenceSummary,
@@ -1038,16 +1039,6 @@ function getCandidateSubmittedJobTitles(candidate) {
   return (candidate.submittedJobIds ?? [])
     .map((jobId) => state.jobs.find((job) => job.id === jobId)?.title)
     .filter(Boolean);
-}
-
-function buildCandidateMatchSummary(candidate) {
-  if (!hasResumeEvidence(candidate.profile)) return '等待简历解析后生成匹配摘要';
-  const insight = buildAdminCandidateInsight(candidate, state.jobs);
-  const bestSubmitted = insight.submittedJobs[0];
-  if (bestSubmitted) return `最佳已投：${bestSubmitted.title} ${bestSubmitted.score}分`;
-  const bestSuggested = insight.suggestedJobs[0];
-  if (bestSuggested) return `推荐转看：${bestSuggested.title} ${bestSuggested.score}分`;
-  return '已解析简历，等待岗位匹配';
 }
 
 function selectCandidateDisplayName(profile, fallbackName = '求职者') {

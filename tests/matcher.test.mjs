@@ -10,8 +10,9 @@ import {
   analyzeJobFit,
   analyzeJobDescription,
   buildAdminCandidateInsight,
-  buildCompositeCapabilityDetails,
   buildCandidateFitHighlights,
+  buildCandidateMatchSummary,
+  buildCompositeCapabilityDetails,
   buildCrossRoleRecommendations,
   buildEvidenceTrace,
   buildEvidenceConfidenceSummary,
@@ -499,16 +500,18 @@ test('keeps empty HR candidates empty and exposes resume download action', async
 
 test('surfaces a quick fit summary in HR candidate cards and status copy', async () => {
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const matcherJs = await readFile(new URL('../src/matcher.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
   assert.ok(appJs.includes('buildAdminCandidateInsight'));
+  assert.ok(appJs.includes('buildCandidateMatchSummary'));
   assert.ok(appJs.includes('candidate.matchSummary'));
   assert.ok(appJs.includes('buildCandidateFitHighlights'));
   assert.ok(appJs.includes('candidate-fit-tags'));
   assert.ok(appJs.includes('candidate-match-summary'));
-  assert.ok(appJs.includes('最佳已投'));
-  assert.ok(appJs.includes('推荐转看'));
+  assert.ok(matcherJs.includes('最佳已投'));
+  assert.ok(matcherJs.includes('推荐转看'));
   assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));
   assert.ok(html.includes('id="admin-candidate-highlights"'));
   assert.match(css, /\.candidate-match-summary\s*\{/);
@@ -904,6 +907,13 @@ test('builds recruiter-facing candidate routing insights', () => {
   assert.ok(combinedText.includes('数据分析实习生'));
   assert.ok(!combinedText.includes('优先投递'));
   assert.ok(!combinedText.includes('简历优化'));
+});
+
+test('builds an HR candidate summary with score and strongest evidence', () => {
+  const candidate = CANDIDATES.find((item) => item.id === 'davide');
+  const summary = buildCandidateMatchSummary(candidate, JOBS);
+
+  assert.equal(summary, '最佳已投：数据分析实习生 82分 · 强项：SQL');
 });
 
 test('builds compact HR fit highlights from matched tags and top gaps', () => {

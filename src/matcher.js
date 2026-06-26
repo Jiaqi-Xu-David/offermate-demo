@@ -1642,6 +1642,21 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
   };
 }
 
+export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
+  const insight = buildAdminCandidateInsight(candidate, jobs);
+  const bestSubmitted = insight.submittedJobs[0];
+  if (bestSubmitted) {
+    const strongestSignal = bestSubmitted.matchedTags?.[0];
+    const topGap = bestSubmitted.gaps?.[0];
+    const focus = strongestSignal ? `强项：${strongestSignal}` : topGap ? `待补：${topGap}` : '可按当前岗位推进';
+    return `最佳已投：${bestSubmitted.title} ${bestSubmitted.score}分 · ${focus}`;
+  }
+
+  const bestSuggested = insight.suggestedJobs[0];
+  if (bestSuggested) return `推荐转看：${bestSuggested.title} ${bestSuggested.score}分 · ${bestSuggested.reason}`;
+  return '已解析简历，等待岗位匹配';
+}
+
 export function buildCandidateFitHighlights(candidate, jobs = JOBS) {
   const insight = buildAdminCandidateInsight(candidate, jobs);
   const anchorJob = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
