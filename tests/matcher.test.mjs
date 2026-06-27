@@ -513,6 +513,9 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(matcherJs.includes('最佳已投'));
   assert.ok(matcherJs.includes('推荐转看'));
   assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));
+  assert.ok(appJs.includes("button.setAttribute('aria-pressed', String(candidate.id === state.selectedCandidateId))"));
+  assert.ok(appJs.includes("button.setAttribute('aria-controls', 'admin-candidate-panel')"));
+  assert.ok(html.includes('id="admin-candidate-panel"'));
   assert.ok(html.includes('id="admin-candidate-highlights"'));
   assert.match(css, /\.candidate-match-summary\s*\{/);
   assert.match(css, /\.candidate-fit-tags\s*\{/);

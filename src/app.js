@@ -973,6 +973,8 @@ function createCandidateCard(candidate) {
   button.type = 'button';
   button.className = candidate.id === state.selectedCandidateId ? 'candidate-card active' : 'candidate-card';
   button.dataset.candidateId = candidate.id;
+  button.setAttribute('aria-pressed', String(candidate.id === state.selectedCandidateId));
+  button.setAttribute('aria-controls', 'admin-candidate-panel');
 
   const submittedJobs = candidate.submittedJobIds
     .map((jobId) => state.jobs.find((job) => job.id === jobId)?.title)
