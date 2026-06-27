@@ -56,7 +56,9 @@ export function shouldUseOcrTextExtraction(text) {
   if (!normalized) return true;
   const compact = normalized.replace(/\s+/g, '');
   const lineCount = normalized.split('\n').filter((line) => line.trim()).length;
-  const hasIdentitySignal = /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历)/.test(normalized);
+  const hasIdentitySignal =
+    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历)/.test(normalized) ||
+    /\b(Name|Target Role|Education|University|School|Major|Gender|Email|Phone|Experience|Work Experience|Project|Skills?)\b/i.test(normalized);
   const corruptGlyphs = /个亲简历|教育背施|籍设|特话|迎箱|与业|姓后|Werf基本资料/.test(compact);
   const denseSingleLine = compact.length > 360 && lineCount <= 3;
   const tooShortForResume = compact.length < 80;

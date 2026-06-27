@@ -300,6 +300,10 @@ test('decides when PDF text extraction should fall back to OCR', () => {
     false,
   );
   assert.equal(
+    shouldUseOcrTextExtraction('Name: Davide\nUniversity: Technical University of Munich\nMajor: Statistics\nSkills: SQL, Python, Tableau\nTarget Role: Data Analyst Intern\nExperience: Used SQL to analyze retention and Python to clean user data.'),
+    false,
+  );
+  assert.equal(
     shouldUseOcrTextExtraction('姓名：大卫德 学校：慕尼黑工业大学 专业：统计学 技能：SQL Python Tableau 实习经历：'.repeat(12)),
     true,
   );
