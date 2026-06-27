@@ -692,6 +692,18 @@ test('parses JD text into compensation, hard skills, soft skills, and language r
   assert.ok(parsed.languageRequirements.includes('英语 CET-6'));
 });
 
+test('parses monthly salary ranges with bonus-month suffixes from admin JDs', () => {
+  const parsed = parseJobDescription('薪资：15 - 20 K/月 · 14薪；负责 SQL 看板与用户分析。');
+  const job = analyzeJobDescription({
+    title: '商业分析实习生',
+    city: '上海',
+    description: '薪酬: 15 - 20 K/月 · 14薪；要求 SQL、Excel，支持业务复盘。',
+  });
+
+  assert.equal(parsed.salary, '15-20K/月·14薪');
+  assert.equal(job.salary, '15-20K/月·14薪');
+});
+
 test('infers admin-added job city from JD text when the city field is empty', () => {
   const job = analyzeJobDescription({
     title: 'AI 产品实习生',
