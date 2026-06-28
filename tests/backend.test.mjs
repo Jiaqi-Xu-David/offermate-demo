@@ -436,6 +436,11 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
     om_session: '%E0%A4%A',
     role: 'student',
   });
+  assert.deepEqual(parseCookieHeader('theme=light; om_session=\"abc%20123\"; role=student'), {
+    theme: 'light',
+    om_session: 'abc 123',
+    role: 'student',
+  });
 
   const secureCookie = createSessionCookie('abc123', 'https://offermate.example.com/login', 3600.8);
   assert.match(secureCookie, /om_session=abc123/);

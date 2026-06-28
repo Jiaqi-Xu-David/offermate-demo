@@ -8,6 +8,11 @@ function safeDecodeCookieValue(value) {
   }
 }
 
+function normalizeCookieValue(value) {
+  const decoded = safeDecodeCookieValue(value);
+  return decoded.startsWith('"') && decoded.endsWith('"') ? decoded.slice(1, -1) : decoded;
+}
+
 function buildCookieExpiry(maxAgeSeconds) {
   return new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
 }
@@ -51,7 +56,7 @@ export function parseCookieHeader(header = '') {
       .map((part) => {
         const splitAt = part.indexOf('=');
         if (splitAt === -1) return [part, ''];
-        return [part.slice(0, splitAt), safeDecodeCookieValue(part.slice(splitAt + 1))];
+        return [part.slice(0, splitAt), normalizeCookieValue(part.slice(splitAt + 1))];
       }),
   );
 }
