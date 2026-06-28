@@ -974,6 +974,7 @@ function createCandidateCard(candidate) {
   button.className = candidate.id === state.selectedCandidateId ? 'candidate-card active' : 'candidate-card';
   button.dataset.candidateId = candidate.id;
   button.setAttribute('aria-pressed', String(candidate.id === state.selectedCandidateId));
+  button.setAttribute('aria-expanded', String(candidate.id === state.selectedCandidateId));
   button.setAttribute('aria-controls', 'admin-candidate-panel');
 
   const submittedJobs = candidate.submittedJobIds
@@ -1308,7 +1309,11 @@ function renderAdminJobs() {
 
 function renderCandidates() {
   elements.candidateCount.textContent = `${state.candidates.length} 人`;
-  elements.candidateList.replaceChildren(...state.candidates.map(createCandidateCard));
+  elements.candidateList.replaceChildren(
+    ...(state.candidates.length
+      ? state.candidates.map(createCandidateCard)
+      : [Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无候选人提交简历。' })]),
+  );
 }
 
 function createAccountUserCard(user) {

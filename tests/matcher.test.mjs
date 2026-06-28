@@ -496,6 +496,7 @@ test('renders HR candidate raw resume text and account admin workspace', async (
 });
 
 test('keeps empty HR candidates empty and exposes resume download action', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
@@ -507,6 +508,9 @@ test('keeps empty HR candidates empty and exposes resume download action', async
   assert.ok(!appJs.includes("submittedJobIds: submittedJobIds.length ? submittedJobIds : ['data-analyst-intern']"));
   assert.ok(appJs.includes('candidate.resumeDownloadUrl'));
   assert.ok(appJs.includes('下载原简历'));
+  assert.ok(appJs.includes('暂无候选人提交简历。'));
+  assert.ok(html.includes('id="candidate-count" aria-live="polite"'));
+  assert.ok(html.includes('id="admin-candidate-status" class="admin-status-pill" role="status" aria-live="polite"'));
   assert.match(css, /\.admin-resume-download\s*\{/);
 });
 
@@ -526,8 +530,10 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(matcherJs.includes('推荐转看'));
   assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));
   assert.ok(appJs.includes("button.setAttribute('aria-pressed', String(candidate.id === state.selectedCandidateId))"));
+  assert.ok(appJs.includes("button.setAttribute('aria-expanded', String(candidate.id === state.selectedCandidateId))"));
   assert.ok(appJs.includes("button.setAttribute('aria-controls', 'admin-candidate-panel')"));
   assert.ok(html.includes('id="admin-candidate-panel"'));
+  assert.ok(html.includes('aria-labelledby="admin-candidate-name"'));
   assert.ok(html.includes('id="admin-candidate-highlights"'));
   assert.match(css, /\.candidate-match-summary\s*\{/);
   assert.match(css, /\.candidate-fit-tags\s*\{/);

@@ -276,18 +276,18 @@
               <p class="eyebrow">候选人池</p>
               <h2>已提交候选人</h2>
             </div>
-            <span id="candidate-count"></span>
+            <span id="candidate-count" aria-live="polite"></span>
           </div>
           <div id="candidate-list" class="candidate-list"></div>
         </section>
 
-        <section id="admin-candidate-panel" class="insight-panel admin-insight-panel" aria-label="候选人适配分析">
+        <section id="admin-candidate-panel" class="insight-panel admin-insight-panel" aria-label="候选人适配分析" aria-labelledby="admin-candidate-name">
           <div class="score-card admin-summary-card">
             <div>
               <p class="eyebrow">候选人适配分析</p>
               <h2 id="admin-candidate-name"></h2>
             </div>
-            <span id="admin-candidate-status" class="admin-status-pill"></span>
+            <span id="admin-candidate-status" class="admin-status-pill" role="status" aria-live="polite"></span>
             <div id="admin-candidate-highlights" class="candidate-fit-tags admin-fit-tags" aria-label="候选人匹配亮点"></div>
           </div>
 
