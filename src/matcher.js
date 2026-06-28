@@ -219,7 +219,7 @@ const KEYWORD_ALIASES = {
   PS: ['PS', 'Photoshop', 'photoshop'],
   AE: ['AE', 'After Effects'],
   GitHub: ['Github', 'github', 'Git Hub', 'git hub'],
-  Office: ['Office', 'OFFICE', '办公软件'],
+  Office: ['Office', 'OFFICE', '办公软件', 'Word', 'word', 'Microsoft Word', 'PowerPoint', 'powerpoint', 'PPT', 'ppt', 'WPS', 'wps'],
   文档写作: ['文档写作', '文件编写', '稿件编写'],
   影视制作: ['影视制作', '视频制作', '短片', '微电影'],
   短视频: ['短视频', '抖音账号', '视频内容'],

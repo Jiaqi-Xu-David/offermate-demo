@@ -234,6 +234,18 @@ test('parses administration resume text into education, target, and office tags'
   assert.ok(profile.experiences.some((item) => item.includes('行政人员')));
 });
 
+test('recognizes common office-suite aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：林清
+学校：华南师范大学
+求职意向：HR 实习
+技能：熟练使用 Word、PowerPoint、WPS，负责招聘台账和文档整理。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 Microsoft Word、PowerPoint、WPS，支持招聘流程与文档整理。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('prefers the highest recent education when PDF text contains several schools', () => {
   const profile = parseResumeText(`个人简历
 姓名:景萍
