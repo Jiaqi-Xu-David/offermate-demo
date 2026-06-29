@@ -160,6 +160,32 @@ trailer
   assert.match(text, /景萍 行政简历/);
 });
 
+test('extracts text from ASCIIHexDecode PDF streams', async () => {
+  const pdf = new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 44 /Filter /ASCIIHexDecode >>
+stream
+42542028457863656C20E7AE80E58E862920546A204554>
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /Excel 简历/);
+});
+
 test('infers the candidate name from labeled resume text instead of generic title', () => {
   const profile = parseResumeText(`个人简历
 姓名：大卫德

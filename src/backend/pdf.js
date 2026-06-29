@@ -31,6 +31,18 @@ async function inflateBytes(bytes) {
   return inflateSync(bytes);
 }
 
+function decodeAsciiHexBytes(bytes) {
+  const source = bytesToBinary(bytes).replace(/\s+/g, '');
+  const endMarker = source.indexOf('>');
+  const clean = (endMarker === -1 ? source : source.slice(0, endMarker)).replace(/[^0-9A-Fa-f]/g, '');
+  const padded = clean.length % 2 === 0 ? clean : `${clean}0`;
+  const decoded = new Uint8Array(padded.length / 2);
+  for (let index = 0; index < padded.length; index += 2) {
+    decoded[index / 2] = Number.parseInt(padded.slice(index, index + 2), 16);
+  }
+  return decoded;
+}
+
 function decodeUtf16Be(bytes) {
   let text = '';
   const start = bytes[0] === 0xfe && bytes[1] === 0xff ? 2 : 0;
@@ -350,16 +362,32 @@ async function extractStreams(pdfSource) {
   const streams = [];
   let match = streamPattern.exec(pdfSource);
 
+  streamLoop:
   while (match) {
     const dictionary = match[1];
     const rawStream = match[2];
     let streamBytes = binaryToBytes(rawStream);
-    if (/\/Filter\s*\/FlateDecode/.test(dictionary)) {
+    const filters = [...dictionary.matchAll(/\/Filter\s*(?:\[\s*((?:\/[A-Za-z0-9]+(?:\s+)?)*)\]|\/([A-Za-z0-9]+))/g)]
+      .flatMap((entry) =>
+        entry[1]
+          ? [...entry[1].matchAll(/\/([A-Za-z0-9]+)/g)].map((item) => item[1])
+          : entry[2]
+            ? [entry[2]]
+            : [],
+      );
+
+    for (const filter of filters) {
       try {
-        streamBytes = await inflateBytes(streamBytes);
+        if (filter === 'ASCIIHexDecode') {
+          streamBytes = decodeAsciiHexBytes(streamBytes);
+          continue;
+        }
+        if (filter === 'FlateDecode') {
+          streamBytes = await inflateBytes(streamBytes);
+        }
       } catch {
         match = streamPattern.exec(pdfSource);
-        continue;
+        continue streamLoop;
       }
     }
 
