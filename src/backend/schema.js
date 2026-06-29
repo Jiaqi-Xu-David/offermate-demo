@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS resumes (
   file_data_base64 TEXT,
   file_data_cipher TEXT,
   mime_type TEXT,
+  text_source TEXT,
+  extraction_warning TEXT,
   profile_json TEXT NOT NULL,
   profile_json_cipher TEXT,
   created_at TEXT NOT NULL,

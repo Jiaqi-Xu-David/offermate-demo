@@ -217,6 +217,8 @@ async function ensureResumeFileColumns(db) {
     ['file_data_base64', 'TEXT'],
     ['file_data_cipher', 'TEXT'],
     ['mime_type', 'TEXT'],
+    ['text_source', 'TEXT'],
+    ['extraction_warning', 'TEXT'],
     ['profile_json_cipher', 'TEXT'],
   ]);
 }
@@ -518,8 +520,8 @@ export async function createResumeAndMatchRun(
     .prepare(
       `INSERT INTO resumes (
         id, user_id, file_name, raw_text, raw_text_cipher, file_data_base64, file_data_cipher,
-        mime_type, profile_json, profile_json_cipher, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        mime_type, text_source, extraction_warning, profile_json, profile_json_cipher, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       resumeId,
@@ -530,6 +532,8 @@ export async function createResumeAndMatchRun(
       null,
       fileDataBase64 ? await encryptText(env, fileDataBase64) : null,
       mimeType,
+      textSource,
+      extractionWarning,
       '{}',
       await encryptText(env, JSON.stringify(profile)),
       createdAt,
@@ -577,7 +581,8 @@ export async function listStudentHistory(env, user) {
   const db = await ensureAppData(env);
   const resumes = await db
     .prepare(
-      `SELECT id, file_name, raw_text, raw_text_cipher, profile_json, profile_json_cipher, created_at
+      `SELECT id, file_name, raw_text, raw_text_cipher, text_source, extraction_warning,
+              profile_json, profile_json_cipher, created_at
        FROM resumes
        WHERE user_id = ? AND id != 'resume-seed-davide'
        ORDER BY created_at DESC
@@ -603,6 +608,8 @@ export async function listStudentHistory(env, user) {
         id: row.id,
         fileName: row.file_name,
         rawText: await decryptResumeRawText(env, row),
+        textSource: row.text_source || 'pdf-text',
+        extractionWarning: row.extraction_warning || '',
         profile: parseJson(await decryptResumeProfileJson(env, row), {}),
         createdAt: row.created_at,
       })),

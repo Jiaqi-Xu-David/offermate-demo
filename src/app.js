@@ -343,6 +343,28 @@ function buildResumeStatusWarnings(payload, profile) {
   return warnings;
 }
 
+function getResumeExtractionLabel(textSource = 'pdf-text') {
+  return textSource === 'openai-ocr'
+    ? 'OpenAI OCR 提取'
+    : textSource === 'pdf-text-fallback'
+      ? 'PDF 文本提取保底'
+      : 'PDF 文本提取';
+}
+
+function getResumeParserLabel(profile) {
+  return profile.parser === 'deepseek-v4-pro'
+    ? 'DeepSeek 结构化解析'
+    : profile.parser === 'openai-responses'
+      ? 'OpenAI 结构化解析'
+      : '本地规则解析';
+}
+
+function buildResumeParseStatus(resume, profile, { loadedFromHistory = false } = {}) {
+  const warnings = buildResumeStatusWarnings({ resume }, profile);
+  const prefix = loadedFromHistory ? '已加载最近一次解析：' : '';
+  return `${prefix}${getResumeExtractionLabel(resume.textSource)} + ${getResumeParserLabel(profile)}完成：提取 ${profile.skills.length} 项核心技能、${profile.experiences.length} 条经历证据。${warnings.length ? ` ${warnings.join('；')}` : ''}`;
+}
+
 function createLabelValue(tagName, labelText, valueText, className = '') {
   const item = document.createElement(tagName);
   if (className) item.className = className;
@@ -1564,7 +1586,7 @@ async function refreshStudentHistory() {
     state.resumeFileName = latestResume.fileName ?? '';
     state.hasParsedResume = Boolean(state.resumeText.trim());
     state.parseStatus = hasResumeEvidence(state.profile)
-      ? `已加载最近一次解析：${latestResume.fileName}`
+      ? buildResumeParseStatus(latestResume, state.profile, { loadedFromHistory: true })
       : '最近一次解析质量不足，建议重新上传更清晰的 PDF，或配置 OCR 后再次解析。';
   } else if (!state.hasParsedResume) {
     state.profile = createEmptyProfile(state.currentUser?.name ?? '求职者');
@@ -1766,20 +1788,7 @@ async function applyParsedResume(payload) {
   state.resumeText = rawText;
   state.resumeFileName = payload.resume.fileName ?? '';
   state.hasParsedResume = Boolean(state.resumeText.trim());
-  const extractionLabel =
-    payload.resume.textSource === 'openai-ocr'
-      ? 'OpenAI OCR 提取'
-      : payload.resume.textSource === 'pdf-text-fallback'
-        ? 'PDF 文本提取保底'
-        : 'PDF 文本提取';
-  const parserLabel =
-    state.profile.parser === 'deepseek-v4-pro'
-      ? 'DeepSeek 结构化解析'
-      : state.profile.parser === 'openai-responses'
-        ? 'OpenAI 结构化解析'
-        : '本地规则解析';
-  const warnings = buildResumeStatusWarnings(payload, state.profile);
-  state.parseStatus = `${extractionLabel} + ${parserLabel}完成：提取 ${state.profile.skills.length} 项核心技能、${state.profile.experiences.length} 条经历证据。${warnings.length ? ` ${warnings.join('；')}` : ''}`;
+  state.parseStatus = buildResumeParseStatus(payload.resume, state.profile);
   await refreshStudentHistory();
   render();
 }

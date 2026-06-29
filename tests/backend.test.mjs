@@ -544,7 +544,7 @@ test('stores resume and user personal data through encrypted columns', async () 
   assert.ok(APP_SCHEMA_SQL.includes('name_cipher TEXT'));
   assert.ok(APP_SCHEMA_SQL.includes('raw_text_cipher TEXT'));
   assert.ok(APP_SCHEMA_SQL.includes('profile_json_cipher TEXT'));
-  assert.match(databaseJs, /raw_text,\s*raw_text_cipher,\s*file_data_base64,\s*file_data_cipher,\s*mime_type,\s*profile_json,\s*profile_json_cipher/);
+  assert.match(databaseJs, /raw_text,\s*raw_text_cipher,\s*file_data_base64,\s*file_data_cipher,\s*mime_type,\s*text_source,\s*extraction_warning,\s*profile_json,\s*profile_json_cipher/);
   assert.ok(databaseJs.includes("raw_text = '[encrypted]'"));
   assert.ok(databaseJs.includes("profile_json = '{}'"));
   assert.ok(databaseJs.includes('findUserByEmail'));
@@ -652,4 +652,17 @@ test('resume upload keeps extraction and parser warnings visible in the client s
   assert.ok(appJs.includes("warnings.join('；')"));
   assert.ok(resumesApi.includes('extractionWarning: resume.extractionWarning'));
   assert.ok(databaseJs.includes('extractionWarning'));
+});
+
+test('resume history preserves extraction metadata for reload status copy', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+
+  assert.ok(APP_SCHEMA_SQL.includes('text_source TEXT'));
+  assert.ok(APP_SCHEMA_SQL.includes('extraction_warning TEXT'));
+  assert.match(databaseJs, /text_source,\s*extraction_warning,\s*profile_json,\s*profile_json_cipher,\s*created_at/);
+  assert.ok(databaseJs.includes('textSource: row.text_source'));
+  assert.ok(databaseJs.includes('extractionWarning: row.extraction_warning'));
+  assert.ok(appJs.includes('buildResumeParseStatus(latestResume, state.profile'));
+  assert.ok(appJs.includes('payload.resume.extractionWarning'));
 });
