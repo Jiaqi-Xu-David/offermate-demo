@@ -197,6 +197,7 @@ const KEYWORD_ALIASES = {
   问卷调研: ['问卷', '用户调研', '问卷反馈'],
   数据看板: ['Tableau 看板', '周报看板', '看板'],
   'Power BI': ['PowerBI', 'power bi', 'powerbi'],
+  Excel: ['excel', 'ms excel', 'MS Excel', 'micro soft excel', 'Micro Soft Excel'],
   市场研究: ['用户调研', '问卷反馈'],
   活动复盘: ['活动数据复盘', '复盘新人优惠券活动'],
   用户分层: ['用户分群', '人群分层'],

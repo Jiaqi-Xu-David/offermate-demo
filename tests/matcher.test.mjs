@@ -246,6 +246,18 @@ test('recognizes common office-suite aliases in admin resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes common Excel aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：陈澄
+学校：上海大学
+求职意向：商业分析实习
+技能：熟练使用 ms excel、micro soft excel 制作周报。`);
+  const parsed = parseJobDescription('岗位要求：精通 excel，能独立搭建经营分析报表。');
+
+  assert.ok(profile.skills.includes('Excel'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Excel'));
+});
+
 test('prefers the highest recent education when PDF text contains several schools', () => {
   const profile = parseResumeText(`个人简历
 姓名:景萍
