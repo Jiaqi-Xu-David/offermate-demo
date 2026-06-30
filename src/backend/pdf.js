@@ -361,6 +361,10 @@ async function extractStreams(pdfSource) {
   const streamPattern = /<<(.*?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g;
   const streams = [];
   let match = streamPattern.exec(pdfSource);
+  const FILTER_ALIASES = {
+    AHx: 'ASCIIHexDecode',
+    Fl: 'FlateDecode',
+  };
 
   streamLoop:
   while (match) {
@@ -377,12 +381,13 @@ async function extractStreams(pdfSource) {
       );
 
     for (const filter of filters) {
+      const normalizedFilter = FILTER_ALIASES[filter] ?? filter;
       try {
-        if (filter === 'ASCIIHexDecode') {
+        if (normalizedFilter === 'ASCIIHexDecode') {
           streamBytes = decodeAsciiHexBytes(streamBytes);
           continue;
         }
-        if (filter === 'FlateDecode') {
+        if (normalizedFilter === 'FlateDecode') {
           streamBytes = await inflateBytes(streamBytes);
         }
       } catch {

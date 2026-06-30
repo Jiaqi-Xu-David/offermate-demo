@@ -186,6 +186,32 @@ trailer
   assert.match(text, /Excel 简历/);
 });
 
+test('extracts text from PDF streams that use AHx and Fl filter abbreviations', async () => {
+  const pdf = new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 75 /Filter [/AHx /Fl] >>
+stream
+789C730A51D00828CACF2D285170CD4BCFCC4B4D2DCACC4BD75408C952700D010091CD09AC>
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /Prompt Engineering/);
+});
+
 test('infers the candidate name from labeled resume text instead of generic title', () => {
   const profile = parseResumeText(`个人简历
 姓名：大卫德
