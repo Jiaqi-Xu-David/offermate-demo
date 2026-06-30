@@ -555,6 +555,9 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(appJs.includes('buildCandidateFitHighlights'));
   assert.ok(appJs.includes('candidate-fit-tags'));
   assert.ok(appJs.includes('candidate-match-summary'));
+  assert.ok(appJs.includes("button.setAttribute('aria-describedby', [matchSummary.id, fitHighlights.id].join(' '))"));
+  assert.ok(appJs.includes("matchSummary.id = `candidate-match-summary-${candidate.id}`;"));
+  assert.ok(appJs.includes("fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;"));
   assert.ok(matcherJs.includes('最佳已投'));
   assert.ok(matcherJs.includes('推荐转看'));
   assert.ok(appJs.includes('elements.adminCandidateStatus.textContent = candidate.matchSummary'));

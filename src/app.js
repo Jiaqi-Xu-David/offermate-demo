@@ -1014,10 +1014,13 @@ function createCandidateCard(candidate) {
   submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';
   const matchSummary = document.createElement('p');
   matchSummary.className = 'candidate-match-summary';
+  matchSummary.id = `candidate-match-summary-${candidate.id}`;
   matchSummary.textContent = candidate.matchSummary;
   const fitHighlights = document.createElement('div');
   fitHighlights.className = 'candidate-fit-tags';
+  fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;
   renderFitHighlights(fitHighlights, buildCandidateFitHighlights(candidate, state.jobs));
+  button.setAttribute('aria-describedby', [matchSummary.id, fitHighlights.id].join(' '));
   button.append(name, meta, submitted, matchSummary, fitHighlights);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;
