@@ -246,6 +246,23 @@ test('recognizes common office-suite aliases in admin resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes common media-suite aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周映
+学校：中国传媒大学
+求职意向：视频内容实习
+技能：Premiere Pro、AfterEffects、Adobe Photoshop
+项目经历：使用 Premiere Pro 剪辑校园宣传片，用 AfterEffects 制作字幕包装，并用 Adobe Photoshop 设计封面。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 Premiere Pro、AfterEffects、Photoshop，支持短视频剪辑与包装设计。');
+
+  assert.ok(profile.skills.includes('PR'));
+  assert.ok(profile.skills.includes('AE'));
+  assert.ok(profile.skills.includes('PS'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'PR'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'AE'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'PS'));
+});
+
 test('recognizes common Excel aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：陈澄
