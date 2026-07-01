@@ -246,6 +246,18 @@ test('recognizes common office-suite aliases in admin resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes OCR-spaced office-suite aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：谢宁
+学校：华东政法大学
+求职意向：行政支持实习
+技能：熟练使用 W ord、Power Point、W P S，负责会议材料整理和招聘文档维护。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 W ord、Power Point、W P S，支持会议纪要、台账维护和文档整理。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
