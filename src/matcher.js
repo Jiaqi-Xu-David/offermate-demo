@@ -1687,6 +1687,26 @@ export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
   return '已解析简历，等待岗位匹配';
 }
 
+export function sortHrCandidatesForReview(candidates = [], jobs = JOBS) {
+  return [...candidates].sort((left, right) => {
+    const leftInsight = buildAdminCandidateInsight(left, jobs);
+    const rightInsight = buildAdminCandidateInsight(right, jobs);
+    const leftSubmittedScore = leftInsight.submittedJobs[0]?.score ?? -1;
+    const rightSubmittedScore = rightInsight.submittedJobs[0]?.score ?? -1;
+    if (leftSubmittedScore !== rightSubmittedScore) return rightSubmittedScore - leftSubmittedScore;
+
+    const leftSuggestedScore = leftInsight.suggestedJobs[0]?.score ?? -1;
+    const rightSuggestedScore = rightInsight.suggestedJobs[0]?.score ?? -1;
+    if (leftSuggestedScore !== rightSuggestedScore) return rightSuggestedScore - leftSuggestedScore;
+
+    const leftSubmittedCount = left.submittedJobIds?.length ?? 0;
+    const rightSubmittedCount = right.submittedJobIds?.length ?? 0;
+    if (leftSubmittedCount !== rightSubmittedCount) return rightSubmittedCount - leftSubmittedCount;
+
+    return String(left.name ?? '').localeCompare(String(right.name ?? ''), 'zh-Hans-CN');
+  });
+}
+
 export function buildCandidateFitHighlights(candidate, jobs = JOBS) {
   const insight = buildAdminCandidateInsight(candidate, jobs);
   const anchorJob = insight.submittedJobs[0] ?? insight.suggestedJobs[0];

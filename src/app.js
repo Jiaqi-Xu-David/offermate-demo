@@ -20,6 +20,7 @@ import {
   buildTailoredResumeSnippet,
   enrichJob,
   parseResumeText,
+  sortHrCandidatesForReview,
 } from './matcher.js';
 import { buildJobDetailUrl } from './job-navigation.js';
 
@@ -1624,7 +1625,7 @@ async function refreshHrCandidates() {
   if (state.currentUser?.role !== 'hr') return;
   const payload = await apiRequest('/api/hr/candidates');
   const uploaded = (payload.uploadedCandidates ?? []).map(mapUploadedCandidate);
-  state.candidates = uploaded;
+  state.candidates = sortHrCandidatesForReview(uploaded, state.jobs);
   state.selectedCandidateId = state.candidates[0]?.id ?? state.selectedCandidateId;
 }
 

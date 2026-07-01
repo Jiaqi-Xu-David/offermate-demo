@@ -31,6 +31,7 @@ import {
   findJobById,
   parseJobDescription,
   parseResumeText,
+  sortHrCandidatesForReview,
 } from '../src/matcher.js';
 import { buildJobDetailUrl } from '../src/job-navigation.js';
 
@@ -984,6 +985,15 @@ test('builds recruiter-facing candidate routing insights', () => {
   assert.ok(combinedText.includes('数据分析实习生'));
   assert.ok(!combinedText.includes('优先投递'));
   assert.ok(!combinedText.includes('简历优化'));
+});
+
+test('sorts HR candidates by strongest submitted fit for review order', () => {
+  const ordered = sortHrCandidatesForReview(CANDIDATES, JOBS);
+
+  assert.deepEqual(
+    ordered.map((item) => item.id),
+    ['li-ruohan', 'davide', 'wang-ziang'],
+  );
 });
 
 test('builds an HR candidate summary with score and strongest evidence', () => {
