@@ -43,6 +43,47 @@ function decodeAsciiHexBytes(bytes) {
   return decoded;
 }
 
+function decodeAscii85Bytes(bytes) {
+  const source = bytesToBinary(bytes).replace(/\s+/g, '');
+  const endMarker = source.indexOf('~>');
+  const clean = (endMarker === -1 ? source : source.slice(0, endMarker)).replace(/^<~/, '');
+  const output = [];
+  let group = [];
+
+  const flushGroup = (isPartial = false) => {
+    if (!group.length) return;
+    const sourceGroup = isPartial ? [...group] : group;
+    while (group.length < 5) group.push('u');
+
+    let value = 0;
+    group.forEach((char) => {
+      value = value * 85 + (char.charCodeAt(0) - 33);
+    });
+
+    const decoded = [
+      (value >>> 24) & 0xff,
+      (value >>> 16) & 0xff,
+      (value >>> 8) & 0xff,
+      value & 0xff,
+    ];
+    output.push(...decoded.slice(0, isPartial ? sourceGroup.length - 1 : 4));
+    group = [];
+  };
+
+  for (const char of clean) {
+    if (char === 'z' && group.length === 0) {
+      output.push(0, 0, 0, 0);
+      continue;
+    }
+    if (char < '!' || char > 'u') continue;
+    group.push(char);
+    if (group.length === 5) flushGroup();
+  }
+
+  if (group.length) flushGroup(true);
+  return new Uint8Array(output);
+}
+
 function decodeUtf16Be(bytes) {
   let text = '';
   const start = bytes[0] === 0xfe && bytes[1] === 0xff ? 2 : 0;
@@ -363,6 +404,7 @@ async function extractStreams(pdfSource) {
   let match = streamPattern.exec(pdfSource);
   const FILTER_ALIASES = {
     AHx: 'ASCIIHexDecode',
+    A85: 'ASCII85Decode',
     Fl: 'FlateDecode',
   };
 
@@ -385,6 +427,10 @@ async function extractStreams(pdfSource) {
       try {
         if (normalizedFilter === 'ASCIIHexDecode') {
           streamBytes = decodeAsciiHexBytes(streamBytes);
+          continue;
+        }
+        if (normalizedFilter === 'ASCII85Decode') {
+          streamBytes = decodeAscii85Bytes(streamBytes);
           continue;
         }
         if (normalizedFilter === 'FlateDecode') {

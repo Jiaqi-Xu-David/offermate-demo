@@ -212,6 +212,32 @@ trailer
   assert.match(text, /Prompt Engineering/);
 });
 
+test('extracts text from PDF streams that use ASCII85 and A85 filters', async () => {
+  const pdf = new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 42 /Filter [/A85] >>
+stream
+6<":?6t(7QA7Zl]ATN!2ALSa$C'nNiA,lT0~>
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /Davide Resume/);
+});
+
 test('infers the candidate name from labeled resume text instead of generic title', () => {
   const profile = parseResumeText(`个人简历
 姓名：大卫德
