@@ -1689,6 +1689,12 @@ export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
 
 export function sortHrCandidatesForReview(candidates = [], jobs = JOBS) {
   return [...candidates].sort((left, right) => {
+    const leftSubmittedCount = left.submittedJobIds?.length ?? 0;
+    const rightSubmittedCount = right.submittedJobIds?.length ?? 0;
+    const leftHasSubmittedJobs = leftSubmittedCount > 0;
+    const rightHasSubmittedJobs = rightSubmittedCount > 0;
+    if (leftHasSubmittedJobs !== rightHasSubmittedJobs) return leftHasSubmittedJobs ? -1 : 1;
+
     const leftInsight = buildAdminCandidateInsight(left, jobs);
     const rightInsight = buildAdminCandidateInsight(right, jobs);
     const leftSubmittedScore = leftInsight.submittedJobs[0]?.score ?? -1;
@@ -1699,8 +1705,6 @@ export function sortHrCandidatesForReview(candidates = [], jobs = JOBS) {
     const rightSuggestedScore = rightInsight.suggestedJobs[0]?.score ?? -1;
     if (leftSuggestedScore !== rightSuggestedScore) return rightSuggestedScore - leftSuggestedScore;
 
-    const leftSubmittedCount = left.submittedJobIds?.length ?? 0;
-    const rightSubmittedCount = right.submittedJobIds?.length ?? 0;
     if (leftSubmittedCount !== rightSubmittedCount) return rightSubmittedCount - leftSubmittedCount;
 
     return String(left.name ?? '').localeCompare(String(right.name ?? ''), 'zh-Hans-CN');

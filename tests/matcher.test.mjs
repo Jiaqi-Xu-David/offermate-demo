@@ -996,6 +996,28 @@ test('sorts HR candidates by strongest submitted fit for review order', () => {
   );
 });
 
+test('keeps submitted candidates ahead of upload-only resumes in HR review order', () => {
+  const uploadOnly = {
+    ...CANDIDATES.find((item) => item.id === 'davide'),
+    id: 'upload-only-top-match',
+    name: '高匹配待投递',
+    submittedJobIds: [],
+  };
+  const submitted = {
+    ...CANDIDATES.find((item) => item.id === 'wang-ziang'),
+    id: 'submitted-lower-match',
+    name: '已投递候选人',
+    submittedJobIds: ['hr-generalist-intern'],
+  };
+
+  const ordered = sortHrCandidatesForReview([uploadOnly, submitted], JOBS);
+
+  assert.deepEqual(
+    ordered.map((item) => item.id),
+    ['submitted-lower-match', 'upload-only-top-match'],
+  );
+});
+
 test('builds an HR candidate summary with score and strongest evidence', () => {
   const candidate = CANDIDATES.find((item) => item.id === 'davide');
   const summary = buildCandidateMatchSummary(candidate, JOBS);
