@@ -23,6 +23,15 @@ function textToBase64(text) {
   return bytesToBase64(new TextEncoder().encode(text));
 }
 
+export function ensureSupportedResumeUpload(file) {
+  const fileName = String(file?.name ?? '');
+  const mimeType = String(file?.type ?? '').toLowerCase();
+  const looksLikePdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
+  if (!looksLikePdf) {
+    throw new Error('仅支持 PDF 简历上传，请重新选择 .pdf 文件。');
+  }
+}
+
 function createStoredResumeFilePayload(buffer, mimeType) {
   if (buffer.byteLength > MAX_STORED_RESUME_FILE_BYTES) {
     return {
@@ -43,6 +52,7 @@ async function readResumeText(request, env) {
     const form = await request.formData();
     const file = form.get('resume');
     if (file && typeof file.arrayBuffer === 'function') {
+      ensureSupportedResumeUpload(file);
       const buffer = await file.arrayBuffer();
       const extraction = await extractResumeTextFromPdf(env, buffer, {
         fileName: file.name || 'resume.pdf',

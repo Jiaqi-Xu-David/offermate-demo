@@ -9,6 +9,7 @@ import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/ba
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
+import { ensureSupportedResumeUpload } from '../functions/api/resumes.js';
 
 function buildMinimalPdf(streamBody) {
   return new TextEncoder().encode(`%PDF-1.4
@@ -395,6 +396,15 @@ test('keeps concise but clearly structured resume text on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction('Name: Lina\nUniversity: Xihua University\nTarget Role: HR Intern\nSkills: Office, Recruiting'),
     false,
+  );
+});
+
+test('accepts PDF resume uploads and rejects unsupported file types early', () => {
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));
+  assert.throws(
+    () => ensureSupportedResumeUpload({ name: 'resume.png', type: 'image/png' }),
+    /仅支持 PDF 简历上传/,
   );
 });
 
