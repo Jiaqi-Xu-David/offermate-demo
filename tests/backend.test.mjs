@@ -387,6 +387,17 @@ test('decides when PDF text extraction should fall back to OCR', () => {
   );
 });
 
+test('keeps concise but clearly structured resume text on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：林清\n学校：西华大学\n求职意向：行政实习\n技能：Office、文档写作'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nUniversity: Xihua University\nTarget Role: HR Intern\nSkills: Office, Recruiting'),
+    false,
+  );
+});
+
 test('extracts resume text through OpenAI PDF OCR when configured', async () => {
   const calls = [];
   const text = await extractResumeTextWithOpenAI(
