@@ -9,7 +9,7 @@ function safeDecodeCookieValue(value) {
 }
 
 function normalizeCookieValue(value) {
-  const decoded = safeDecodeCookieValue(value);
+  const decoded = safeDecodeCookieValue(value).trim();
   return decoded.startsWith('"') && decoded.endsWith('"') ? decoded.slice(1, -1) : decoded;
 }
 
@@ -79,5 +79,5 @@ export function createSessionCookie(token, requestUrl, maxAgeSeconds = 60 * 60 *
 
 export function clearSessionCookie(requestUrl) {
   const secure = new URL(requestUrl).protocol === 'https:' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Priority=High; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
 }

@@ -549,6 +549,11 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
     om_session: 'abc 123',
     role: 'student',
   });
+  assert.deepEqual(parseCookieHeader('theme=light; om_session= "abc%20123" ; role=student'), {
+    theme: 'light',
+    om_session: 'abc 123',
+    role: 'student',
+  });
 
   const secureCookie = createSessionCookie('abc123', 'https://offermate.example.com/login', 3600.8);
   assert.match(secureCookie, /om_session=abc123/);
@@ -565,6 +570,7 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
   const clearedCookie = clearSessionCookie('https://offermate.example.com/logout');
   assert.match(clearedCookie, /Max-Age=0/);
   assert.match(clearedCookie, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
+  assert.match(clearedCookie, /Priority=High/);
 });
 
 test('defines application tables for auth, jobs, resumes, matches, and applications', () => {
