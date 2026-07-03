@@ -399,6 +399,15 @@ test('keeps concise but clearly structured resume text on the PDF path', () => {
   );
 });
 
+test('keeps common English resume section labels on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Profile: Lina Chen\nContact: lina@example.com\nObjective: HR Intern\nProjects: Campus recruiting coordination',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));

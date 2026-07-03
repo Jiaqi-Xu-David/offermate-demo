@@ -57,7 +57,7 @@ export function shouldUseOcrTextExtraction(text) {
   const compact = normalized.replace(/\s+/g, '');
   const lineCount = normalized.split('\n').filter((line) => line.trim()).length;
   const identityLabelMatches = normalized.match(
-    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历|\bName\b|\bTarget Role\b|\bEducation\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bEmail\b|\bPhone\b|\bExperience\b|\bWork Experience\b|\bProject\b|\bSkills?\b)/gi,
+    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历|\bName\b|\bProfile\b|\bContact\b|\bTarget Role\b|\bObjective\b|\bEducation(?: Background)?\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bEmail\b|\bPhone\b|\bExperience\b|\bWork Experience\b|\bInternship Experience\b|\bProjects?\b|\bSkills?\b)/gi,
   ) ?? [];
   const hasIdentitySignal = identityLabelMatches.length > 0;
   const hasStructuredIdentityFields = identityLabelMatches.length >= 4 && lineCount >= 3;
