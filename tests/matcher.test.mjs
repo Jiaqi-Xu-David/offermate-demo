@@ -194,6 +194,29 @@ test('recognizes OCR-spaced analytics and ML aliases in resumes and JDs', () => 
   assert.ok(job.tags.includes('PyTorch'));
 });
 
+test('recognizes common data-stack aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：宋越
+学校：复旦大学 数据科学 本科
+求职意向：数据建模实习
+技能：MySQL、Postgres、Pandas、NumPy、scikit-learn、TensorFlow
+项目经历：使用 Pandas 和 NumPy 清洗经营数据，通过 scikit-learn 训练分类模型，并用 TensorFlow 完成深度学习实验。`);
+  const job = analyzeJobDescription({
+    title: '数据建模实习生',
+    city: '上海',
+    description: '要求熟悉 MySQL / PostgreSQL 查询，能使用 Pandas、NumPy、scikit-learn 和 TensorFlow 完成数据建模分析。',
+  });
+
+  assert.ok(profile.skills.includes('SQL'));
+  assert.ok(profile.skills.includes('Python'));
+  assert.ok(profile.skills.includes('机器学习'));
+  assert.ok(profile.skills.includes('深度学习'));
+  assert.ok(job.tags.includes('SQL'));
+  assert.ok(job.tags.includes('Python'));
+  assert.ok(job.tags.includes('机器学习'));
+  assert.ok(job.tags.includes('深度学习'));
+});
+
 test('recognizes spaced and spelled-out AI platform aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：唐宁

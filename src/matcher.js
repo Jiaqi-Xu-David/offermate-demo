@@ -195,6 +195,8 @@ const TEAM_CAPABILITY_GAPS = ['用户研究', '商业分析', '数据看板', '�
 
 const KEYWORD_ALIASES = {
   问卷调研: ['问卷', '用户调研', '问卷反馈'],
+  SQL: ['MySQL', 'mysql', 'PostgreSQL', 'postgresql', 'Postgres', 'postgres', 'SQLite', 'sqlite'],
+  Python: ['Pandas', 'pandas', 'NumPy', 'numpy'],
   数据看板: ['Tableau 看板', '周报看板', '看板'],
   'Power BI': ['PowerBI', 'power bi', 'powerbi'],
   Excel: ['excel', 'ms excel', 'MS Excel', 'micro soft excel', 'Micro Soft Excel'],
@@ -256,8 +258,8 @@ const KEYWORD_ALIASES = {
   教案撰写: ['教案', '撰写教案'],
   电气工程: ['电气工程', '电气工程及其自动化'],
   自动化: ['自动化'],
-  机器学习: ['Machine Learning', 'machine learning', 'ML', 'ml'],
-  深度学习: ['Deep Learning', 'deep learning', 'DL', 'dl'],
+  机器学习: ['Machine Learning', 'machine learning', 'ML', 'ml', 'Scikit-learn', 'scikit-learn', 'sklearn'],
+  深度学习: ['Deep Learning', 'deep learning', 'DL', 'dl', 'TensorFlow', 'tensorflow', 'Tensor Flow', 'tensor flow'],
   PyTorch: ['Py Torch', 'py torch', 'pytorch'],
   PLC: ['PLC', 'plc'],
   设备巡检: ['设备巡检', '日常巡检', '巡检与维护'],
