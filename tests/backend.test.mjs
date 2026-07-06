@@ -406,6 +406,12 @@ test('keeps common English resume section labels on the PDF path', () => {
     ),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Summary: Data-focused student\nLocation: Munich\nTechnical Skills: SQL, Python, Tableau\nEmployment History: Built weekly KPI dashboards',
+    ),
+    false,
+  );
 });
 
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
