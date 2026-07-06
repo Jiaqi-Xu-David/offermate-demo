@@ -1689,6 +1689,22 @@ export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
   return '已解析简历，等待岗位匹配';
 }
 
+export function buildHrCandidateQueueSummary(candidates = []) {
+  const submittedCount = candidates.filter((candidate) => (candidate.submittedJobIds?.length ?? 0) > 0).length;
+  const uploadOnlyCount = candidates.length - submittedCount;
+  if (!candidates.length) return '0 人';
+  return uploadOnlyCount > 0
+    ? `${candidates.length} 人 · 已投递 ${submittedCount} · 待分流 ${uploadOnlyCount}`
+    : `${candidates.length} 人 · 已投递 ${submittedCount}`;
+}
+
+export function resolveHrCandidateSelection(candidates = [], previousSelectedId = '') {
+  if (previousSelectedId && candidates.some((candidate) => candidate.id === previousSelectedId)) {
+    return previousSelectedId;
+  }
+  return candidates[0]?.id ?? '';
+}
+
 export function sortHrCandidatesForReview(candidates = [], jobs = JOBS) {
   return [...candidates].sort((left, right) => {
     const leftSubmittedCount = left.submittedJobIds?.length ?? 0;

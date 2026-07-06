@@ -16,6 +16,7 @@ import {
   buildCrossRoleRecommendations,
   buildEvidenceTrace,
   buildEvidenceConfidenceSummary,
+  buildHrCandidateQueueSummary,
   buildInterviewQuestions,
   buildMatchHeatmap,
   buildPotentialAnalysis,
@@ -31,6 +32,7 @@ import {
   findJobById,
   parseJobDescription,
   parseResumeText,
+  resolveHrCandidateSelection,
   sortHrCandidatesForReview,
 } from '../src/matcher.js';
 import { buildJobDetailUrl } from '../src/job-navigation.js';
@@ -610,6 +612,8 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(appJs.includes('buildCandidateMatchSummary'));
   assert.ok(appJs.includes('candidate.matchSummary'));
   assert.ok(appJs.includes('buildCandidateFitHighlights'));
+  assert.ok(appJs.includes('buildHrCandidateQueueSummary'));
+  assert.ok(appJs.includes('resolveHrCandidateSelection'));
   assert.ok(appJs.includes('candidate-fit-tags'));
   assert.ok(appJs.includes('candidate-match-summary'));
   assert.ok(appJs.includes("button.setAttribute('aria-describedby', [matchSummary.id, fitHighlights.id].join(' '))"));
@@ -1060,6 +1064,29 @@ test('keeps submitted candidates ahead of upload-only resumes in HR review order
     ordered.map((item) => item.id),
     ['submitted-lower-match', 'upload-only-top-match'],
   );
+});
+
+test('preserves the selected HR candidate when refreshed data still contains them', () => {
+  const ordered = sortHrCandidatesForReview(CANDIDATES, JOBS);
+
+  assert.equal(resolveHrCandidateSelection(ordered, 'davide'), 'davide');
+  assert.equal(resolveHrCandidateSelection(ordered, 'missing-id'), ordered[0].id);
+  assert.equal(resolveHrCandidateSelection([], 'davide'), '');
+});
+
+test('summarizes the HR review queue by submitted and upload-only candidates', () => {
+  assert.equal(buildHrCandidateQueueSummary([]), '0 人');
+  assert.equal(buildHrCandidateQueueSummary(CANDIDATES), '3 人 · 已投递 3');
+
+  const mixed = [
+    ...CANDIDATES,
+    {
+      ...CANDIDATES[0],
+      id: 'upload-only',
+      submittedJobIds: [],
+    },
+  ];
+  assert.equal(buildHrCandidateQueueSummary(mixed), '4 人 · 已投递 3 · 待分流 1');
 });
 
 test('builds an HR candidate summary with score and strongest evidence', () => {

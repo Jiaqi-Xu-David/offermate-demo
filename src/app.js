@@ -11,9 +11,11 @@ import {
   buildCompositeCapabilityDetails,
   buildEvidenceConfidenceSummary,
   buildEvidenceTrace,
+  buildHrCandidateQueueSummary,
   buildInterviewQuestions,
   buildPotentialAnalysis,
   buildResumeAdvice,
+  resolveHrCandidateSelection,
   buildResumeSummary,
   buildScoreExplanation,
   buildTeamComplement,
@@ -1334,7 +1336,7 @@ function renderAdminJobs() {
 }
 
 function renderCandidates() {
-  elements.candidateCount.textContent = `${state.candidates.length} 人`;
+  elements.candidateCount.textContent = buildHrCandidateQueueSummary(state.candidates);
   elements.candidateList.replaceChildren(
     ...(state.candidates.length
       ? state.candidates.map(createCandidateCard)
@@ -1626,7 +1628,7 @@ async function refreshHrCandidates() {
   const payload = await apiRequest('/api/hr/candidates');
   const uploaded = (payload.uploadedCandidates ?? []).map(mapUploadedCandidate);
   state.candidates = sortHrCandidatesForReview(uploaded, state.jobs);
-  state.selectedCandidateId = state.candidates[0]?.id ?? state.selectedCandidateId;
+  state.selectedCandidateId = resolveHrCandidateSelection(state.candidates, state.selectedCandidateId);
 }
 
 async function refreshAccountUsers() {
