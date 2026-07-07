@@ -225,6 +225,10 @@ const KEYWORD_ALIASES = {
   Office: [
     'Office',
     'OFFICE',
+    'M365',
+    'm365',
+    'MS365',
+    'ms365',
     '办公软件',
     'Word',
     'word',
