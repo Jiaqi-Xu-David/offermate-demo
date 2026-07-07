@@ -414,6 +414,15 @@ test('keeps common English resume section labels on the PDF path', () => {
   );
 });
 
+test('keeps modern English resume labels on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'LinkedIn: linkedin.com/in/lina\nPortfolio: lina.dev\nCertifications: Google Data Analytics\nAwards: Dean list',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));
