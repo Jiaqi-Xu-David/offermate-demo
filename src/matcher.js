@@ -861,7 +861,7 @@ function normalizeSalaryText(value) {
 
 export function parseJobDescription(description) {
   const salaryMatch = description.match(
-    /(?:薪资|薪酬|月薪|日薪)[：:\s]*([0-9]+(?:\s*[-~]\s*[0-9]+)?\s*(?:元\/天|元\/日|\/天|k\/月|K\/月|K|k|千\/月|千)(?:\s*[·•]\s*\d{1,2}\s*薪)?)/,
+    /(?:薪资|薪酬|月薪|日薪)[：:\s]*([0-9]+(?:\s*[-~]\s*[0-9]+)?\s*(?:元\/天|元\/日|\/天|k\/月|K\/月|K|k|千\/月|千|万\/年)(?:\s*[·•]\s*\d{1,2}\s*薪)?)/,
   );
   const hardSkillRequirements = extractKnownTerms(description, SKILL_DICTIONARY).map((name) => ({
     name,

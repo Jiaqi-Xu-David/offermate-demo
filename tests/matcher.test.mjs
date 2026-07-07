@@ -818,6 +818,18 @@ test('parses monthly salary ranges with bonus-month suffixes from admin JDs', ()
   assert.equal(job.salary, '15-20K/月·14薪');
 });
 
+test('parses annual salary ranges from admin JDs', () => {
+  const parsed = parseJobDescription('薪酬：20 - 30 万/年，负责商业分析报表与管理层复盘。');
+  const job = analyzeJobDescription({
+    title: '商业分析实习生',
+    city: '上海',
+    description: '薪资：20 - 30 万/年，要求 SQL、Excel，支持经营分析与周报复盘。',
+  });
+
+  assert.equal(parsed.salary, '20-30万/年');
+  assert.equal(job.salary, '20-30万/年');
+});
+
 test('infers admin-added job city from JD text when the city field is empty', () => {
   const job = analyzeJobDescription({
     title: 'AI 产品实习生',
