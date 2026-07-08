@@ -1123,6 +1123,15 @@ test('summarizes the HR review queue by submitted and upload-only candidates', (
     },
   ];
   assert.equal(buildHrCandidateQueueSummary(mixed), '4 人 · 已投递 3 · 待分流 1');
+  assert.equal(
+    buildHrCandidateQueueSummary(
+      mixed.map((candidate) => ({
+        ...candidate,
+        submittedJobIds: [],
+      })),
+    ),
+    '4 人 · 待分流 4',
+  );
 });
 
 test('builds an HR candidate summary with score and strongest evidence', () => {

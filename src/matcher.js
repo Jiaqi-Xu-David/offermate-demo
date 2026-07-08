@@ -1701,6 +1701,7 @@ export function buildHrCandidateQueueSummary(candidates = []) {
   const submittedCount = candidates.filter((candidate) => (candidate.submittedJobIds?.length ?? 0) > 0).length;
   const uploadOnlyCount = candidates.length - submittedCount;
   if (!candidates.length) return '0 人';
+  if (submittedCount === 0) return `${candidates.length} 人 · 待分流 ${uploadOnlyCount}`;
   return uploadOnlyCount > 0
     ? `${candidates.length} 人 · 已投递 ${submittedCount} · 待分流 ${uploadOnlyCount}`
     : `${candidates.length} 人 · 已投递 ${submittedCount}`;
