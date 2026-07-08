@@ -317,6 +317,18 @@ test('recognizes shorthand Microsoft 365 office-suite aliases in admin resumes a
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes full Microsoft 365 aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：孙璇
+学校：华东师范大学
+求职意向：行政支持实习
+技能：熟练使用 Microsoft 365、office365 维护会议纪要和招聘台账。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 Microsoft 365 / office365，支持文档整理、会议纪要和台账更新。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
