@@ -421,6 +421,12 @@ test('keeps modern English resume labels on the PDF path', () => {
     ),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Website: lina.dev\nGitHub: github.com/lina\nCore Competencies: SQL, Python\nCareer Highlights: Built KPI dashboards',
+    ),
+    false,
+  );
 });
 
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
