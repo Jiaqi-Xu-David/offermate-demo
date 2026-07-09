@@ -84,6 +84,25 @@ function decodeAscii85Bytes(bytes) {
   return new Uint8Array(output);
 }
 
+function decodeRunLengthBytes(bytes) {
+  const output = [];
+  for (let index = 0; index < bytes.length; index += 1) {
+    const length = bytes[index];
+    if (length === 128) break;
+    if (length <= 127) {
+      const end = Math.min(index + 1 + length + 1, bytes.length);
+      output.push(...bytes.subarray(index + 1, end));
+      index += length + 1;
+      continue;
+    }
+    const repeatByte = bytes[index + 1];
+    if (repeatByte === undefined) break;
+    output.push(...new Array(257 - length).fill(repeatByte));
+    index += 1;
+  }
+  return new Uint8Array(output);
+}
+
 function decodeUtf16Be(bytes) {
   let text = '';
   const start = bytes[0] === 0xfe && bytes[1] === 0xff ? 2 : 0;
@@ -406,6 +425,7 @@ async function extractStreams(pdfSource) {
     AHx: 'ASCIIHexDecode',
     A85: 'ASCII85Decode',
     Fl: 'FlateDecode',
+    RL: 'RunLengthDecode',
   };
 
   streamLoop:
@@ -431,6 +451,10 @@ async function extractStreams(pdfSource) {
         }
         if (normalizedFilter === 'ASCII85Decode') {
           streamBytes = decodeAscii85Bytes(streamBytes);
+          continue;
+        }
+        if (normalizedFilter === 'RunLengthDecode') {
+          streamBytes = decodeRunLengthBytes(streamBytes);
           continue;
         }
         if (normalizedFilter === 'FlateDecode') {
