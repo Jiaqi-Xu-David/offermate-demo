@@ -429,6 +429,15 @@ test('keeps modern English resume labels on the PDF path', () => {
   );
 });
 
+test('keeps leadership and coursework style English resume labels on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Leadership: Data club lead\nActivities: Recruiting fair\nCoursework: Statistics\nTools: SQL',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));
