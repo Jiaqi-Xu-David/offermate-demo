@@ -48,17 +48,17 @@ export async function verifyPassword(password, salt, expectedHash) {
 }
 
 export function parseCookieHeader(header = '') {
-  return Object.fromEntries(
-    header
-      .split(';')
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const splitAt = part.indexOf('=');
-        if (splitAt === -1) return [part, ''];
-        return [part.slice(0, splitAt), normalizeCookieValue(part.slice(splitAt + 1))];
-      }),
-  );
+  return header
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((cookies, part) => {
+      const splitAt = part.indexOf('=');
+      const name = splitAt === -1 ? part : part.slice(0, splitAt);
+      if (name in cookies) return cookies;
+      cookies[name] = splitAt === -1 ? '' : normalizeCookieValue(part.slice(splitAt + 1));
+      return cookies;
+    }, {});
 }
 
 export function getSessionToken(request) {

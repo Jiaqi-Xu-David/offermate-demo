@@ -603,6 +603,13 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
   assert.match(clearedCookie, /Priority=High/);
 });
 
+test('keeps the first session cookie when duplicate names appear in the header', () => {
+  assert.deepEqual(parseCookieHeader('om_session=trusted-token; theme=dark; om_session=shadow-token'), {
+    om_session: 'trusted-token',
+    theme: 'dark',
+  });
+});
+
 test('defines application tables for auth, jobs, resumes, matches, and applications', () => {
   [
     'CREATE TABLE IF NOT EXISTS users',
