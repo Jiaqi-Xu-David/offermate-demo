@@ -1156,7 +1156,7 @@ test('preserves the selected HR candidate when refreshed data still contains the
 
 test('summarizes the HR review queue by submitted and upload-only candidates', () => {
   assert.equal(buildHrCandidateQueueSummary([]), '0 人');
-  assert.equal(buildHrCandidateQueueSummary(CANDIDATES), '3 人 · 已投递 3');
+  assert.equal(buildHrCandidateQueueSummary(CANDIDATES), '3 人 · 已投递 3 · 高匹配 2');
 
   const mixed = [
     ...CANDIDATES,
@@ -1166,7 +1166,7 @@ test('summarizes the HR review queue by submitted and upload-only candidates', (
       submittedJobIds: [],
     },
   ];
-  assert.equal(buildHrCandidateQueueSummary(mixed), '4 人 · 已投递 3 · 待分流 1');
+  assert.equal(buildHrCandidateQueueSummary(mixed), '4 人 · 已投递 3 · 高匹配 2 · 待分流 1');
   assert.equal(
     buildHrCandidateQueueSummary(
       mixed.map((candidate) => ({

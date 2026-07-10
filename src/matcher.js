@@ -1714,11 +1714,17 @@ export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
 export function buildHrCandidateQueueSummary(candidates = []) {
   const submittedCount = candidates.filter((candidate) => (candidate.submittedJobIds?.length ?? 0) > 0).length;
   const uploadOnlyCount = candidates.length - submittedCount;
+  const strongMatchCount = candidates.filter((candidate) => {
+    if ((candidate.submittedJobIds?.length ?? 0) === 0) return false;
+    const bestSubmitted = buildAdminCandidateInsight(candidate).submittedJobs[0];
+    return (bestSubmitted?.score ?? 0) >= 80;
+  }).length;
   if (!candidates.length) return '0 人';
   if (submittedCount === 0) return `${candidates.length} 人 · 待分流 ${uploadOnlyCount}`;
+  const strongMatchLabel = strongMatchCount > 0 ? ` · 高匹配 ${strongMatchCount}` : '';
   return uploadOnlyCount > 0
-    ? `${candidates.length} 人 · 已投递 ${submittedCount} · 待分流 ${uploadOnlyCount}`
-    : `${candidates.length} 人 · 已投递 ${submittedCount}`;
+    ? `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel} · 待分流 ${uploadOnlyCount}`
+    : `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel}`;
 }
 
 export function resolveHrCandidateSelection(candidates = [], previousSelectedId = '') {
