@@ -144,6 +144,27 @@ test('recognizes modern frontend and AI platform aliases in resumes and JDs', ()
   assert.ok(job.tags.includes('Vercel'));
 });
 
+test('recognizes analytics platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：陈旻
+学校：复旦大学 统计学 本科
+求职意向：商业分析实习
+技能：Looker Studio、Metabase、GA4、SQL
+项目经历：使用 Google Analytics 4 分析渠道转化，并用 Looker Studio 和 Metabase 搭建周报看板。`);
+  const job = analyzeJobDescription({
+    title: '商业分析实习生',
+    city: '上海',
+    description: '负责使用 Google Analytics、Looker 和 Metabase 监控增长漏斗，输出周度分析看板。',
+  });
+
+  assert.ok(profile.skills.includes('Looker'));
+  assert.ok(profile.skills.includes('Metabase'));
+  assert.ok(profile.skills.includes('Google Analytics'));
+  assert.ok(job.tags.includes('Looker'));
+  assert.ok(job.tags.includes('Metabase'));
+  assert.ok(job.tags.includes('Google Analytics'));
+});
+
 test('recognizes OCR-spaced frontend and experiment aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：陈果
