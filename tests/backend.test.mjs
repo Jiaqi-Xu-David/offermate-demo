@@ -438,6 +438,21 @@ test('keeps leadership and coursework style English resume labels on the PDF pat
   );
 });
 
+test('keeps concise English resumes with professional experience headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Professional Experience: Data analyst intern\nSelected Projects: Funnel dashboard\nKey Skills: SQL, Python\nWork Authorization: EU student visa',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Education & Training: Technical University of Munich\nAcademic Projects: Retention model\nWork Authorization: Germany student permit\nKey Skills: Tableau, GA4',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));

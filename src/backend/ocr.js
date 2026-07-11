@@ -57,7 +57,7 @@ export function shouldUseOcrTextExtraction(text) {
   const compact = normalized.replace(/\s+/g, '');
   const lineCount = normalized.split('\n').filter((line) => line.trim()).length;
   const identityLabelMatches = normalized.match(
-    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历|\bName\b|\bProfile\b|\bSummary\b|\bContact\b|\bLocation\b|\bTarget Role\b|\bObjective\b|\bEducation(?: Background)?\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bEmail\b|\bPhone\b|\bExperience\b|\bWork Experience\b|\bEmployment History\b|\bInternships?\b|\bInternship Experience\b|\bProjects?\b|\bTechnical Skills\b|\bSkills?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b|\bGitHub\b|\bCore Competencies\b|\bCareer Highlights\b|\bCertifications\b|\bAwards\b|\bLeadership(?: Experience)?\b|\bActivities\b|\bRelevant Coursework\b|\bCoursework\b|\bTools\b)/gi,
+    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电话|实习|项目|技能|工作经历|教育经历|\bName\b|\bProfile\b|\bSummary\b|\bContact\b|\bLocation\b|\bTarget Role\b|\bObjective\b|\bEducation(?: Background)?\b|\bEducation & Training\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bEmail\b|\bPhone\b|\bExperience\b|\bProfessional Experience\b|\bWork Experience\b|\bEmployment History\b|\bInternships?\b|\bInternship Experience\b|\bProjects?\b|\bSelected Projects\b|\bAcademic Projects\b|\bTechnical Skills\b|\bKey Skills\b|\bSkills?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b|\bGitHub\b|\bCore Competencies\b|\bCareer Highlights\b|\bCertifications\b|\bAwards\b|\bLeadership(?: Experience)?\b|\bActivities\b|\bRelevant Coursework\b|\bCoursework\b|\bTools\b|\bWork Authorization\b)/gi,
   ) ?? [];
   const hasIdentitySignal = identityLabelMatches.length > 0;
   const hasStructuredIdentityFields = identityLabelMatches.length >= 4 && lineCount >= 3;
