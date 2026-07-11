@@ -919,6 +919,18 @@ test('parses annual salary ranges from admin JDs', () => {
   assert.equal(job.salary, '20-30万/年');
 });
 
+test('parses comprehensive monthly salary formats from admin JDs', () => {
+  const parsed = parseJobDescription('综合薪资：1.5 - 2 万/月，负责招聘数据整理与流程跟进。');
+  const job = analyzeJobDescription({
+    title: 'HR 运营实习生',
+    city: '上海',
+    description: '薪资待遇: 8000 - 12000 元/月，要求 Office、文档写作和招聘协作。',
+  });
+
+  assert.equal(parsed.salary, '1.5-2万/月');
+  assert.equal(job.salary, '8000-12000元/月');
+});
+
 test('infers admin-added job city from JD text when the city field is empty', () => {
   const job = analyzeJobDescription({
     title: 'AI 产品实习生',
