@@ -8,6 +8,28 @@ function safeDecodeCookieValue(value) {
   }
 }
 
+function splitCookieHeader(header = '') {
+  const parts = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < header.length; index += 1) {
+    const char = header[index];
+    if (char === '"') inQuotes = !inQuotes;
+    if (char === ';' && !inQuotes) {
+      const part = current.trim();
+      if (part) parts.push(part);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+
+  const finalPart = current.trim();
+  if (finalPart) parts.push(finalPart);
+  return parts;
+}
+
 function normalizeCookieValue(value) {
   const decoded = safeDecodeCookieValue(value).trim();
   return decoded.startsWith('"') && decoded.endsWith('"') ? decoded.slice(1, -1) : decoded;
@@ -48,13 +70,10 @@ export async function verifyPassword(password, salt, expectedHash) {
 }
 
 export function parseCookieHeader(header = '') {
-  return header
-    .split(';')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .reduce((cookies, part) => {
+  return splitCookieHeader(header).reduce((cookies, part) => {
       const splitAt = part.indexOf('=');
-      const name = splitAt === -1 ? part : part.slice(0, splitAt);
+      const name = (splitAt === -1 ? part : part.slice(0, splitAt)).trim();
+      if (!name) return cookies;
       if (name in cookies) return cookies;
       cookies[name] = splitAt === -1 ? '' : normalizeCookieValue(part.slice(splitAt + 1));
       return cookies;
