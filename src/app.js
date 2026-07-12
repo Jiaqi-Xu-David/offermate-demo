@@ -1007,6 +1007,7 @@ function createCandidateCard(candidate) {
     .filter(Boolean);
 
   const name = document.createElement('h3');
+  name.id = `candidate-name-${candidate.id}`;
   name.textContent = candidate.name;
   const meta = document.createElement('p');
   const profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
@@ -1014,6 +1015,7 @@ function createCandidateCard(candidate) {
   meta.textContent = formatSafeResumeMeta(summary.metaText, `${profile.gender ?? '未填写'} · 简历已解析`);
   const submitted = document.createElement('p');
   submitted.className = 'candidate-submitted';
+  submitted.id = `candidate-submitted-${candidate.id}`;
   submitted.textContent = submittedJobs.length ? `已提交：${submittedJobs.join('、')}` : '尚未提交岗位';
   const matchSummary = document.createElement('p');
   matchSummary.className = 'candidate-match-summary';
@@ -1023,7 +1025,8 @@ function createCandidateCard(candidate) {
   fitHighlights.className = 'candidate-fit-tags';
   fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;
   renderFitHighlights(fitHighlights, buildCandidateFitHighlights(candidate, state.jobs));
-  button.setAttribute('aria-describedby', [matchSummary.id, fitHighlights.id].join(' '));
+  button.setAttribute('aria-labelledby', name.id);
+  button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, fitHighlights.id].join(' '));
   button.append(name, meta, submitted, matchSummary, fitHighlights);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;

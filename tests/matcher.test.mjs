@@ -705,7 +705,10 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(appJs.includes('resolveHrCandidateSelection'));
   assert.ok(appJs.includes('candidate-fit-tags'));
   assert.ok(appJs.includes('candidate-match-summary'));
-  assert.ok(appJs.includes("button.setAttribute('aria-describedby', [matchSummary.id, fitHighlights.id].join(' '))"));
+  assert.ok(appJs.includes("name.id = `candidate-name-${candidate.id}`;"));
+  assert.ok(appJs.includes("submitted.id = `candidate-submitted-${candidate.id}`;"));
+  assert.ok(appJs.includes("button.setAttribute('aria-labelledby', name.id)"));
+  assert.ok(appJs.includes("button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, fitHighlights.id].join(' '))"));
   assert.ok(appJs.includes("matchSummary.id = `candidate-match-summary-${candidate.id}`;"));
   assert.ok(appJs.includes("fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;"));
   assert.ok(matcherJs.includes('最佳已投'));
