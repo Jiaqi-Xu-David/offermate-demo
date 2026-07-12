@@ -239,6 +239,32 @@ trailer
   assert.match(text, /Davide Resume/);
 });
 
+test('extracts text from PDF streams with nested stream dictionaries', async () => {
+  const pdf = new TextEncoder().encode(`%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 42 /DecodeParms << /Columns 1 /Predictor 12 >> /Filter /ASCIIHexDecode >>
+stream
+425420284E6573746564205064662053747265616D2920546A204554>
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`);
+
+  const text = await extractPdfText(pdf);
+
+  assert.match(text, /Nested Pdf Stream/);
+});
+
 test('infers the candidate name from labeled resume text instead of generic title', () => {
   const profile = parseResumeText(`个人简历
 姓名：大卫德

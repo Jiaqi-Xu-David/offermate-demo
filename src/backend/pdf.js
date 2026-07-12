@@ -417,21 +417,51 @@ function parseUnicodeCMaps(streams) {
   return unicodeMap;
 }
 
+function findDictionaryEnd(pdfSource, start) {
+  let depth = 0;
+  for (let index = start; index < pdfSource.length - 1; index += 1) {
+    if (pdfSource[index] === '<' && pdfSource[index + 1] === '<') {
+      depth += 1;
+      index += 1;
+      continue;
+    }
+    if (pdfSource[index] === '>' && pdfSource[index + 1] === '>') {
+      depth -= 1;
+      index += 1;
+      if (depth === 0) return index + 1;
+    }
+  }
+  return -1;
+}
+
 async function extractStreams(pdfSource) {
-  const streamPattern = /<<(.*?)>>\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g;
   const streams = [];
-  let match = streamPattern.exec(pdfSource);
   const FILTER_ALIASES = {
     AHx: 'ASCIIHexDecode',
     A85: 'ASCII85Decode',
     Fl: 'FlateDecode',
     RL: 'RunLengthDecode',
   };
+  let cursor = 0;
 
   streamLoop:
-  while (match) {
-    const dictionary = match[1];
-    const rawStream = match[2];
+  while (cursor < pdfSource.length) {
+    const dictStart = pdfSource.indexOf('<<', cursor);
+    if (dictStart === -1) break;
+    const dictEnd = findDictionaryEnd(pdfSource, dictStart);
+    if (dictEnd === -1) break;
+    const streamStartMatch = pdfSource.slice(dictEnd).match(/^\s*stream\r?\n?/);
+    if (!streamStartMatch) {
+      cursor = dictEnd;
+      continue;
+    }
+
+    const streamStart = dictEnd + streamStartMatch[0].length;
+    const streamEnd = pdfSource.indexOf('endstream', streamStart);
+    if (streamEnd === -1) break;
+
+    const dictionary = pdfSource.slice(dictStart + 2, dictEnd - 2);
+    const rawStream = pdfSource.slice(streamStart, streamEnd).replace(/\r?\n$/, '');
     let streamBytes = binaryToBytes(rawStream);
     const filters = [...dictionary.matchAll(/\/Filter\s*(?:\[\s*((?:\/[A-Za-z0-9]+(?:\s+)?)*)\]|\/([A-Za-z0-9]+))/g)]
       .flatMap((entry) =>
@@ -461,13 +491,13 @@ async function extractStreams(pdfSource) {
           streamBytes = await inflateBytes(streamBytes);
         }
       } catch {
-        match = streamPattern.exec(pdfSource);
+        cursor = streamEnd + 'endstream'.length;
         continue streamLoop;
       }
     }
 
     streams.push({ dictionary, content: bytesToBinary(streamBytes) });
-    match = streamPattern.exec(pdfSource);
+    cursor = streamEnd + 'endstream'.length;
   }
 
   return streams;
