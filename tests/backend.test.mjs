@@ -9,6 +9,7 @@ import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/ba
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
+import { buildDownloadContentDisposition } from '../functions/api/hr/resume-download.js';
 import { ensureSupportedResumeUpload } from '../functions/api/resumes.js';
 
 function buildMinimalPdf(streamBody) {
@@ -692,6 +693,15 @@ test('schema and HR APIs support original resume download', async () => {
   assert.ok(resumesApi.includes('fileDataBase64: storedFileDataBase64'));
   assert.ok(resumesApi.includes('extractResumeTextFromPdf(env, buffer'));
   assert.ok(resumesApi.includes('textSource: extraction.source'));
+});
+
+test('builds resume download headers with ascii fallback and utf-8 filename encoding', () => {
+  const header = buildDownloadContentDisposition('大卫德 简历 2026".pdf');
+
+  assert.match(header, /^attachment; filename="[_A-Za-z0-9 .'-]+"/);
+  assert.match(header, /filename="___ __ 2026-\.pdf"/);
+  assert.match(header, /filename\*=UTF-8''/);
+  assert.match(header, /%E5%A4%A7%E5%8D%AB%E5%BE%B7/);
 });
 
 test('supports account admin users and exposes raw parsed resume text', async () => {

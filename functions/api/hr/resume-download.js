@@ -1,8 +1,20 @@
 import { getResumeFileForHr } from '../../../src/backend/database.js';
 import { jsonResponse, requireUser } from '../../_lib/api.js';
 
+function buildAsciiFallbackFileName(fileName) {
+  const cleaned = String(fileName ?? 'resume.pdf')
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .trim();
+  return (cleaned || 'resume.pdf').replace(/"/g, "'");
+}
+
 function encodeFileName(fileName) {
   return encodeURIComponent(fileName).replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+export function buildDownloadContentDisposition(fileName) {
+  return `attachment; filename="${buildAsciiFallbackFileName(fileName)}"; filename*=UTF-8''${encodeFileName(fileName)}`;
 }
 
 export async function onRequestGet(context) {
@@ -20,7 +32,7 @@ export async function onRequestGet(context) {
     headers: {
       'Cache-Control': 'no-store',
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeFileName(file.fileName)}`,
+      'Content-Disposition': buildDownloadContentDisposition(file.fileName),
     },
   });
 }
