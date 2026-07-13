@@ -15,7 +15,7 @@ function splitCookieHeader(header = '') {
 
   for (let index = 0; index < header.length; index += 1) {
     const char = header[index];
-    if (char === '"') inQuotes = !inQuotes;
+    if (char === '"' && header[index - 1] !== '\\') inQuotes = !inQuotes;
     if (char === ';' && !inQuotes) {
       const part = current.trim();
       if (part) parts.push(part);
@@ -32,7 +32,13 @@ function splitCookieHeader(header = '') {
 
 function normalizeCookieValue(value) {
   const decoded = safeDecodeCookieValue(value).trim();
-  return decoded.startsWith('"') && decoded.endsWith('"') ? decoded.slice(1, -1) : decoded;
+  if (decoded.startsWith('"') && decoded.endsWith('"')) {
+    return decoded
+      .slice(1, -1)
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+  }
+  return decoded;
 }
 
 function buildCookieExpiry(maxAgeSeconds) {
