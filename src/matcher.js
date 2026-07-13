@@ -1725,11 +1725,20 @@ export function buildHrCandidateQueueSummary(candidates = []) {
     const bestSubmitted = buildAdminCandidateInsight(candidate).submittedJobs[0];
     return (bestSubmitted?.score ?? 0) >= 80;
   }).length;
+  const uploadOnlyHighPotentialCount = candidates.filter((candidate) => {
+    if ((candidate.submittedJobIds?.length ?? 0) > 0) return false;
+    const bestSuggested = buildAdminCandidateInsight(candidate).suggestedJobs[0];
+    return (bestSuggested?.score ?? 0) >= 80;
+  }).length;
   if (!candidates.length) return '0 人';
-  if (submittedCount === 0) return `${candidates.length} 人 · 待分流 ${uploadOnlyCount}`;
+  if (submittedCount === 0) {
+    const highPotentialLabel = uploadOnlyHighPotentialCount > 0 ? ` · 高潜 ${uploadOnlyHighPotentialCount}` : '';
+    return `${candidates.length} 人 · 待分流 ${uploadOnlyCount}${highPotentialLabel}`;
+  }
   const strongMatchLabel = strongMatchCount > 0 ? ` · 高匹配 ${strongMatchCount}` : '';
+  const uploadOnlyHighPotentialLabel = uploadOnlyHighPotentialCount > 0 ? ` · 高潜待分流 ${uploadOnlyHighPotentialCount}` : '';
   return uploadOnlyCount > 0
-    ? `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel} · 待分流 ${uploadOnlyCount}`
+    ? `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel} · 待分流 ${uploadOnlyCount}${uploadOnlyHighPotentialLabel}`
     : `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel}`;
 }
 
