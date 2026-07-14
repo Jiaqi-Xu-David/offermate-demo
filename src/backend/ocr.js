@@ -32,11 +32,24 @@ function bytesToBase64(bytes) {
 }
 
 function normalizeOcrText(text) {
-  return cleanText(text)
+  const normalized = cleanText(text)
+    .replace(/^```[a-z0-9_-]*\s*/i, '')
+    .replace(/\s*```$/i, '')
     .replace(/\r/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ');
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  const lines = normalized.split('\n');
+  while (
+    lines.length > 0 &&
+    /^(以下是(?:识别后)?(?:的)?简历(?:原文|文本)?|简历(?:原文|文本)|OCR(?:识别)?结果|提取结果|文本内容)\s*[：:]?\s*$/i.test(
+      lines[0].trim(),
+    )
+  ) {
+    lines.shift();
+  }
+  return lines.join('\n').trim();
 }
 
 function extractOutputText(payload) {

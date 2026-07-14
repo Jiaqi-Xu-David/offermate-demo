@@ -529,6 +529,25 @@ test('extracts resume text through OpenAI PDF OCR when configured', async () => 
   assert.match(body.input[0].content[1].text, /OCR\/文本抽取/);
 });
 
+test('normalizes fenced OCR output into plain resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '```text\n简历原文：\n姓名：大卫德\n学校：慕尼黑工业大学\n技能：SQL、Python\n```',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：大卫德\n学校：慕尼黑工业大学\n技能：SQL、Python');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(
