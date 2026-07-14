@@ -42,6 +42,11 @@ npx wrangler secret put OPENAI_API_KEY
 
 同一把 `OPENAI_API_KEY` 也会用于 OCR 后的结构化简历画像解析；如果同时配置了 `DEEPSEEK_API_KEY`，系统会优先用 DeepSeek 做结构化解析。OCR 模型默认 `gpt-4o-mini`，可通过 `OPENAI_OCR_MODEL` 覆盖；结构化解析模型可通过 `OPENAI_PROFILE_MODEL` 覆盖。演示时如果想让所有 PDF 都走 OCR，可以设置 `OCR_MODE=always`。
 
+简历上传约束：
+
+- 仅支持 `.pdf` 文件，空白 PDF 会在上传阶段直接拒绝。
+- 原始 PDF 仅在 700KB 以内时随简历记录保存用于 HR 下载；更大的 PDF 仍会继续做文本提取与匹配，但不会保留原文件二进制内容。
+
 ## Test
 
 ```bash

@@ -30,6 +30,9 @@ export function ensureSupportedResumeUpload(file) {
   if (!looksLikePdf) {
     throw new Error('仅支持 PDF 简历上传，请重新选择 .pdf 文件。');
   }
+  if (Number(file?.size ?? 0) === 0) {
+    throw new Error('上传的 PDF 为空，请重新导出后再试。');
+  }
 }
 
 function createStoredResumeFilePayload(buffer, mimeType) {
@@ -54,6 +57,9 @@ async function readResumeText(request, env) {
     if (file && typeof file.arrayBuffer === 'function') {
       ensureSupportedResumeUpload(file);
       const buffer = await file.arrayBuffer();
+      if (buffer.byteLength === 0) {
+        throw new Error('上传的 PDF 为空，请重新导出后再试。');
+      }
       const extraction = await extractResumeTextFromPdf(env, buffer, {
         fileName: file.name || 'resume.pdf',
         mimeType: file.type || 'application/pdf',

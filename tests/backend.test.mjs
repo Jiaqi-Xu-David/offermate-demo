@@ -481,11 +481,15 @@ test('keeps concise English resumes with professional experience headings on the
 });
 
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
-  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf' }));
-  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '' }));
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 1024 }));
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '', size: 2048 }));
   assert.throws(
-    () => ensureSupportedResumeUpload({ name: 'resume.png', type: 'image/png' }),
+    () => ensureSupportedResumeUpload({ name: 'resume.png', type: 'image/png', size: 1024 }),
     /仅支持 PDF 简历上传/,
+  );
+  assert.throws(
+    () => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 0 }),
+    /上传的 PDF 为空/,
   );
 });
 
