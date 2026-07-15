@@ -321,6 +321,7 @@ async function seedAdminUser(db, env) {
   const email = String(env.OFFERMATE_ADMIN_EMAIL ?? DEFAULT_ADMIN.email).trim().toLowerCase();
   const name = String(env.OFFERMATE_ADMIN_NAME ?? DEFAULT_ADMIN.name).trim();
   const emailLookup = await hashLookup(email);
+  const passwordSalt = String(env.OFFERMATE_ADMIN_PASSWORD_SALT ?? DEFAULT_ADMIN.salt);
   const passwordHash = env.OFFERMATE_ADMIN_PASSWORD_HASH ?? DEFAULT_ADMIN.passwordHash;
   const existing = await db.prepare("SELECT id FROM users WHERE role = 'admin' OR email_lookup = ? ORDER BY created_at ASC LIMIT 1").bind(emailLookup).first();
   if (existing) {
@@ -343,7 +344,7 @@ async function seedAdminUser(db, env) {
         await encryptText(env, email),
         maskName(DEFAULT_ADMIN.role),
         await encryptText(env, name),
-        DEFAULT_ADMIN.salt,
+        passwordSalt,
         passwordHash,
         existing.id,
       )
@@ -365,7 +366,7 @@ async function seedAdminUser(db, env) {
       maskName(DEFAULT_ADMIN.role),
       await encryptText(env, name),
       DEFAULT_ADMIN.role,
-      DEFAULT_ADMIN.salt,
+      passwordSalt,
       passwordHash,
       nowIso(),
     )

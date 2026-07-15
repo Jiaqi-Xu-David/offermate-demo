@@ -841,6 +841,25 @@ test('supports account admin users and exposes raw parsed resume text', async ()
   assert.ok(usersApi.includes('onRequestDelete'));
 });
 
+test('uses environment-specific administrator password salt and hash', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = {
+    APP_DB: d1,
+    OFFERMATE_ENCRYPTION_KEY: 'admin-config-test-key',
+    OFFERMATE_ADMIN_EMAIL: 'owner@example.com',
+    OFFERMATE_ADMIN_NAME: '项目管理员',
+    OFFERMATE_ADMIN_PASSWORD_SALT: 'deployment-specific-salt',
+    OFFERMATE_ADMIN_PASSWORD_HASH: 'deployment-specific-hash',
+  };
+
+  await ensureAppData(env);
+  const admin = sqlite.prepare("SELECT password_salt, password_hash FROM users WHERE role = 'admin'").get();
+
+  assert.equal(admin.password_salt, env.OFFERMATE_ADMIN_PASSWORD_SALT);
+  assert.equal(admin.password_hash, env.OFFERMATE_ADMIN_PASSWORD_HASH);
+});
+
 test('stores resume and user personal data through encrypted columns', async () => {
   const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
 
