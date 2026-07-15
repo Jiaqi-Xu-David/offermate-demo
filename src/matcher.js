@@ -1755,6 +1755,42 @@ export function buildHrCandidateQueueSummary(candidates = []) {
     : `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel}`;
 }
 
+export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
+  const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
+  const stage = ['all', 'submitted', 'unsubmitted', 'strong'].includes(filters.stage) ? filters.stage : 'all';
+
+  return candidates.filter((candidate) => {
+    const submittedJobIds = candidate.submittedJobIds ?? [];
+    const insight = buildAdminCandidateInsight(candidate, jobs);
+    const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+    if (stage === 'submitted' && submittedJobIds.length === 0) return false;
+    if (stage === 'unsubmitted' && submittedJobIds.length > 0) return false;
+    if (stage === 'strong' && (bestMatch?.score ?? 0) < 80) return false;
+    if (!query) return true;
+
+    const profile = candidate.profile ?? {};
+    const submittedTitles = submittedJobIds
+      .map((jobId) => jobs.find((job) => job.id === jobId)?.title)
+      .filter(Boolean);
+    const searchable = [
+      candidate.name,
+      candidate.school,
+      candidate.major,
+      profile.headline,
+      profile.target,
+      ...(profile.skills ?? []),
+      ...(profile.languages ?? []),
+      ...(profile.softSkills ?? []),
+      ...submittedTitles,
+      ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.title),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('zh-CN');
+    return searchable.includes(query);
+  });
+}
+
 export function resolveHrCandidateSelection(candidates = [], previousSelectedId = '') {
   if (previousSelectedId && candidates.some((candidate) => candidate.id === previousSelectedId)) {
     return previousSelectedId;

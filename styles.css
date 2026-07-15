@@ -1087,6 +1087,36 @@ button:disabled {
   gap: 10px;
 }
 
+.candidate-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 152px;
+  gap: 10px;
+  margin: -2px 0 14px;
+}
+
+.candidate-filter-bar label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.candidate-filter-bar input,
+.candidate-filter-bar select {
+  min-height: 38px;
+  padding: 8px 10px;
+  background: var(--panel);
+  font-size: 12px;
+}
+
+.candidate-filter-empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+}
+
 .admin-job-item,
 .candidate-card,
 .admin-match-item,
@@ -2598,6 +2628,10 @@ ol {
     width: 100%;
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .candidate-filter-bar {
+    grid-template-columns: 1fr;
   }
 
   .resume-header h2 {

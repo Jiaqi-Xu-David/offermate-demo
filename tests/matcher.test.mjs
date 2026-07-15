@@ -30,6 +30,7 @@ import {
   getSkillMatchDetails,
   getScoreBreakdown,
   findJobById,
+  filterHrCandidatesForReview,
   parseJobDescription,
   parseResumeText,
   resolveHrCandidateSelection,
@@ -1269,6 +1270,54 @@ test('summarizes the HR review queue by submitted and upload-only candidates', (
     ),
     '4 人 · 待分流 4 · 高潜 3',
   );
+});
+
+test('filters the HR review queue by search text and review stage', () => {
+  const uploadOnlyCandidate = {
+    ...CANDIDATES[0],
+    id: 'candidate-upload-only-filter-test',
+    name: '林搜索',
+    submittedJobIds: [],
+    profile: {
+      ...CANDIDATES[0].profile,
+      skills: [...CANDIDATES[0].profile.skills, 'Rust'],
+    },
+  };
+  const candidates = [...CANDIDATES, uploadOnlyCandidate];
+
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'Rust' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.ok(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '数据分析实习生' }).some(
+      (candidate) => candidate.submittedJobIds.includes('data-analyst-intern'),
+    ),
+  );
+  assert.ok(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
+      (candidate) => candidate.submittedJobIds.length > 0,
+    ),
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'unsubmitted' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.ok(filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).length > 0);
+});
+
+test('adds accessible HR candidate search and stage filters to the workspace', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('id="hr-candidate-search"'));
+  assert.ok(indexHtml.includes('id="hr-candidate-stage"'));
+  assert.ok(indexHtml.includes('只看高匹配'));
+  assert.ok(appJs.includes('filterHrCandidatesForReview(state.candidates'));
+  assert.ok(appJs.includes('没有符合当前筛选条件的候选人。'));
+  assert.ok(appJs.includes('elements.adminCandidatePanel.hidden = !candidate'));
+  assert.match(css, /\.candidate-filter-bar\s*\{/);
 });
 
 test('builds an HR candidate summary with score and strongest evidence', () => {

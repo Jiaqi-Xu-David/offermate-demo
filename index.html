@@ -279,6 +279,21 @@
             </div>
             <span id="candidate-count" aria-live="polite"></span>
           </div>
+          <div class="candidate-filter-bar" aria-label="筛选候选人">
+            <label>
+              <span>搜索候选人</span>
+              <input id="hr-candidate-search" type="search" placeholder="姓名、技能或岗位" autocomplete="off">
+            </label>
+            <label>
+              <span>筛选范围</span>
+              <select id="hr-candidate-stage">
+                <option value="all">全部候选人</option>
+                <option value="submitted">只看已投递</option>
+                <option value="unsubmitted">只看待分流</option>
+                <option value="strong">只看高匹配</option>
+              </select>
+            </label>
+          </div>
           <div id="candidate-list" class="candidate-list"></div>
         </section>
 

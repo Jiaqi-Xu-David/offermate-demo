@@ -11,6 +11,7 @@ import {
   buildCompositeCapabilityDetails,
   buildEvidenceConfidenceSummary,
   buildEvidenceTrace,
+  filterHrCandidatesForReview,
   buildHrCandidateQueueSummary,
   buildInterviewQuestions,
   buildPotentialAnalysis,
@@ -100,6 +101,7 @@ const state = {
   applicationNoticeTone: '',
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: '',
+  hrCandidateFilters: { query: '', stage: 'all' },
   rankings: rankJobs(createEmptyProfile('求职者'), JOBS),
   parseStatus: DEFAULT_PARSE_STATUS,
   adminResult:
@@ -167,6 +169,9 @@ const elements = {
   adminJobList: document.querySelector('#admin-job-list'),
   candidateCount: document.querySelector('#candidate-count'),
   candidateList: document.querySelector('#candidate-list'),
+  hrCandidateSearch: document.querySelector('#hr-candidate-search'),
+  hrCandidateStage: document.querySelector('#hr-candidate-stage'),
+  adminCandidatePanel: document.querySelector('#admin-candidate-panel'),
   adminCandidateName: document.querySelector('#admin-candidate-name'),
   adminCandidateStatus: document.querySelector('#admin-candidate-status'),
   adminCandidateHighlights: document.querySelector('#admin-candidate-highlights'),
@@ -253,6 +258,10 @@ function setAuthenticatedUser(user) {
   state.mode = user.role === 'admin' ? 'account-admin' : user.role === 'hr' ? 'admin' : 'student';
   if (user.role === 'student') {
     resetStudentWorkspaceState(user.name);
+  } else if (user.role === 'hr') {
+    state.hrCandidateFilters = { query: '', stage: 'all' };
+    elements.hrCandidateSearch.value = '';
+    elements.hrCandidateStage.value = 'all';
   }
   elements.loginScreen.hidden = true;
   elements.appShell.hidden = false;
@@ -1446,12 +1455,27 @@ function renderAdminJobs() {
   elements.adminResult.textContent = state.adminResult;
 }
 
+function getVisibleHrCandidates() {
+  return filterHrCandidatesForReview(state.candidates, state.jobs, state.hrCandidateFilters);
+}
+
 function renderCandidates() {
-  elements.candidateCount.textContent = buildHrCandidateQueueSummary(state.candidates);
+  const visibleCandidates = getVisibleHrCandidates();
+  state.selectedCandidateId = resolveHrCandidateSelection(visibleCandidates, state.selectedCandidateId);
+  const isFiltered = state.hrCandidateFilters.query || state.hrCandidateFilters.stage !== 'all';
+  const queueSummary = buildHrCandidateQueueSummary(visibleCandidates);
+  elements.candidateCount.textContent = isFiltered
+    ? `显示 ${visibleCandidates.length}/${state.candidates.length} · ${queueSummary}`
+    : queueSummary;
   elements.candidateList.replaceChildren(
-    ...(state.candidates.length
-      ? state.candidates.map(createCandidateCard)
-      : [Object.assign(document.createElement('p'), { className: 'history-empty', textContent: '暂无候选人提交简历。' })]),
+    ...(visibleCandidates.length
+      ? visibleCandidates.map(createCandidateCard)
+      : [
+          Object.assign(document.createElement('p'), {
+            className: 'history-empty candidate-filter-empty',
+            textContent: state.candidates.length ? '没有符合当前筛选条件的候选人。' : '暂无候选人提交简历。',
+          }),
+        ]),
   );
 }
 
@@ -1580,7 +1604,9 @@ function renderSnippetPrompt(selectedJob) {
 }
 
 function renderAdminInsight() {
-  const candidate = state.candidates.find((item) => item.id === state.selectedCandidateId) ?? state.candidates[0];
+  const visibleCandidates = getVisibleHrCandidates();
+  const candidate = visibleCandidates.find((item) => item.id === state.selectedCandidateId) ?? visibleCandidates[0];
+  elements.adminCandidatePanel.hidden = !candidate;
   if (!candidate) return;
   state.selectedCandidateId = candidate.id;
   candidate.profile = repairProfileFromRawText(candidate.profile, candidate.rawText);
@@ -1877,6 +1903,18 @@ elements.refreshJobsButton.addEventListener('click', async () => {
     state.parseStatus = error.message;
     renderProfile();
   }
+});
+
+elements.hrCandidateSearch.addEventListener('input', () => {
+  state.hrCandidateFilters.query = elements.hrCandidateSearch.value;
+  renderCandidates();
+  renderAdminInsight();
+});
+
+elements.hrCandidateStage.addEventListener('change', () => {
+  state.hrCandidateFilters.stage = elements.hrCandidateStage.value;
+  renderCandidates();
+  renderAdminInsight();
 });
 
 elements.generateSnippet.addEventListener('click', () => {
