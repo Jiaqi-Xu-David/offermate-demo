@@ -5,7 +5,7 @@ import { jsonResponse, readJson } from '../_lib/api.js';
 export async function onRequestPost(context) {
   const { request, env } = context;
   const body = await readJson(request);
-  const email = String(body.email ?? '').trim();
+  const email = String(body.email ?? '').trim().toLowerCase();
   const password = String(body.password ?? '');
   const user = await findUserByEmail(env, email);
 

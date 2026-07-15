@@ -408,7 +408,7 @@ export async function ensureAppData(env) {
 
 export async function findUserByEmail(env, email) {
   const db = await ensureAppData(env);
-  const lookup = await hashLookup(email);
+  const lookup = await hashLookup(String(email ?? '').trim().toLowerCase());
   const row = await db.prepare('SELECT * FROM users WHERE email_lookup = ?').bind(lookup).first();
   return mapUserRow(env, row);
 }

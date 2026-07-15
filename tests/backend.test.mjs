@@ -811,6 +811,14 @@ test('registration API creates a student session without exposing role selection
   assert.ok(appJs.includes('await enterApp(payload.user)'));
 });
 
+test('login lookup normalizes email casing before session creation', async () => {
+  const loginApi = await readFile(new URL('../functions/api/login.js', import.meta.url), 'utf8');
+  const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
+
+  assert.ok(loginApi.includes("String(body.email ?? '').trim().toLowerCase()"));
+  assert.ok(databaseJs.includes("hashLookup(String(email ?? '').trim().toLowerCase())"));
+});
+
 test('student-specific resume state is reset when switching accounts', async () => {
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
