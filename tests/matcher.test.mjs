@@ -282,6 +282,31 @@ test('recognizes common product collaboration tools in resumes and JDs', () => {
   assert.ok(job.tags.includes('Jira'));
 });
 
+test('recognizes OCR-spaced and Chinese collaboration tool aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周澄
+学校：暨南大学 市场营销 本科
+求职意向：产品运营实习
+技能：Fi gma、No tion、Ji ra、Con fluence、飞书
+项目经历：使用 No tion 维护需求池，通过 Ji ra 跟进版本节奏，并在飞书同步项目进展。`);
+  const job = analyzeJobDescription({
+    title: '产品运营实习生',
+    city: '上海',
+    description: '负责使用 Figma、Notion、Jira Software、Confluence 和 Slack 支持需求协同、文档沉淀与跨团队沟通。',
+  });
+
+  assert.ok(profile.skills.includes('Figma'));
+  assert.ok(profile.skills.includes('Notion'));
+  assert.ok(profile.skills.includes('Jira'));
+  assert.ok(profile.skills.includes('Confluence'));
+  assert.ok(profile.skills.includes('Slack'));
+  assert.ok(job.tags.includes('Figma'));
+  assert.ok(job.tags.includes('Notion'));
+  assert.ok(job.tags.includes('Jira'));
+  assert.ok(job.tags.includes('Confluence'));
+  assert.ok(job.tags.includes('Slack'));
+});
+
 test('recognizes modern collaboration workspace tools in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：沈遥
