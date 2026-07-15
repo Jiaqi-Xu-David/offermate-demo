@@ -938,6 +938,7 @@ select:focus {
   min-height: 42px;
   border-radius: 8px;
   font-weight: 800;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .primary-button {
@@ -949,6 +950,33 @@ select:focus {
   border: 1px solid var(--line);
   background: var(--panel-strong);
   color: var(--ink);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--brand-dark);
+}
+
+.secondary-button:hover:not(:disabled) {
+  border-color: rgba(30, 124, 100, 0.45);
+  background: #edf5f0;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible {
+  outline: 3px solid rgba(30, 124, 100, 0.24);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--brand);
+}
+
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 button:disabled {

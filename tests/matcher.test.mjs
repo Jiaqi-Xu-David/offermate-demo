@@ -872,6 +872,16 @@ test('tightens repeated tag blocks and job detail spacing', async () => {
   assert.ok(!css.includes('.heatmap-cell {'));
 });
 
+test('keeps primary controls visible across pointer and keyboard states', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /\.primary-button:hover:not\(:disabled\)/);
+  assert.match(css, /\.secondary-button:hover:not\(:disabled\)/);
+  assert.match(css, /\.primary-button:focus-visible,[\s\S]*outline-offset: 2px/);
+  assert.match(css, /\.primary-button:active:not\(:disabled\)/);
+  assert.match(css, /input::placeholder,[\s\S]*opacity: 1/);
+});
+
 test('grounds every seeded job in a complete job description', () => {
   assert.ok(JOBS.every((job) => job.description.length > 80));
   assert.ok(JOBS.every((job) => job.tags.length >= 4));
