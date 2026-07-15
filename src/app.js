@@ -94,6 +94,10 @@ const state = {
   candidates: [],
   accountUsers: [],
   history: { resumes: [], matchRuns: [] },
+  applications: [],
+  applicationPendingJobId: '',
+  applicationNotice: '',
+  applicationNoticeTone: '',
   selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
   selectedCandidateId: '',
   rankings: rankJobs(createEmptyProfile('求职者'), JOBS),
@@ -182,6 +186,7 @@ const elements = {
   scoreRing: document.querySelector('#score-ring'),
   scoreValue: document.querySelector('#score-value'),
   priorityActionPanel: document.querySelector('#priority-action-panel'),
+  applicationAction: document.querySelector('#application-action'),
   compositeList: document.querySelector('#composite-list'),
   scoreFormula: document.querySelector('#score-formula'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
@@ -210,6 +215,10 @@ function resetStudentWorkspaceState(name = '求职者') {
   state.resumeFileName = '';
   state.hasParsedResume = false;
   state.history = { resumes: [], matchRuns: [] };
+  state.applications = [];
+  state.applicationPendingJobId = '';
+  state.applicationNotice = '';
+  state.applicationNoticeTone = '';
   state.parseStatus = '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。';
   if (elements.selectedFileName) elements.selectedFileName.textContent = '未选择文件';
   if (elements.resumeFile) elements.resumeFile.value = '';
@@ -387,6 +396,21 @@ function getScoreTone(score) {
   return 'low';
 }
 
+function getApplicationForJob(jobId) {
+  return state.applications.find((application) => application.jobId === jobId);
+}
+
+function formatApplicationTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '已记录投递';
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 function getScoreToneLabel(score) {
   if (score >= 80) return '强匹配';
   if (score >= 65) return '可投递';
@@ -401,6 +425,8 @@ function getConfidenceTone(confidence) {
 
 function selectStudentJob(jobId) {
   state.selectedJobId = jobId;
+  state.applicationNotice = '';
+  state.applicationNoticeTone = '';
   renderJobs();
   renderAnalysis();
 }
@@ -701,7 +727,8 @@ function renderWorkflowChecklist() {
   const selectedJob = state.jobs.find((job) => job.id === state.selectedJobId) ?? state.jobs[0];
   const selectedAnalysis = state.rankings.find((analysis) => analysis.job.id === selectedJob?.id);
   const gaps = hasEvidence ? (selectedAnalysis?.gaps ?? []).filter(Boolean).slice(0, 2) : [];
-  const firstOpenStep = hasEvidence ? (gaps.length ? 3 : 0) : 1;
+  const application = selectedJob ? getApplicationForJob(selectedJob.id) : null;
+  const firstOpenStep = hasEvidence ? (application ? 0 : 3) : 1;
   const steps = [
     {
       label: hasEvidence ? '简历已解析' : '上传简历',
@@ -716,11 +743,15 @@ function renderWorkflowChecklist() {
       done: Boolean(selectedJob),
     },
     {
-      label: hasEvidence ? '补强关键缺口' : '查看匹配结果',
-      detail: hasEvidence
-        ? gaps.length ? `优先补：${gaps.join('、')}` : '关键词覆盖较完整，可进入投递准备'
-        : `${state.jobs.length} 个岗位等待匹配`,
-      done: hasEvidence && gaps.length === 0,
+      label: application ? '岗位已投递' : hasEvidence ? '投递目标岗位' : '查看匹配结果',
+      detail: application
+        ? `${selectedJob.title} · ${formatApplicationTime(application.createdAt)}`
+        : hasEvidence
+          ? gaps.length
+            ? `投递前优先补：${gaps.join('、')}`
+            : '材料已就绪，可提交给 HR'
+          : `${state.jobs.length} 个岗位等待匹配`,
+      done: Boolean(application),
     },
   ];
 
@@ -738,6 +769,74 @@ function createPrioritySection(labelText, children) {
   label.textContent = labelText;
   section.append(label, ...children);
   return section;
+}
+
+async function toggleStudentApplication(job) {
+  if (state.applicationPendingJobId) return;
+  const existing = getApplicationForJob(job.id);
+  state.applicationPendingJobId = job.id;
+  state.applicationNotice = '';
+  state.applicationNoticeTone = '';
+  renderApplicationAction(job);
+
+  try {
+    if (existing) {
+      await apiRequest(`/api/applications?jobId=${encodeURIComponent(job.id)}`, { method: 'DELETE' });
+    } else {
+      await apiRequest('/api/applications', {
+        method: 'POST',
+        body: JSON.stringify({ jobId: job.id }),
+      });
+    }
+    await refreshStudentApplications();
+    state.applicationNotice = existing ? `已撤回「${job.title}」的投递。` : `已投递「${job.title}」，HR 现在可以看到你的材料。`;
+    state.applicationNoticeTone = 'success';
+  } catch (error) {
+    state.applicationNotice = error.message;
+    state.applicationNoticeTone = 'error';
+  } finally {
+    state.applicationPendingJobId = '';
+    renderJobs();
+    renderAnalysis();
+  }
+}
+
+function renderApplicationAction(job) {
+  if (!elements.applicationAction) return;
+  const application = getApplicationForJob(job.id);
+  const isPending = state.applicationPendingJobId === job.id;
+  const hasEvidence = hasResumeEvidence(state.profile);
+
+  const copy = document.createElement('div');
+  copy.className = 'application-status-copy';
+  const title = document.createElement('strong');
+  const detail = document.createElement('p');
+  if (application) {
+    title.textContent = '已投递给 HR';
+    detail.textContent = `${formatApplicationTime(application.createdAt)}提交，这次投递绑定了当时的简历版本。`;
+  } else if (hasEvidence) {
+    title.textContent = '准备投递这个岗位';
+    detail.textContent = '提交后，当前简历和匹配结果会进入 HR 候选人池。';
+  } else {
+    title.textContent = '上传简历后可投递';
+    detail.textContent = '先完成 PDF 解析，系统会把简历版本和目标岗位一起记录。';
+  }
+  copy.append(title, detail);
+
+  if (state.applicationNotice) {
+    const notice = document.createElement('p');
+    notice.className = `application-notice ${state.applicationNoticeTone}`;
+    notice.textContent = state.applicationNotice;
+    copy.append(notice);
+  }
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = application ? 'secondary-button compact-button' : 'primary-button compact-button';
+  button.disabled = isPending || !hasEvidence;
+  button.textContent = isPending ? (application ? '正在撤回...' : '正在投递...') : application ? '撤回投递' : '投递该岗位';
+  button.addEventListener('click', () => toggleStudentApplication(job));
+  elements.applicationAction.replaceChildren(copy, button);
 }
 
 function renderPriorityActionPanel(selectedJob, analysis, advice) {
@@ -851,6 +950,9 @@ function renderMatchDashboard() {
   summaryTitle.textContent = bestMatch ? `${bestMatch.job.title} · ${bestMatch.score}分` : '暂无岗位';
   const summaryMeta = document.createElement('p');
   summaryMeta.textContent = `${strongCount} 个强匹配，${viableCount} 个建议投递`;
+  if (state.applications.length) {
+    summaryMeta.textContent += `，${state.applications.length} 个已投递`;
+  }
   summary.append(summaryLabel, summaryTitle, summaryMeta);
 
   elements.matchDashboardList.replaceChildren(
@@ -887,6 +989,7 @@ function renderMatchDashboard() {
 
 function createJobCard(analysis) {
   const hasEvidence = hasResumeEvidence(state.profile);
+  const application = getApplicationForJob(analysis.job.id);
   const card = document.createElement('article');
   card.className = analysis.job.id === state.selectedJobId ? 'job-card active' : 'job-card';
   card.dataset.jobId = analysis.job.id;
@@ -938,9 +1041,14 @@ function createJobCard(analysis) {
 
   const level = document.createElement('span');
   level.className = 'job-level';
-  level.textContent = hasEvidence
-    ? analysis.job.source === 'admin' ? `新增 · ${analysis.level}` : analysis.level
-    : '待解析';
+  if (application) level.classList.add('applied');
+  level.textContent = application
+    ? `已投递 · ${analysis.level}`
+    : hasEvidence
+      ? analysis.job.source === 'admin'
+        ? `新增 · ${analysis.level}`
+        : analysis.level
+      : '待解析';
 
   const footer = document.createElement('div');
   footer.className = 'job-card-footer';
@@ -1512,6 +1620,7 @@ function renderAnalysis() {
     elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
     elements.scoreValue.textContent = '--';
     elements.scoreRing.style.setProperty('--score', 0);
+    renderApplicationAction(selectedJob);
     renderPriorityActionPanel(selectedJob, { score: 0 }, {});
     clearHighlights(elements.resumeDocument);
     clearHighlights(elements.jobList);
@@ -1545,6 +1654,7 @@ function renderAnalysis() {
   elements.selectedJobMeta.textContent = `${selectedJob.city} · ${selectedJob.salary}`;
   elements.scoreValue.textContent = analysis.score;
   elements.scoreRing.style.setProperty('--score', analysis.score);
+  renderApplicationAction(selectedJob);
   renderPriorityActionPanel(selectedJob, analysis, advice);
   clearHighlights(elements.resumeDocument);
   clearHighlights(elements.jobList);
@@ -1604,6 +1714,12 @@ async function refreshStudentHistory() {
   }
 }
 
+async function refreshStudentApplications() {
+  if (state.currentUser?.role !== 'student') return;
+  const payload = await apiRequest('/api/applications');
+  state.applications = Array.isArray(payload.applications) ? payload.applications : [];
+}
+
 function mapUploadedCandidate(candidate) {
   const submittedJobIds = candidate.submittedJobIds ?? [];
   const rawText = candidate.rawText ?? candidate.profile?.rawResume ?? '';
@@ -1644,6 +1760,7 @@ async function refreshRoleData() {
   if (state.currentUser?.role === 'student') {
     await refreshJobs();
     await refreshStudentHistory();
+    await refreshStudentApplications();
   } else if (state.currentUser?.role === 'hr') {
     await refreshJobs();
     await refreshHrCandidates();

@@ -1399,6 +1399,11 @@ a.admin-job-item:focus-visible {
   font-weight: 800;
 }
 
+.job-level.applied {
+  background: var(--brand);
+  color: #fff;
+}
+
 .job-card-footer {
   display: flex;
   align-items: center;
@@ -1621,6 +1626,51 @@ a.admin-job-item:focus-visible {
   display: grid;
   gap: 18px;
   padding: 20px;
+}
+
+.application-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-block: 1px solid var(--line);
+  padding: 13px 0;
+}
+
+.application-status-copy {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+
+.application-status-copy strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.application-status-copy p,
+.application-notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.application-notice {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.application-notice.success {
+  background: #f1f8f4;
+  color: var(--brand-dark);
+}
+
+.application-notice.error {
+  background: #fff4ed;
+  color: #934113;
 }
 
 .score-summary-row {
@@ -2581,6 +2631,11 @@ ol {
 
   .score-card {
     padding: 16px;
+  }
+
+  .application-action {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .score-summary-row {

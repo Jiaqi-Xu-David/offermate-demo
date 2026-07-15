@@ -796,6 +796,24 @@ test('separates student progress guidance from the job selector', async () => {
   assert.match(css, /\.priority-action-panel\s*\{/);
 });
 
+test('connects student job applications to the score workspace and HR queue', async () => {
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(indexHtml.includes('id="application-action"'));
+  assert.ok(indexHtml.indexOf('id="application-action"') > indexHtml.indexOf('id="score-ring"'));
+  assert.ok(appJs.includes("apiRequest('/api/applications'"));
+  assert.ok(appJs.includes("method: 'DELETE'"));
+  assert.ok(appJs.includes('refreshStudentApplications'));
+  assert.ok(appJs.includes('getApplicationForJob(analysis.job.id)'));
+  assert.ok(appJs.includes("level.classList.add('applied')"));
+  assert.ok(appJs.includes("title.textContent = '已投递给 HR'"));
+  assert.ok(appJs.includes("button.textContent = isPending ?"));
+  assert.match(css, /\.application-action\s*\{/);
+  assert.match(css, /\.job-level\.applied\s*\{/);
+});
+
 test('keeps the student profile ordered like a resume summary', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const skillIndex = indexHtml.indexOf('<h3>核心技能</h3>');
