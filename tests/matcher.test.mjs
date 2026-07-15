@@ -675,6 +675,7 @@ test('starts resume parsing from an upload-first empty state', async () => {
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
+  assert.ok(indexHtml.includes('id="parse-status" role="status" aria-live="polite" aria-atomic="true"'));
   assert.ok(indexHtml.includes('id="resume-picker-button"'));
   assert.ok(indexHtml.includes('id="sample-resume-button"'));
   assert.ok(indexHtml.includes('id="selected-file-name"'));
