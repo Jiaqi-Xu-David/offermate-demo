@@ -170,11 +170,44 @@ function mapScoreRow(row) {
   };
 }
 
+function mapApplicationRow(row) {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    resumeId: row.resume_id,
+    status: row.status,
+    createdAt: row.created_at,
+    job: {
+      id: row.job_id,
+      title: row.title,
+      company: row.company,
+      city: row.city,
+      salary: row.salary,
+    },
+  };
+}
+
 async function executeSchema(db) {
   for (const statement of splitSqlStatements(APP_SCHEMA_SQL)) {
-    if (statement.includes('idx_users_email_lookup')) continue;
+    if (statement.includes('idx_users_email_lookup') || statement.includes('idx_applications_user_job')) continue;
     await db.prepare(statement).run();
   }
+}
+
+async function ensureApplicationConstraints(db) {
+  await db
+    .prepare(
+      `DELETE FROM applications
+       WHERE rowid NOT IN (
+         SELECT MIN(rowid)
+         FROM applications
+         GROUP BY user_id, job_id
+       )`,
+    )
+    .run();
+  await db
+    .prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_applications_user_job ON applications (user_id, job_id)')
+    .run();
 }
 
 async function migrateUsersRoleCheck(db) {
@@ -398,6 +431,7 @@ export async function ensureAppData(env) {
   const db = dbFromEnv(env);
   await executeSchema(db);
   await migrateUsersRoleCheck(db);
+  await ensureApplicationConstraints(db);
   await ensureUserEncryptionColumns(db, env);
   await ensureResumeEncryptionColumns(db, env);
   await seedAdminUser(db, env);
@@ -477,6 +511,112 @@ export async function addJob(env, user, input) {
     )
     .run();
   return parsed;
+}
+
+export async function listStudentApplications(env, user) {
+  const db = await ensureAppData(env);
+  const rows = await db
+    .prepare(
+      `SELECT applications.id, applications.job_id, applications.resume_id,
+              applications.status, applications.created_at,
+              jobs.title, jobs.company, jobs.city, jobs.salary
+       FROM applications
+       JOIN jobs ON jobs.id = applications.job_id
+       WHERE applications.user_id = ? AND applications.status = 'submitted'
+       ORDER BY applications.created_at DESC`,
+    )
+    .bind(user.id)
+    .all();
+  return { applications: (rows.results ?? []).map(mapApplicationRow) };
+}
+
+export async function submitApplication(env, user, rawJobId) {
+  const db = await ensureAppData(env);
+  const jobId = String(rawJobId ?? '').trim();
+  if (!jobId) throw new Error('请选择要投递的岗位。');
+
+  const job = await db.prepare('SELECT id, title, company, city, salary FROM jobs WHERE id = ?').bind(jobId).first();
+  if (!job) throw new Error('没有找到这个岗位，请刷新岗位列表后重试。');
+
+  const latestResume = await db
+    .prepare(
+      `SELECT id
+       FROM resumes
+       WHERE user_id = ? AND id != 'resume-seed-davide'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+    )
+    .bind(user.id)
+    .first();
+  if (!latestResume) throw new Error('请先上传并解析一份 PDF 简历，再投递岗位。');
+
+  const existing = await db
+    .prepare(
+      `SELECT applications.id, applications.job_id, applications.resume_id,
+              applications.status, applications.created_at,
+              jobs.title, jobs.company, jobs.city, jobs.salary
+       FROM applications
+       JOIN jobs ON jobs.id = applications.job_id
+       WHERE applications.user_id = ? AND applications.job_id = ?
+       LIMIT 1`,
+    )
+    .bind(user.id, jobId)
+    .first();
+  if (existing) {
+    return { application: mapApplicationRow(existing), created: false };
+  }
+
+  const application = {
+    id: createId('application'),
+    jobId,
+    resumeId: latestResume.id,
+    status: 'submitted',
+    createdAt: nowIso(),
+    job: {
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      city: job.city,
+      salary: job.salary,
+    },
+  };
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO applications (id, user_id, job_id, resume_id, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      application.id,
+      user.id,
+      application.jobId,
+      application.resumeId,
+      application.status,
+      application.createdAt,
+    )
+    .run();
+
+  const stored = await db
+    .prepare(
+      `SELECT applications.id, applications.job_id, applications.resume_id,
+              applications.status, applications.created_at,
+              jobs.title, jobs.company, jobs.city, jobs.salary
+       FROM applications
+       JOIN jobs ON jobs.id = applications.job_id
+       WHERE applications.user_id = ? AND applications.job_id = ?
+       LIMIT 1`,
+    )
+    .bind(user.id, jobId)
+    .first();
+  return { application: mapApplicationRow(stored), created: stored.id === application.id };
+}
+
+export async function withdrawApplication(env, user, rawJobId) {
+  const db = await ensureAppData(env);
+  const jobId = String(rawJobId ?? '').trim();
+  if (!jobId) throw new Error('请选择要撤回的岗位。');
+
+  await db.prepare('DELETE FROM applications WHERE user_id = ? AND job_id = ?').bind(user.id, jobId).run();
+  return { withdrawn: true, jobId };
 }
 
 function isLikelyUnusableResumeProfile(profile, rawText) {
@@ -642,7 +782,9 @@ async function listScoresForRun(db, runId) {
 
 export async function listHrCandidates(env) {
   const db = await ensureAppData(env);
-  const applicationRows = await db.prepare('SELECT user_id, job_id FROM applications ORDER BY created_at DESC').all();
+  const applicationRows = await db
+    .prepare("SELECT user_id, job_id FROM applications WHERE status = 'submitted' ORDER BY created_at DESC")
+    .all();
   const applicationsByUser = new Map();
   for (const row of applicationRows.results ?? []) {
     const existing = applicationsByUser.get(row.user_id) ?? [];

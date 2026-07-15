@@ -120,3 +120,4 @@ CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes (user_id, created_at D
 CREATE INDEX IF NOT EXISTS idx_match_runs_user_id ON match_runs (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_match_scores_run_id ON match_scores (run_id, score DESC);
 CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_applications_user_job ON applications (user_id, job_id);

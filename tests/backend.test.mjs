@@ -1,13 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { DatabaseSync } from 'node:sqlite';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeProfile, parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { extractResumeTextFromPdf, extractResumeTextWithOpenAI, shouldUseOcrTextExtraction } from '../src/backend/ocr.js';
 import { clearSessionCookie, createSessionCookie, hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
-import { normalizeStudentRegistrationInput } from '../src/backend/database.js';
+import {
+  ensureAppData,
+  listStudentApplications,
+  normalizeStudentRegistrationInput,
+  submitApplication,
+  withdrawApplication,
+} from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
 import { buildDownloadContentDisposition } from '../functions/api/hr/resume-download.js';
 import { ensureSupportedResumeUpload } from '../functions/api/resumes.js';
@@ -63,6 +70,35 @@ endobj
 trailer
 << /Root 1 0 R >>
 %%EOF`);
+}
+
+function createD1TestDatabase() {
+  const sqlite = new DatabaseSync(':memory:');
+  return {
+    sqlite,
+    d1: {
+      prepare(sql) {
+        const statement = sqlite.prepare(sql);
+        let values = [];
+        const prepared = {
+          bind(...nextValues) {
+            values = nextValues;
+            return prepared;
+          },
+          run() {
+            return statement.run(...values);
+          },
+          all() {
+            return { results: statement.all(...values) };
+          },
+          first() {
+            return statement.get(...values) ?? null;
+          },
+        };
+        return prepared;
+      },
+    },
+  };
 }
 
 test('extracts text from literal, array, and utf16 hex PDF text operators', async () => {
@@ -697,6 +733,66 @@ test('defines application tables for auth, jobs, resumes, matches, and applicati
   ].forEach((snippet) => {
     assert.ok(APP_SCHEMA_SQL.includes(snippet), `${snippet} missing`);
   });
+  assert.ok(APP_SCHEMA_SQL.includes('idx_applications_user_job'));
+});
+
+test('creates idempotent student applications and lets students withdraw them', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'application-test-key' };
+  const user = { id: 'user-application-test', role: 'student' };
+
+  await ensureAppData(env);
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run(user.id, 'application@example.com', '投递测试同学', new Date().toISOString());
+
+  await assert.rejects(
+    submitApplication(env, user, 'data-analyst-intern'),
+    /先上传并解析一份 PDF 简历/,
+  );
+
+  sqlite
+    .prepare(
+      `INSERT INTO resumes (id, user_id, file_name, raw_text, profile_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      'resume-application-test',
+      user.id,
+      'resume.pdf',
+      '姓名：投递测试同学 技能：SQL、Python',
+      '{}',
+      new Date().toISOString(),
+    );
+
+  const first = await submitApplication(env, user, 'data-analyst-intern');
+  const duplicate = await submitApplication(env, user, 'data-analyst-intern');
+  const listed = await listStudentApplications(env, user);
+
+  assert.equal(first.created, true);
+  assert.equal(duplicate.created, false);
+  assert.equal(duplicate.application.id, first.application.id);
+  assert.equal(listed.applications.length, 1);
+  assert.equal(listed.applications[0].job.title, '数据分析实习生');
+  assert.equal(listed.applications[0].resumeId, 'resume-application-test');
+
+  await withdrawApplication(env, user, 'data-analyst-intern');
+  assert.deepEqual((await listStudentApplications(env, user)).applications, []);
+});
+
+test('student applications API is role-guarded and supports list, submit, and withdraw', async () => {
+  const applicationsApi = await readFile(new URL('../functions/api/applications.js', import.meta.url), 'utf8');
+
+  assert.ok(applicationsApi.includes("requireUser(context, ['student'])"));
+  assert.ok(applicationsApi.includes('onRequestGet'));
+  assert.ok(applicationsApi.includes('onRequestPost'));
+  assert.ok(applicationsApi.includes('onRequestDelete'));
+  assert.ok(applicationsApi.includes('submitApplication'));
+  assert.ok(applicationsApi.includes('withdrawApplication'));
 });
 
 test('schema and HR APIs support original resume download', async () => {
