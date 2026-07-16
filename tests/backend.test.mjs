@@ -518,6 +518,8 @@ test('keeps concise English resumes with professional experience headings on the
 
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 1024 }));
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/x-pdf', size: 1024 }));
+  assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/acrobat', size: 1024 }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.PDF', type: '', size: 2048 }));
   assert.throws(
     () => ensureSupportedResumeUpload({ name: 'resume.png', type: 'image/png', size: 1024 }),
@@ -626,6 +628,14 @@ test('routes low-quality PDF extraction through OCR before matching', async () =
   assert.equal(result.source, 'openai-ocr');
   assert.equal(result.text.includes('行政实习'), true);
   assert.equal(calls.length, 1);
+});
+
+test('normalizes legacy PDF mime types before OCR extraction', async () => {
+  const resumeApi = await readFile(new URL('../functions/api/resumes.js', import.meta.url), 'utf8');
+
+  assert.ok(resumeApi.includes("const PDF_MIME_TYPES = new Set(['application/pdf', 'application/x-pdf', 'application/acrobat'])"));
+  assert.ok(resumeApi.includes("mimeType: normalizedMimeType"));
+  assert.ok(resumeApi.includes("storedMimeType: normalizeResumeMimeType('', mimeType) || 'application/pdf'"));
 });
 
 test('can force all uploaded PDFs through OCR for demo mode', async () => {

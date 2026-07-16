@@ -115,6 +115,7 @@ npx wrangler pages dev . --port 4173
 - 700KB 以内的原始 PDF 会加密保存，供 HR 下载。
 - 更大的 PDF 仍会解析和匹配，但只保留文本，不保存原始二进制。
 - OCR 失败但本地文本仍可用时，系统会回退到本地文本并显示警告。
+- 对于部分扫描仪或导出工具产生的 `application/x-pdf`、`application/acrobat` 等旧 MIME 类型，上传时会统一按 PDF 处理。
 - 文本质量不足以形成可靠画像时，不会保存误导性的匹配结果。
 
 ## API 一览

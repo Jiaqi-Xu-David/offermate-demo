@@ -3,6 +3,7 @@ import { createResumeAndMatchRun, listStudentHistory } from '../../src/backend/d
 import { jsonResponse, requireUser } from '../_lib/api.js';
 
 const MAX_STORED_RESUME_FILE_BYTES = 700_000;
+const PDF_MIME_TYPES = new Set(['application/pdf', 'application/x-pdf', 'application/acrobat']);
 
 function bytesToBase64(bytes) {
   if (typeof btoa === 'function') {
@@ -25,14 +26,20 @@ function textToBase64(text) {
 
 export function ensureSupportedResumeUpload(file) {
   const fileName = String(file?.name ?? '');
-  const mimeType = String(file?.type ?? '').toLowerCase();
-  const looksLikePdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
+  const mimeType = normalizeResumeMimeType(fileName, file?.type);
+  const looksLikePdf = mimeType === 'application/pdf';
   if (!looksLikePdf) {
     throw new Error('仅支持 PDF 简历上传，请重新选择 .pdf 文件。');
   }
   if (Number(file?.size ?? 0) === 0) {
     throw new Error('上传的 PDF 为空，请重新导出后再试。');
   }
+}
+
+function normalizeResumeMimeType(fileName = '', mimeType = '') {
+  const normalizedMimeType = String(mimeType ?? '').toLowerCase().trim();
+  if (PDF_MIME_TYPES.has(normalizedMimeType)) return 'application/pdf';
+  return String(fileName ?? '').toLowerCase().endsWith('.pdf') ? 'application/pdf' : normalizedMimeType;
 }
 
 function createStoredResumeFilePayload(buffer, mimeType) {
@@ -45,7 +52,7 @@ function createStoredResumeFilePayload(buffer, mimeType) {
 
   return {
     storedFileDataBase64: arrayBufferToBase64(buffer),
-    storedMimeType: mimeType || 'application/pdf',
+    storedMimeType: normalizeResumeMimeType('', mimeType) || 'application/pdf',
   };
 }
 
@@ -60,11 +67,12 @@ async function readResumeText(request, env) {
       if (buffer.byteLength === 0) {
         throw new Error('上传的 PDF 为空，请重新导出后再试。');
       }
+      const normalizedMimeType = normalizeResumeMimeType(file.name, file.type);
       const extraction = await extractResumeTextFromPdf(env, buffer, {
         fileName: file.name || 'resume.pdf',
-        mimeType: file.type || 'application/pdf',
+        mimeType: normalizedMimeType,
       });
-      const { storedFileDataBase64, storedMimeType } = createStoredResumeFilePayload(buffer, file.type);
+      const { storedFileDataBase64, storedMimeType } = createStoredResumeFilePayload(buffer, normalizedMimeType);
       return {
         fileName: file.name || 'resume.pdf',
         rawText: extraction.text,
