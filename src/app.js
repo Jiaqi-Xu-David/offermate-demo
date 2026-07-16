@@ -1463,7 +1463,7 @@ function renderCandidates() {
   const visibleCandidates = getVisibleHrCandidates();
   state.selectedCandidateId = resolveHrCandidateSelection(visibleCandidates, state.selectedCandidateId);
   const isFiltered = state.hrCandidateFilters.query || state.hrCandidateFilters.stage !== 'all';
-  const queueSummary = buildHrCandidateQueueSummary(visibleCandidates);
+  const queueSummary = buildHrCandidateQueueSummary(visibleCandidates, state.jobs);
   elements.candidateCount.textContent = isFiltered
     ? `显示 ${visibleCandidates.length}/${state.candidates.length} · ${queueSummary}`
     : queueSummary;

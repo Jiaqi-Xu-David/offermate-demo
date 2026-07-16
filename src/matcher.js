@@ -1730,17 +1730,17 @@ export function buildCandidateMatchSummary(candidate, jobs = JOBS) {
   return '已解析简历，等待岗位匹配';
 }
 
-export function buildHrCandidateQueueSummary(candidates = []) {
+export function buildHrCandidateQueueSummary(candidates = [], jobs = JOBS) {
   const submittedCount = candidates.filter((candidate) => (candidate.submittedJobIds?.length ?? 0) > 0).length;
   const uploadOnlyCount = candidates.length - submittedCount;
   const strongMatchCount = candidates.filter((candidate) => {
     if ((candidate.submittedJobIds?.length ?? 0) === 0) return false;
-    const bestSubmitted = buildAdminCandidateInsight(candidate).submittedJobs[0];
+    const bestSubmitted = buildAdminCandidateInsight(candidate, jobs).submittedJobs[0];
     return (bestSubmitted?.score ?? 0) >= 80;
   }).length;
   const uploadOnlyHighPotentialCount = candidates.filter((candidate) => {
     if ((candidate.submittedJobIds?.length ?? 0) > 0) return false;
-    const bestSuggested = buildAdminCandidateInsight(candidate).suggestedJobs[0];
+    const bestSuggested = buildAdminCandidateInsight(candidate, jobs).suggestedJobs[0];
     return (bestSuggested?.score ?? 0) >= 80;
   }).length;
   if (!candidates.length) return '0 人';
@@ -1772,16 +1772,20 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const submittedTitles = submittedJobIds
       .map((jobId) => jobs.find((job) => job.id === jobId)?.title)
       .filter(Boolean);
+    const fitHighlights = buildCandidateFitHighlights(candidate, jobs).map((item) => item.label);
+    const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
       candidate.name,
       candidate.school,
       candidate.major,
       profile.headline,
       profile.target,
+      matchSummary,
       ...(profile.skills ?? []),
       ...(profile.languages ?? []),
       ...(profile.softSkills ?? []),
       ...submittedTitles,
+      ...fitHighlights,
       ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.title),
     ]
       .filter(Boolean)

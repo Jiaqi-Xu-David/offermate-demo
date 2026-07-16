@@ -1280,6 +1280,14 @@ test('summarizes the HR review queue by submitted and upload-only candidates', (
     ),
     '4 人 · 待分流 4 · 高潜 3',
   );
+
+  const unrelatedJobs = JOBS.map((job) => ({
+    ...job,
+    description: '负责档案整理、会务支持和访客接待，不要求 SQL、Python、Tableau 或数据分析经历。',
+    tags: ['档案整理', '会务支持'],
+    preferredSkills: [],
+  }));
+  assert.equal(buildHrCandidateQueueSummary(CANDIDATES, unrelatedJobs), '3 人 · 已投递 3');
 });
 
 test('filters the HR review queue by search text and review stage', () => {
@@ -1304,6 +1312,8 @@ test('filters the HR review queue by search text and review stage', () => {
       (candidate) => candidate.submittedJobIds.includes('data-analyst-intern'),
     ),
   );
+  assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '最佳已投' }).length > 0);
+  assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '待补' }).length > 0);
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
       (candidate) => candidate.submittedJobIds.length > 0,
