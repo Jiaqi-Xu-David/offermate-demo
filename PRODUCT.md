@@ -6,7 +6,7 @@ product
 
 ## Users
 
-OfferMate serves two demo users: students reviewing roles inside one company, and HR viewers reviewing submitted candidates. Students need to compare roles quickly, understand why one role fits better than another, and see resume evidence without losing the original resume context. HR viewers need a concise view of submitted roles, candidate resume evidence, role fit, and interview follow-up points.
+OfferMate serves two demo users: students reviewing roles inside one company, and HR viewers reviewing submitted candidates. Students need to compare roles quickly, understand why one role fits better than another, and see resume evidence without losing the original resume context. HR viewers need a concise view of submitted roles, candidate resume evidence, role fit, interview follow-up points, and extraction-quality signals that reveal whether a resume came from clean PDF text, OCR, or a fallback path.
 
 ## Product Purpose
 
@@ -27,6 +27,7 @@ Avoid oversized landing-page sections, generic card grids, decorative gradients,
 3. Use compact product UI density so the demo fits on laptop and mobile screens.
 4. Prefer restrained state changes over decorative motion.
 5. Keep HR language professional: assessment, evidence, screening, and interview follow-up.
+6. Surface parser and extraction risk where review decisions happen, so HR can triage fallback resumes without opening every detail panel.
 
 ## Accessibility & Inclusion
 
