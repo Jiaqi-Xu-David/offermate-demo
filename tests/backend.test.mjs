@@ -10,6 +10,7 @@ import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/ba
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
   ensureAppData,
+  listHrCandidates,
   listStudentApplications,
   normalizeStudentRegistrationInput,
   submitApplication,
@@ -856,6 +857,43 @@ test('schema and HR APIs support original resume download', async () => {
   assert.ok(resumesApi.includes('fileDataBase64: storedFileDataBase64'));
   assert.ok(resumesApi.includes('extractResumeTextFromPdf(env, buffer'));
   assert.ok(resumesApi.includes('textSource: extraction.source'));
+});
+
+test('HR candidate listing preserves extraction source and OCR fallback warnings', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'hr-candidate-test-key' };
+
+  await ensureAppData(env);
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run('student-ocr-test', 'candidate@example.com', '候选人同学', new Date().toISOString());
+  sqlite
+    .prepare(
+      `INSERT INTO resumes (
+        id, user_id, file_name, raw_text, profile_json, text_source, extraction_warning, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      'resume-ocr-test',
+      'student-ocr-test',
+      'candidate.pdf',
+      '姓名：候选人同学\n技能：SQL、Python',
+      JSON.stringify({ name: '候选人同学', skills: ['SQL', 'Python'] }),
+      'pdf-text-fallback',
+      'OpenAI OCR failed: 502 upstream timeout',
+      new Date().toISOString(),
+    );
+
+  const payload = await listHrCandidates(env);
+
+  assert.equal(payload.uploadedCandidates.length, 1);
+  assert.equal(payload.uploadedCandidates[0].textSource, 'pdf-text-fallback');
+  assert.equal(payload.uploadedCandidates[0].extractionWarning, 'OpenAI OCR failed: 502 upstream timeout');
+  assert.equal(payload.uploadedCandidates[0].resumeDownloadUrl, '/api/hr/resume-download?id=resume-ocr-test');
 });
 
 test('builds resume download headers with ascii fallback and utf-8 filename encoding', () => {

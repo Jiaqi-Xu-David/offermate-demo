@@ -797,7 +797,7 @@ export async function listHrCandidates(env) {
     .prepare(
       `SELECT users.id AS user_id, users.name, users.name_cipher, users.email, users.email_cipher,
               resumes.id AS resume_id, resumes.file_name, resumes.raw_text, resumes.raw_text_cipher,
-              resumes.profile_json, resumes.profile_json_cipher, resumes.created_at
+              resumes.profile_json, resumes.profile_json_cipher, resumes.text_source, resumes.extraction_warning, resumes.created_at
        FROM users
        LEFT JOIN resumes ON resumes.user_id = users.id AND resumes.id != 'resume-seed-davide'
        WHERE users.role = 'student'
@@ -833,6 +833,8 @@ export async function listHrCandidates(env) {
       profile,
       submittedJobIds: applicationsByUser.get(row.user_id) ?? [],
       resumeDownloadUrl: row.resume_id ? `/api/hr/resume-download?id=${encodeURIComponent(row.resume_id)}` : '',
+      textSource: row.text_source || 'pdf-text',
+      extractionWarning: row.extraction_warning || '',
       createdAt: row.created_at,
       scores: latestRun ? await listScoresForRun(db, latestRun.id) : [],
     });

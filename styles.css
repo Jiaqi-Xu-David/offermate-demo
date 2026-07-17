@@ -1298,6 +1298,13 @@ a.admin-job-item:focus-visible {
   font-weight: 700;
 }
 
+.candidate-resume-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .candidate-fit-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1324,6 +1331,11 @@ a.admin-job-item:focus-visible {
 .fit-chip.gap {
   background: var(--accent-soft);
   color: #9b4316;
+}
+
+.fit-chip.neutral {
+  background: rgba(11, 44, 57, 0.08);
+  color: var(--ink);
 }
 
 .job-card {

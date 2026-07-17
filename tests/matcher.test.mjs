@@ -748,7 +748,7 @@ test('surfaces a quick fit summary in HR candidate cards and status copy', async
   assert.ok(appJs.includes("name.id = `candidate-name-${candidate.id}`;"));
   assert.ok(appJs.includes("submitted.id = `candidate-submitted-${candidate.id}`;"));
   assert.ok(appJs.includes("button.setAttribute('aria-labelledby', name.id)"));
-  assert.ok(appJs.includes("button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, fitHighlights.id].join(' '))"));
+  assert.ok(appJs.includes("button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, resumeSignals.id, fitHighlights.id].join(' '))"));
   assert.ok(appJs.includes("matchSummary.id = `candidate-match-summary-${candidate.id}`;"));
   assert.ok(appJs.includes("fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;"));
   assert.ok(matcherJs.includes('最佳已投'));
@@ -1338,6 +1338,18 @@ test('adds accessible HR candidate search and stage filters to the workspace', a
   assert.ok(appJs.includes('没有符合当前筛选条件的候选人。'));
   assert.ok(appJs.includes('elements.adminCandidatePanel.hidden = !candidate'));
   assert.match(css, /\.candidate-filter-bar\s*\{/);
+});
+
+test('shows resume extraction signals in HR candidate cards', async () => {
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.ok(appJs.includes('candidate.textSource ?? \'pdf-text\''));
+  assert.ok(appJs.includes('candidate.extractionWarning ?? \'\''));
+  assert.ok(appJs.includes('candidate-resume-signals'));
+  assert.ok(appJs.includes("getResumeExtractionLabel(candidate.textSource ?? 'pdf-text')"));
+  assert.ok(appJs.includes('OCR 回退'));
+  assert.match(css, /\.candidate-resume-signals\s*\{/);
 });
 
 test('builds an HR candidate summary with score and strongest evidence', () => {

@@ -1138,18 +1138,35 @@ function createCandidateCard(candidate) {
   matchSummary.className = 'candidate-match-summary';
   matchSummary.id = `candidate-match-summary-${candidate.id}`;
   matchSummary.textContent = candidate.matchSummary;
+  const resumeSignals = document.createElement('div');
+  resumeSignals.className = 'candidate-resume-signals';
+  resumeSignals.id = `candidate-resume-signals-${candidate.id}`;
+  renderCandidateResumeSignals(resumeSignals, candidate);
   const fitHighlights = document.createElement('div');
   fitHighlights.className = 'candidate-fit-tags';
   fitHighlights.id = `candidate-fit-highlights-${candidate.id}`;
   renderFitHighlights(fitHighlights, buildCandidateFitHighlights(candidate, state.jobs));
   button.setAttribute('aria-labelledby', name.id);
-  button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, fitHighlights.id].join(' '));
-  button.append(name, meta, submitted, matchSummary, fitHighlights);
+  button.setAttribute('aria-describedby', [submitted.id, matchSummary.id, resumeSignals.id, fitHighlights.id].join(' '));
+  button.append(name, meta, submitted, matchSummary, resumeSignals, fitHighlights);
   button.addEventListener('click', () => {
     state.selectedCandidateId = candidate.id;
     render();
   });
   return button;
+}
+
+function renderCandidateResumeSignals(container, candidate) {
+  const items = [getResumeExtractionLabel(candidate.textSource ?? 'pdf-text')];
+  if (candidate.extractionWarning) items.push('OCR 回退');
+  container.replaceChildren(
+    ...items.map((label) => {
+      const chip = document.createElement('span');
+      chip.className = 'fit-chip neutral';
+      chip.textContent = label;
+      return chip;
+    }),
+  );
 }
 
 function renderFitHighlights(container, highlights) {
@@ -1763,6 +1780,8 @@ function mapUploadedCandidate(candidate) {
     rawText,
     fileName: candidate.fileName ?? '',
     resumeDownloadUrl: candidate.resumeDownloadUrl ?? '',
+    textSource: candidate.textSource ?? 'pdf-text',
+    extractionWarning: candidate.extractionWarning ?? '',
   };
   mappedCandidate.matchSummary = buildCandidateMatchSummary(mappedCandidate);
   return mappedCandidate;
