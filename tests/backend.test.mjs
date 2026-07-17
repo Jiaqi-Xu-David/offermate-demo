@@ -516,6 +516,21 @@ test('keeps concise English resumes with professional experience headings on the
   );
 });
 
+test('keeps structured English resumes with visa and graduation headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Expected Graduation: 2027\nAvailability: 4 days per week\nLanguages: English, Mandarin\nVisa Status: Germany student residence permit',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Citizenship: China\nExpected Graduation: June 2027\nLanguages: English, German\nAvailability: Immediate',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 1024 }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/x-pdf', size: 1024 }));
