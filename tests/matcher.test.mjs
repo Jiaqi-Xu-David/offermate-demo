@@ -450,6 +450,23 @@ test('recognizes common media-suite aliases in resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'PS'));
 });
 
+test('recognizes Canva and CapCut aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：林可
+学校：浙江传媒学院
+求职意向：内容设计实习
+技能：Canva、CapCut、PS
+项目经历：使用 Canva 设计活动海报，用 CapCut 剪辑校园短视频，并配合 Photoshop 完成封面物料。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 canva、Cap Cut、Photoshop，支持社媒封面设计与短视频剪辑。');
+
+  assert.ok(profile.skills.includes('Canva'));
+  assert.ok(profile.skills.includes('剪映'));
+  assert.ok(profile.skills.includes('PS'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Canva'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '剪映'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'PS'));
+});
+
 test('recognizes common Excel aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：陈澄
