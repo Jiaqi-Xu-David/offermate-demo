@@ -3,6 +3,7 @@ import { jsonResponse, requireUser } from '../../_lib/api.js';
 
 function buildAsciiFallbackFileName(fileName) {
   const cleaned = String(fileName ?? 'resume.pdf')
+    .replace(/[\r\n]+/g, ' ')
     .replace(/[/\\?%*:|"<>]/g, '-')
     .replace(/[^\x20-\x7E]/g, '_')
     .trim();
@@ -10,11 +11,15 @@ function buildAsciiFallbackFileName(fileName) {
 }
 
 function encodeFileName(fileName) {
-  return encodeURIComponent(fileName).replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(String(fileName ?? 'resume.pdf').replace(/[\r\n]+/g, ' ').trim() || 'resume.pdf').replace(
+    /['()]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 export function buildDownloadContentDisposition(fileName) {
-  return `attachment; filename="${buildAsciiFallbackFileName(fileName)}"; filename*=UTF-8''${encodeFileName(fileName)}`;
+  const normalizedFileName = String(fileName ?? '').trim() || 'resume.pdf';
+  return `attachment; filename="${buildAsciiFallbackFileName(normalizedFileName)}"; filename*=UTF-8''${encodeFileName(normalizedFileName)}`;
 }
 
 export async function onRequestGet(context) {

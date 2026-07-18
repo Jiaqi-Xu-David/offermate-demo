@@ -905,6 +905,13 @@ test('builds resume download headers with ascii fallback and utf-8 filename enco
   assert.match(header, /%E5%A4%A7%E5%8D%AB%E5%BE%B7/);
 });
 
+test('builds a safe default download filename when resume metadata is missing', () => {
+  const header = buildDownloadContentDisposition();
+
+  assert.match(header, /filename="resume\.pdf"/);
+  assert.match(header, /filename\*=UTF-8''resume\.pdf$/);
+});
+
 test('supports account admin users and exposes raw parsed resume text', async () => {
   const databaseJs = await readFile(new URL('../src/backend/database.js', import.meta.url), 'utf8');
   const usersApi = await readFile(new URL('../functions/api/admin/users.js', import.meta.url), 'utf8');
