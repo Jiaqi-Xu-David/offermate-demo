@@ -1781,6 +1781,8 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       profile.headline,
       profile.target,
       matchSummary,
+      insight.screeningRecommendation,
+      insight.routingRecommendation,
       candidate.textSource,
       candidate.extractionWarning,
       ...(profile.skills ?? []),

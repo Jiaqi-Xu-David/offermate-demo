@@ -1314,6 +1314,8 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '最佳已投' }).length > 0);
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '待补' }).length > 0);
+  assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '进入初筛' }).length > 0);
+  assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '建议转推荐至' }).length > 0);
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
       (candidate) => candidate.submittedJobIds.length > 0,
