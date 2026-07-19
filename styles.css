@@ -708,6 +708,28 @@ h3 {
   line-height: 1.6;
 }
 
+.resume-signal-note {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(195, 112, 37, 0.24);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff6ee;
+}
+
+.resume-signal-note strong {
+  color: #9b4316;
+  font-size: 12px;
+}
+
+.resume-signal-note p {
+  margin: 0;
+  color: #7b4b2b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .resume-header {
   padding-bottom: 12px;
   border-bottom: 2px solid var(--ink);
@@ -1336,6 +1358,12 @@ a.admin-job-item:focus-visible {
 .fit-chip.neutral {
   background: rgba(11, 44, 57, 0.08);
   color: var(--ink);
+}
+
+.fit-chip.warning {
+  border: 1px solid rgba(195, 112, 37, 0.22);
+  background: #fff2e4;
+  color: #9b4316;
 }
 
 .job-card {

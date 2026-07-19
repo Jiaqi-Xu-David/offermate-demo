@@ -1162,11 +1162,28 @@ function renderCandidateResumeSignals(container, candidate) {
   container.replaceChildren(
     ...items.map((label) => {
       const chip = document.createElement('span');
-      chip.className = 'fit-chip neutral';
+      chip.className = label === 'OCR 回退' ? 'fit-chip neutral warning' : 'fit-chip neutral';
       chip.textContent = label;
+      if (candidate.extractionWarning && label === 'OCR 回退') {
+        chip.title = candidate.extractionWarning;
+        chip.setAttribute('aria-label', `OCR 回退：${candidate.extractionWarning}`);
+      }
       return chip;
     }),
   );
+}
+
+function prependResumeExtractionNote(container, candidate) {
+  if (!candidate.extractionWarning) return;
+  const note = document.createElement('div');
+  note.className = 'resume-signal-note';
+  note.setAttribute('role', 'note');
+  const title = document.createElement('strong');
+  title.textContent = `${getResumeExtractionLabel(candidate.textSource ?? 'pdf-text')} · OCR 回退`;
+  const detail = document.createElement('p');
+  detail.textContent = candidate.extractionWarning;
+  note.append(title, detail);
+  container.prepend(note);
 }
 
 function renderFitHighlights(container, highlights) {
@@ -1222,6 +1239,7 @@ function renderAdminResume(candidate) {
       profile,
       submittedJobTitles: getCandidateSubmittedJobTitles(candidate),
     });
+    prependResumeExtractionNote(elements.adminResumeDocument, candidate);
     prependAdminResumeDownload(candidate);
     return;
   }
@@ -1239,6 +1257,7 @@ function renderAdminResume(candidate) {
   }
 
   renderResumeSummaryCard(profile, elements.adminResumeDocument, getCandidateSubmittedJobTitles(candidate));
+  prependResumeExtractionNote(elements.adminResumeDocument, candidate);
   prependAdminResumeDownload(candidate);
 }
 

@@ -1394,6 +1394,11 @@ test('shows resume extraction signals in HR candidate cards', async () => {
   assert.ok(appJs.includes('candidate-resume-signals'));
   assert.ok(appJs.includes("getResumeExtractionLabel(candidate.textSource ?? 'pdf-text')"));
   assert.ok(appJs.includes('OCR 回退'));
+  assert.ok(appJs.includes("chip.title = candidate.extractionWarning"));
+  assert.ok(appJs.includes("chip.setAttribute('aria-label', `OCR 回退：${candidate.extractionWarning}`)"));
+  assert.ok(appJs.includes('prependResumeExtractionNote'));
+  assert.match(css, /\.resume-signal-note\s*\{/);
+  assert.match(css, /\.fit-chip\.warning\s*\{/);
   assert.match(css, /\.candidate-resume-signals\s*\{/);
 });
 
