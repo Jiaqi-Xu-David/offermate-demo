@@ -10,6 +10,8 @@ import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/ba
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
   ensureAppData,
+  createSession,
+  findSessionUser,
   listHrCandidates,
   listStudentApplications,
   normalizeStudentRegistrationInput,
@@ -827,6 +829,33 @@ test('creates idempotent student applications and lets students withdraw them', 
 
   await withdrawApplication(env, user, 'data-analyst-intern');
   assert.deepEqual((await listStudentApplications(env, user)).applications, []);
+});
+
+test('replaces older sessions when the same user logs in again', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'session-test-key' };
+  const userId = 'user-session-test';
+  const createdAt = new Date().toISOString();
+
+  await ensureAppData(env);
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run(userId, 'session@example.com', '会话测试同学', createdAt);
+
+  await createSession(env, userId, 'session-old');
+  await createSession(env, userId, 'session-new');
+
+  const sessions = sqlite
+    .prepare('SELECT id FROM sessions WHERE user_id = ? ORDER BY created_at ASC')
+    .all(userId);
+
+  assert.deepEqual(sessions.map((row) => row.id), ['session-new']);
+  assert.equal((await findSessionUser(env, 'session-old')), null);
+  assert.equal((await findSessionUser(env, 'session-new'))?.id, userId);
 });
 
 test('student applications API is role-guarded and supports list, submit, and withdraw', async () => {

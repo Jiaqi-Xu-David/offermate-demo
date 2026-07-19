@@ -467,6 +467,7 @@ export async function createSession(env, userId, token) {
   const db = await ensureAppData(env);
   const createdAt = nowIso();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+  await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
   await db.prepare('INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, userId, createdAt, expiresAt).run();
   return { id: token, createdAt, expiresAt };
 }
