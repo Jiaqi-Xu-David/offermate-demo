@@ -970,6 +970,32 @@ test('matches remote and online city aliases as remote-friendly preferences', ()
   assert.match(city.detail, /远程/);
 });
 
+test('matches hybrid city labels for either onsite or remote-friendly candidates', () => {
+  const onsiteProfile = parseResumeText(`个人简历
+姓名：林桥
+学校：同济大学 软件工程 本科
+城市偏好：上海
+技能：JavaScript、React`);
+  const remoteProfile = parseResumeText(`个人简历
+姓名：周岚
+学校：华东师范大学 数据科学 本科
+城市偏好：可远程
+技能：SQL、Python`);
+  const hybridJob = analyzeJobDescription({
+    title: 'AI 产品工程实习生',
+    city: '',
+    description: '工作地点：上海，可远程协作。负责 React 前端开发与 Python 数据处理。',
+  });
+
+  const onsiteCity = getScoreBreakdown(onsiteProfile, hybridJob).find((item) => item.label === '地点匹配');
+  const remoteCity = getScoreBreakdown(remoteProfile, hybridJob).find((item) => item.label === '地点匹配');
+
+  assert.equal(hybridJob.city, '上海/远程');
+  assert.equal(onsiteCity.points, 10);
+  assert.equal(remoteCity.points, 10);
+  assert.match(onsiteCity.detail, /上海\/远程/);
+});
+
 test('parses JD text into compensation, hard skills, soft skills, and language requirements', () => {
   const parsed = parseJobDescription(JOBS[0].description);
   const sql = parsed.hardSkillRequirements.find((item) => item.name === 'SQL');

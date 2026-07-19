@@ -1059,10 +1059,36 @@ function isRemoteLocation(value) {
   return /远程|线上|remote/i.test(String(value ?? ''));
 }
 
+function getLocationSignals(value) {
+  const text = String(value ?? '');
+  const cities = CITY_DICTIONARY.filter((city) => city !== '远程' && text.includes(city));
+  return {
+    cities,
+    remote: isRemoteLocation(text),
+  };
+}
+
+function normalizeJobCityLabel(value) {
+  const signals = getLocationSignals(value);
+  if (signals.cities.length && signals.remote) return `${signals.cities[0]}/远程`;
+  if (signals.cities.length) return signals.cities[0];
+  if (signals.remote) return '远程';
+  return String(value ?? '').trim();
+}
+
 function isCityMatch(profileCities = [], jobCity = '') {
-  if (profileCities.includes(jobCity)) return true;
-  if (isRemoteLocation(jobCity) && profileCities.some(isRemoteLocation)) return true;
-  return jobCity === '远程';
+  const jobSignals = getLocationSignals(jobCity);
+  if (!jobSignals.cities.length && !jobSignals.remote) return jobCity === '远程';
+
+  const profileSignals = profileCities.reduce((summary, city) => {
+    const next = getLocationSignals(city);
+    next.cities.forEach((item) => summary.cities.add(item));
+    if (next.remote) summary.remote = true;
+    return summary;
+  }, { cities: new Set(), remote: false });
+
+  if (jobSignals.cities.some((city) => profileSignals.cities.has(city))) return true;
+  return jobSignals.remote && profileSignals.remote;
 }
 
 function profileToSearchText(profile) {
@@ -1641,10 +1667,9 @@ export function buildStudentWorkflowSummary(profile, jobs = JOBS) {
 
 function inferJobCityFromText(text) {
   const source = String(text ?? '');
-  const explicit = source.match(/(?:工作地点|办公地点|地点|城市|base|Base)\s*[：:\s]*([^\n。；;，,]+)/);
+  const explicit = source.match(/(?:工作地点|办公地点|地点|城市|base|Base)\s*[：:\s]*([^\n。；;]+)/);
   const fieldText = explicit?.[1] ?? source;
-  if (isRemoteLocation(fieldText)) return '远程';
-  return CITY_DICTIONARY.find((city) => city !== '远程' && fieldText.includes(city)) ?? '';
+  return normalizeJobCityLabel(fieldText);
 }
 
 export function analyzeJobDescription({ title, city, description, company = COMPANY.name }) {
@@ -1662,7 +1687,7 @@ export function analyzeJobDescription({ title, city, description, company = COMP
     id: `admin-${Math.abs(hashText(sourceText))}`,
     title: title.trim() || '新增实习岗位',
     company,
-    city: city.trim() || inferJobCityFromText(sourceText) || '上海',
+    city: normalizeJobCityLabel(city) || inferJobCityFromText(sourceText) || '上海',
     tags: (tags.length > 0 ? tags : ['SQL', '用户调研', '数据看板']).slice(0, 8),
     responsibilities: (responsibilities.length > 0 ? responsibilities : ['岗位任务执行', '跨团队协作']).slice(0, 4),
     niceToHave: niceToHave.slice(0, 4),
