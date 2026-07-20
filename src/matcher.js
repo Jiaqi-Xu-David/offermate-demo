@@ -903,6 +903,7 @@ function detectRequirementLevel(text, skill) {
 function normalizeSalaryText(value) {
   return String(value ?? '')
     .replace(/\s*([·•])\s*/g, '$1')
+    .replace(/\s*([×xX*])\s*(\d{1,2}\s*薪)/g, '·$2')
     .replace(/\s*([~\-])\s*/g, '$1')
     .replace(/\s+/g, '')
     .trim();
@@ -910,7 +911,7 @@ function normalizeSalaryText(value) {
 
 export function parseJobDescription(description) {
   const salaryMatch = description.match(
-    /(?:薪资|薪酬|月薪|日薪|综合薪资|薪资待遇)[：:\s]*([0-9]+(?:\.\d+)?(?:\s*[-~]\s*[0-9]+(?:\.\d+)?)?\s*(?:元\/天|元\/日|元\/月|\/天|k\/月|K\/月|K|k|千\/月|千|万\/月|万\/年)(?:\s*[·•]\s*\d{1,2}\s*薪)?)/,
+    /(?:薪资|薪酬|月薪|日薪|综合薪资|薪资待遇)[：:\s]*([0-9]+(?:\.\d+)?(?:\s*[-~]\s*[0-9]+(?:\.\d+)?)?\s*(?:元\/天|元\/日|元\/月|\/天|k\/月|K\/月|K|k|千\/月|千|万\/月|万\/年)(?:\s*(?:[·•]|[×xX*])\s*\d{1,2}\s*薪)?)/,
   );
   const hardSkillRequirements = extractKnownTerms(description, SKILL_DICTIONARY).map((name) => ({
     name,
