@@ -1,24 +1,30 @@
 import { getResumeFileForHr } from '../../../src/backend/database.js';
 import { jsonResponse, requireUser } from '../../_lib/api.js';
 
+function normalizeDownloadFileName(fileName) {
+  return (
+    String(fileName ?? 'resume.pdf')
+      .replace(/[\u0000-\u001F\u007F]+/g, ' ')
+      .replace(/[/\\]+/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim() || 'resume.pdf'
+  );
+}
+
 function buildAsciiFallbackFileName(fileName) {
-  const cleaned = String(fileName ?? 'resume.pdf')
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/[/\\?%*:|"<>]/g, '-')
+  const cleaned = normalizeDownloadFileName(fileName)
+    .replace(/[?%*:|"<>]/g, '-')
     .replace(/[^\x20-\x7E]/g, '_')
     .trim();
   return (cleaned || 'resume.pdf').replace(/"/g, "'");
 }
 
 function encodeFileName(fileName) {
-  return encodeURIComponent(String(fileName ?? 'resume.pdf').replace(/[\r\n]+/g, ' ').trim() || 'resume.pdf').replace(
-    /['()]/g,
-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+  return encodeURIComponent(normalizeDownloadFileName(fileName)).replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 export function buildDownloadContentDisposition(fileName) {
-  const normalizedFileName = String(fileName ?? '').trim() || 'resume.pdf';
+  const normalizedFileName = normalizeDownloadFileName(fileName);
   return `attachment; filename="${buildAsciiFallbackFileName(normalizedFileName)}"; filename*=UTF-8''${encodeFileName(normalizedFileName)}`;
 }
 

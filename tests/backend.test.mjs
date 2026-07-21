@@ -953,6 +953,14 @@ test('builds resume download headers with ascii fallback and utf-8 filename enco
   assert.match(header, /%E5%A4%A7%E5%8D%AB%E5%BE%B7/);
 });
 
+test('sanitizes control characters and path separators in download filenames', () => {
+  const header = buildDownloadContentDisposition('  ../候选人\t简历\u0000v2?.pdf  ');
+
+  assert.match(header, /filename="\.\.-___ __ v2-.pdf"/);
+  assert.match(header, /filename\*=UTF-8''\.\.-%E5%80%99%E9%80%89%E4%BA%BA%20%E7%AE%80%E5%8E%86%20v2%3F.pdf/);
+  assert.doesNotMatch(header, /[\u0000-\u001F\u007F]/);
+});
+
 test('builds a safe default download filename when resume metadata is missing', () => {
   const header = buildDownloadContentDisposition();
 
