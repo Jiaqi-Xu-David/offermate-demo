@@ -1791,7 +1791,7 @@ export function buildHrCandidateQueueSummary(candidates = [], jobs = JOBS) {
 
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
   const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
-  const stage = ['all', 'submitted', 'unsubmitted', 'strong'].includes(filters.stage) ? filters.stage : 'all';
+  const stage = ['all', 'submitted', 'unsubmitted', 'strong', 'ocr-fallback'].includes(filters.stage) ? filters.stage : 'all';
 
   return candidates.filter((candidate) => {
     const submittedJobIds = candidate.submittedJobIds ?? [];
@@ -1800,6 +1800,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     if (stage === 'submitted' && submittedJobIds.length === 0) return false;
     if (stage === 'unsubmitted' && submittedJobIds.length > 0) return false;
     if (stage === 'strong' && (bestMatch?.score ?? 0) < 80) return false;
+    if (stage === 'ocr-fallback' && !candidate.extractionWarning) return false;
     if (!query) return true;
 
     const profile = candidate.profile ?? {};

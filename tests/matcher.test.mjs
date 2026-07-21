@@ -1370,6 +1370,7 @@ test('filters the HR review queue by search text and review stage', () => {
     id: 'candidate-upload-only-filter-test',
     name: '林搜索',
     submittedJobIds: [],
+    extractionWarning: 'OCR 输出中仍有错字，需要人工复核。',
     profile: {
       ...CANDIDATES[0].profile,
       skills: [...CANDIDATES[0].profile.skills, 'Rust'],
@@ -1400,6 +1401,10 @@ test('filters the HR review queue by search text and review stage', () => {
     [uploadOnlyCandidate.id],
   );
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).length > 0);
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'ocr-fallback' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
 });
 
 test('adds accessible HR candidate search and stage filters to the workspace', async () => {
@@ -1410,6 +1415,7 @@ test('adds accessible HR candidate search and stage filters to the workspace', a
   assert.ok(indexHtml.includes('id="hr-candidate-search"'));
   assert.ok(indexHtml.includes('id="hr-candidate-stage"'));
   assert.ok(indexHtml.includes('只看高匹配'));
+  assert.ok(indexHtml.includes('只看 OCR 回退'));
   assert.ok(appJs.includes('filterHrCandidatesForReview(state.candidates'));
   assert.ok(appJs.includes('没有符合当前筛选条件的候选人。'));
   assert.ok(appJs.includes('elements.adminCandidatePanel.hidden = !candidate'));
