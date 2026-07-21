@@ -331,6 +331,33 @@ test('recognizes modern collaboration workspace tools in resumes and JDs', () =>
   assert.ok(job.tags.includes('Trello'));
 });
 
+test('recognizes ops CRM and automation tools in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：顾闻
+学校：上海大学 信息管理 本科
+求职意向：增长运营实习
+技能：Mi ro、Air table、Hub Spot、SFDC、Za pier、Integromat
+项目经历：使用 Air table 维护活动台账，在 Hub Spot 和 SFDC 跟进线索状态，并通过 Za pier 与 Integromat 自动同步报名数据。`);
+  const job = analyzeJobDescription({
+    title: '增长运营实习生',
+    city: '上海',
+    description: '需要熟悉 Miro、Airtable、HubSpot、Sales Force、Zapier 和 Make，支持活动协作、线索流转与自动化数据同步。',
+  });
+
+  assert.ok(profile.skills.includes('Miro'));
+  assert.ok(profile.skills.includes('Airtable'));
+  assert.ok(profile.skills.includes('HubSpot'));
+  assert.ok(profile.skills.includes('Salesforce'));
+  assert.ok(profile.skills.includes('Zapier'));
+  assert.ok(profile.skills.includes('Make'));
+  assert.ok(job.tags.includes('Miro'));
+  assert.ok(job.tags.includes('Airtable'));
+  assert.ok(job.tags.includes('HubSpot'));
+  assert.ok(job.tags.includes('Salesforce'));
+  assert.ok(job.tags.includes('Zapier'));
+  assert.ok(job.tags.includes('Make'));
+});
+
 test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林依
