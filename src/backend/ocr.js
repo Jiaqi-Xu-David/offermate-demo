@@ -35,6 +35,8 @@ function normalizeOcrText(text) {
   const normalized = cleanText(text)
     .replace(/^```[a-z0-9_-]*\s*/i, '')
     .replace(/\s*```$/i, '')
+    .replace(/\u00AD/g, '')
+    .replace(/[\u00A0\u2007\u202F]/g, ' ')
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
     .replace(/\r/g, '\n')
     .replace(/[ \t]+\n/g, '\n')

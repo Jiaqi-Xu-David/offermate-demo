@@ -646,6 +646,25 @@ test('strips BOM and zero-width OCR artifacts from resume text', async () => {
   assert.equal(text, '姓名：周宁\n学校：慕尼黑工业大学\n技能：SQL、Python');
 });
 
+test('normalizes soft hyphen and non-breaking spaces in OCR text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '姓\u00AD名：赵敏\u00A0\n学校：慕尼黑工业大学\u202F\n技能：SQL、Python',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：赵敏\n学校：慕尼黑工业大学\n技能：SQL、Python');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(
