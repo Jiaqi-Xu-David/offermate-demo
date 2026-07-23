@@ -1415,6 +1415,7 @@ test('filters the HR review queue by search text and review stage', () => {
     ...CANDIDATES[0],
     id: 'candidate-upload-only-filter-test',
     name: '林搜索',
+    textSource: 'pdf-text-fallback',
     submittedJobIds: [],
     extractionWarning: 'OCR 输出中仍有错字，需要人工复核。',
     profile: {
@@ -1437,6 +1438,14 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '待补' }).length > 0);
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '进入初筛' }).length > 0);
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '建议转推荐至' }).length > 0);
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR 回退' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF 文本提取保底' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
       (candidate) => candidate.submittedJobIds.length > 0,

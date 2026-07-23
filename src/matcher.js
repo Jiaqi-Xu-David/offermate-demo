@@ -1805,6 +1805,20 @@ export function buildHrCandidateQueueSummary(candidates = [], jobs = JOBS) {
     : `${candidates.length} 人 · 已投递 ${submittedCount}${strongMatchLabel}`;
 }
 
+function getHrCandidateExtractionSearchTerms(candidate) {
+  const textSource = candidate.textSource ?? 'pdf-text';
+  const labels = [
+    textSource,
+    textSource === 'openai-ocr'
+      ? 'OpenAI OCR 提取'
+      : textSource === 'pdf-text-fallback'
+        ? 'PDF 文本提取保底'
+        : 'PDF 文本提取',
+  ];
+  if (candidate.extractionWarning) labels.push('OCR 回退');
+  return labels;
+}
+
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
   const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
   const stage = ['all', 'submitted', 'unsubmitted', 'strong', 'ocr-fallback'].includes(filters.stage) ? filters.stage : 'all';
@@ -1834,7 +1848,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       matchSummary,
       insight.screeningRecommendation,
       insight.routingRecommendation,
-      candidate.textSource,
+      ...getHrCandidateExtractionSearchTerms(candidate),
       candidate.extractionWarning,
       ...(profile.skills ?? []),
       ...(profile.languages ?? []),
