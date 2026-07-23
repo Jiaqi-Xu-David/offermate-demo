@@ -377,6 +377,25 @@ test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', 
   assert.ok(job.tags.includes('SharePoint'));
 });
 
+test('recognizes ClickUp and Monday.com aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：郑可
+学校：浙江大学 管理科学 本科
+求职意向：项目运营实习
+技能：Click Up、Mon day、Excel
+项目经历：使用 Click-up 跟进需求排期，并在 Monday.com 维护团队任务看板。`);
+  const job = analyzeJobDescription({
+    title: '项目运营实习生',
+    city: '上海',
+    description: '需要熟悉 ClickUp 和 monday com，能维护任务看板、协调跨团队排期并更新 Excel 台账。',
+  });
+
+  assert.ok(profile.skills.includes('ClickUp'));
+  assert.ok(profile.skills.includes('Monday.com'));
+  assert.ok(job.tags.includes('ClickUp'));
+  assert.ok(job.tags.includes('Monday.com'));
+});
+
 test('parses media resume text into compact profile tags instead of one long paragraph', () => {
   const profile = parseResumeText(`Werf基本资料实习经历电话：15779859005邮箱：2411049771@qq.com邓聖喆求职意向：影视媒体类方向姓后：邓聖喆籍贯：江西九江出生年月：2005-12-21学历：专科性别：男政治面貌：群众院校：江西生物科技职业学院专业：动漫媒体制作技术湖口县融媒体|实习记者2025年7月——9月|九江2020-2022主导多部短片/微电影创作：负责从创意策划、脚本撰写、分镜设计到现场拍摄后期剪辑调色的全过程。点赞传媒有限公司|短视频内容编导助理2025年4月——6月|南昌工作职责：独立负责短视频制作，全面参与公司抖音账号内容更新，脚本撰写，现场拍摄及后期剪辑调色。掌握技能影视制作：具备从策划、脚本、拍摄到剪辑调色的全流程能力和经验。摄影与后期：可独立完成人像，产品、纪实类拍摄及修图。设计软件：熟练使用 PR、PS、AE、达芬奇、剪映等设计后期软件。团队与执行：具有良好的团队协作意识和项目推进能力。`);
 
