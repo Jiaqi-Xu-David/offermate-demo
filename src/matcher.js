@@ -1847,6 +1847,9 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       candidate.major,
       profile.headline,
       profile.target,
+      ...(profile.cityPreferences ?? []),
+      ...(profile.interests ?? []),
+      ...(profile.experiences ?? []),
       matchSummary,
       insight.screeningRecommendation,
       insight.routingRecommendation,
@@ -1858,6 +1861,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...submittedTitles,
       ...fitHighlights,
       ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.title),
+      profile.rawResume,
     ]
       .filter(Boolean)
       .join(' ')

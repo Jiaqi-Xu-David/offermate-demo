@@ -1464,6 +1464,15 @@ test('filters the HR review queue by search text and review stage', () => {
       (candidate) => candidate.submittedJobIds.includes('data-analyst-intern'),
     ),
   );
+  assert.ok(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '浙江大学' }).some(
+      (candidate) => candidate.id === 'li-ruohan',
+    ),
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '竞品市场研究案例' }).map((candidate) => candidate.id),
+    ['li-ruohan'],
+  );
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '最佳已投' }).length > 0);
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '待补' }).length > 0);
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { query: '进入初筛' }).length > 0);
