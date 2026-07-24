@@ -1122,6 +1122,18 @@ test('parses comprehensive monthly salary formats from admin JDs', () => {
   assert.equal(job.salary, '8000-12000元/月');
 });
 
+test('parses K-style salary ranges when each bound repeats the unit or currency symbol', () => {
+  const parsed = parseJobDescription('薪资：¥15K - ¥20K/月，负责经营分析和周报复盘。');
+  const job = analyzeJobDescription({
+    title: '商业分析实习生',
+    city: '上海',
+    description: '薪酬：￥18K-￥22K/月 · 13薪，要求 SQL、Excel，支持业务复盘。',
+  });
+
+  assert.equal(parsed.salary, '15K-20K/月');
+  assert.equal(job.salary, '18K-22K/月·13薪');
+});
+
 test('infers admin-added job city from JD text when the city field is empty', () => {
   const job = analyzeJobDescription({
     title: 'AI 产品实习生',
