@@ -1061,6 +1061,24 @@ test('matches hybrid city labels for either onsite or remote-friendly candidates
   assert.match(onsiteCity.detail, /上海\/远程/);
 });
 
+test('treats WFH-style wording as a remote preference in resumes and admin JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：许岚
+学校：华东师范大学 数据科学 本科
+城市偏好：WFH / 居家办公
+技能：Python、SQL`);
+  const remoteJob = analyzeJobDescription({
+    title: '数据策略实习生',
+    city: '',
+    description: 'Base：work from home。负责 SQL 数据分析与 Python 报表自动化。',
+  });
+  const city = getScoreBreakdown(profile, remoteJob).find((item) => item.label === '地点匹配');
+
+  assert.ok(profile.cityPreferences.includes('远程'));
+  assert.equal(remoteJob.city, '远程');
+  assert.equal(city.points, 10);
+});
+
 test('parses JD text into compensation, hard skills, soft skills, and language requirements', () => {
   const parsed = parseJobDescription(JOBS[0].description);
   const sql = parsed.hardSkillRequirements.find((item) => item.name === 'SQL');

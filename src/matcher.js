@@ -319,7 +319,7 @@ const KEYWORD_ALIASES = {
   招聘: ['招聘', '招聘配置'],
   培训: ['培训'],
   考勤: ['考勤'],
-  远程: ['线上', '可远程', '远程办公', '全国远程', 'Remote', 'remote'],
+  远程: ['线上', '可远程', '远程办公', '全国远程', 'Remote', 'remote', '居家办公', '在家办公', 'WFH', 'wfh', 'work from home', 'home office'],
   教案撰写: ['教案', '撰写教案'],
   电气工程: ['电气工程', '电气工程及其自动化'],
   自动化: ['自动化'],
@@ -1079,7 +1079,7 @@ const hasTextMatch = (items, keyword) => {
 const clampScore = (score) => Math.max(0, Math.min(100, score));
 
 function isRemoteLocation(value) {
-  return /远程|线上|remote/i.test(String(value ?? ''));
+  return /远程|线上|remote|居家办公|在家办公|wfh|work from home|home office/i.test(String(value ?? ''));
 }
 
 function getLocationSignals(value) {
