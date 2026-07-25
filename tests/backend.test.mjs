@@ -627,6 +627,25 @@ test('drops conversational OCR wrapper lines before resume parsing', async () =>
   assert.equal(text, '姓名：林可\n学校：慕尼黑工业大学\n技能：SQL、Python');
 });
 
+test('drops broader assistant-style OCR wrapper lines before resume parsing', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '当然可以，以下是整理后的简历文本：\n1. OCR 结果如下：\n姓名：周可\n学校：同济大学\n技能：Office、文档写作',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：周可\n学校：同济大学\n技能：Office、文档写作');
+});
+
 test('strips BOM and zero-width OCR artifacts from resume text', async () => {
   const text = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
