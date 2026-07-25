@@ -519,6 +519,21 @@ test('keeps concise English resumes with professional experience headings on the
   );
 });
 
+test('keeps concise English resumes with contact-information and relevant-experience headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Contact Information: lina@example.com\nEducation Background: Tongji University\nRelevant Experience: Campus recruiting support\nRelevant Projects: Hiring dashboard',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nProject Experience: Built interview tracker\nKey Skills: Excel, Recruiting\nWork Authorization: Germany student permit',
+    ),
+    false,
+  );
+});
+
 test('keeps structured English resumes with visa and graduation headings on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(
