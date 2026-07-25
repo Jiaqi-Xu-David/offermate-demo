@@ -515,6 +515,25 @@ test('recognizes common media-suite aliases in resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'PS'));
 });
 
+test('recognizes broader Adobe and video-editing aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：陆青
+学校：中国传媒大学 动画 本科
+求职意向：视觉设计实习
+技能：Adobe Illustrator、InDesign、Lightroom、FCP
+项目经历：使用 Adobe Illustrator 设计活动主视觉，用 InDesign 排版宣传册，通过 Lightroom 修图，并用 Final Cut Pro 剪辑采访视频。`);
+  const parsed = parseJobDescription('岗位要求：熟练使用 illustrator、Adobe InDesign、Adobe Lightroom、Final Cut，支持品牌物料设计、修图和视频剪辑。');
+
+  assert.ok(profile.skills.includes('Illustrator'));
+  assert.ok(profile.skills.includes('InDesign'));
+  assert.ok(profile.skills.includes('Lightroom'));
+  assert.ok(profile.skills.includes('Final Cut Pro'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Illustrator'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'InDesign'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Lightroom'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Final Cut Pro'));
+});
+
 test('recognizes Canva and CapCut aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林可
