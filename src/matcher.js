@@ -1851,8 +1851,10 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
       candidate.name,
+      candidate.email,
       candidate.school,
       candidate.major,
+      candidate.fileName,
       profile.headline,
       profile.target,
       ...(profile.cityPreferences ?? []),
