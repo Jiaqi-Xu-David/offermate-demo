@@ -498,6 +498,18 @@ test('recognizes Google Workspace office-suite aliases in resumes and JDs', () =
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Chinese online document-suite aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：祝楠
+学校：华东理工大学
+求职意向：招聘运营实习
+技能：熟练使用 腾讯文档、石墨文档、金山文档 维护面试排期和招聘台账。`);
+  const parsed = parseJobDescription('岗位要求：熟悉腾讯文档、石墨文档或金山文档，支持招聘流程协同、文档整理和台账更新。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
