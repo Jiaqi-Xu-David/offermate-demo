@@ -699,6 +699,25 @@ test('normalizes soft hyphen and non-breaking spaces in OCR text', async () => {
   assert.equal(text, '姓名：赵敏\n学校：慕尼黑工业大学\n技能：SQL、Python');
 });
 
+test('strips common OCR wrapper lines before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '以下是从这份简历 PDF 中提取的纯文本内容：\n1. 识别结果如下：\n姓名：周宁\n学校：慕尼黑工业大学\n技能：SQL、Python',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：周宁\n学校：慕尼黑工业大学\n技能：SQL、Python');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(
