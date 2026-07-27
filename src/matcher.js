@@ -1836,15 +1836,20 @@ function getHrCandidateExtractionSearchTerms(candidate) {
 
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
   const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
-  const stage = ['all', 'submitted', 'unsubmitted', 'strong', 'ocr-fallback'].includes(filters.stage) ? filters.stage : 'all';
+  const stage = ['all', 'submitted', 'unsubmitted', 'strong', 'native-pdf', 'openai-ocr', 'ocr-fallback'].includes(filters.stage)
+    ? filters.stage
+    : 'all';
 
   return candidates.filter((candidate) => {
     const submittedJobIds = candidate.submittedJobIds ?? [];
     const insight = buildAdminCandidateInsight(candidate, jobs);
     const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+    const textSource = candidate.textSource ?? 'pdf-text';
     if (stage === 'submitted' && submittedJobIds.length === 0) return false;
     if (stage === 'unsubmitted' && submittedJobIds.length > 0) return false;
     if (stage === 'strong' && (bestMatch?.score ?? 0) < 80) return false;
+    if (stage === 'native-pdf' && textSource !== 'pdf-text') return false;
+    if (stage === 'openai-ocr' && textSource !== 'openai-ocr') return false;
     if (stage === 'ocr-fallback' && !candidate.extractionWarning) return false;
     if (!query) return true;
 

@@ -1472,6 +1472,26 @@ test('summarizes the HR review queue by submitted and upload-only candidates', (
 });
 
 test('filters the HR review queue by search text and review stage', () => {
+  const nativePdfCandidate = {
+    ...CANDIDATES[0],
+    id: 'candidate-native-pdf-filter-test',
+    name: '原生文本候选人',
+    email: 'native-pdf@example.com',
+    fileName: 'native.pdf',
+    textSource: 'pdf-text',
+    submittedJobIds: [],
+    extractionWarning: '',
+  };
+  const openAiOcrCandidate = {
+    ...CANDIDATES[1],
+    id: 'candidate-openai-ocr-filter-test',
+    name: '全量 OCR 候选人',
+    email: 'openai-ocr@example.com',
+    fileName: 'ocr.pdf',
+    textSource: 'openai-ocr',
+    submittedJobIds: [],
+    extractionWarning: '',
+  };
   const uploadOnlyCandidate = {
     ...CANDIDATES[0],
     id: 'candidate-upload-only-filter-test',
@@ -1486,7 +1506,7 @@ test('filters the HR review queue by search text and review stage', () => {
       skills: [...CANDIDATES[0].profile.skills, 'Rust'],
     },
   };
-  const candidates = [...CANDIDATES, uploadOnlyCandidate];
+  const candidates = [...CANDIDATES, nativePdfCandidate, openAiOcrCandidate, uploadOnlyCandidate];
 
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'Rust' }).map((candidate) => candidate.id),
@@ -1526,6 +1546,10 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search.pdf' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OpenAI OCR 提取' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
       (candidate) => candidate.submittedJobIds.length > 0,
@@ -1533,9 +1557,17 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'unsubmitted' }).map((candidate) => candidate.id),
-    [uploadOnlyCandidate.id],
+    [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
   );
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).length > 0);
+  const nativePdfStageIds = filterHrCandidatesForReview(candidates, JOBS, { stage: 'native-pdf' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfStageIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfStageIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfStageIds.includes(uploadOnlyCandidate.id));
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'openai-ocr' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'ocr-fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
@@ -1550,6 +1582,8 @@ test('adds accessible HR candidate search and stage filters to the workspace', a
   assert.ok(indexHtml.includes('id="hr-candidate-search"'));
   assert.ok(indexHtml.includes('id="hr-candidate-stage"'));
   assert.ok(indexHtml.includes('只看高匹配'));
+  assert.ok(indexHtml.includes('只看原生 PDF 文本'));
+  assert.ok(indexHtml.includes('只看 OpenAI OCR'));
   assert.ok(indexHtml.includes('只看 OCR 回退'));
   assert.ok(appJs.includes('filterHrCandidatesForReview(state.candidates'));
   assert.ok(appJs.includes('没有符合当前筛选条件的候选人。'));
