@@ -510,6 +510,18 @@ test('recognizes Chinese online document-suite aliases in resumes and JDs', () =
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Feishu and Lark document-suite aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：韩策
+学校：上海师范大学
+求职意向：招聘运营实习
+技能：熟练使用 飞书文档、飞书表格 和 Lark Docs 维护招聘台账与面试排期。`);
+  const parsed = parseJobDescription('岗位要求：熟悉飞书文档、Lark Sheets 或 Lark Docs，支持招聘协同与数据更新。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
