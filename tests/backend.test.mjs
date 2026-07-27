@@ -846,10 +846,19 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
   const localCookie = createSessionCookie('abc123', 'http://127.0.0.1:4173/login', 3600);
   assert.doesNotMatch(localCookie, /Secure/);
 
+  const fallbackCookie = createSessionCookie('abc123', '/login', 3600);
+  assert.match(fallbackCookie, /om_session=abc123/);
+  assert.match(fallbackCookie, /Max-Age=3600/);
+  assert.doesNotMatch(fallbackCookie, /Secure/);
+
   const clearedCookie = clearSessionCookie('https://offermate.example.com/logout');
   assert.match(clearedCookie, /Max-Age=0/);
   assert.match(clearedCookie, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
   assert.match(clearedCookie, /Priority=High/);
+
+  const fallbackClearedCookie = clearSessionCookie('/logout');
+  assert.match(fallbackClearedCookie, /Max-Age=0/);
+  assert.doesNotMatch(fallbackClearedCookie, /Secure/);
 });
 
 test('keeps the first session cookie when duplicate names appear in the header', () => {
