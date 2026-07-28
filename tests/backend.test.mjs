@@ -733,6 +733,25 @@ test('strips common OCR wrapper lines before returning resume text', async () =>
   assert.equal(text, '姓名：周宁\n学校：慕尼黑工业大学\n技能：SQL、Python');
 });
 
+test('strips English OCR wrapper lines before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Here is the extracted resume text:\nBelow is the OCR result:\nName: Lina\nUniversity: Tongji University\nSkills: Excel, Recruiting',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Lina\nUniversity: Tongji University\nSkills: Excel, Recruiting');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(

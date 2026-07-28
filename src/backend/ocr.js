@@ -44,14 +44,15 @@ function normalizeOcrText(text) {
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
   const lines = normalized.split('\n');
+  const cleanedLine = (line) => line.trim().replace(/^[-*•\d.)\s]+/, '');
   const isWrapperLine = (line) =>
     /^(?:当然可以[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:为|提供|整理|提取)?\s*)?(?:(?:识别后|提取后|整理后|按原文(?:换行)?整理后)(?:的)?\s*)?(?:简历(?:(?:原文|文本)(?:整理后)?(?:的)?(?:纯文本)?)?|OCR\s*(?:识别)?\s*结果|识别结果|提取结果|文本内容|纯文本(?:结果)?)\s*(?:如下)?\s*[：:]?\s*$/i.test(
-      line.trim().replace(/^[-*•\d.)\s]+/, ''),
-    );
+      cleanedLine(line),
+    ) || /^(?:here is|below is)\s+the\s+(?:extracted\s+)?(?:resume\s+)?(?:text|ocr\s+result)\s*[：:]?\s*$/i.test(cleanedLine(line));
   const isPrefaceLine = (line) =>
     /^(?:当然可以[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:从|为|对)?\s*)?(?:这份|该)?\s*(?:简历|PDF|图片)?\s*(?:PDF)?\s*(?:中)?\s*(?:识别|提取|整理)(?:出|后)?(?:的)?\s*(?:简历)?\s*(?:原文|文本|纯文本)(?:内容|结果)?\s*(?:如下)?\s*[：:]?\s*$/i.test(
-      line.trim().replace(/^[-*•\d.)\s]+/, ''),
-    );
+      cleanedLine(line),
+    ) || /^(?:here is|below is)\s+the\s+(?:text|plain\s+text)\s+(?:extracted|parsed)\s+from\s+(?:this\s+)?(?:resume|pdf|image)\s*[：:]?\s*$/i.test(cleanedLine(line));
   while (
     lines.length > 0 &&
     (isWrapperLine(lines[0]) || isPrefaceLine(lines[0]))
