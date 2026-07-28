@@ -241,6 +241,23 @@ test('recognizes common data-stack aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('深度学习'));
 });
 
+test('recognizes Excel feature aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：徐言
+学校：上海财经大学 信息管理 本科
+求职意向：经营分析实习
+技能：Power Query、XLOOKUP、数据透视表
+项目经历：使用 Power Query 清洗销售台账，通过 XLOOKUP 对齐渠道口径，并用数据透视表输出周报。`);
+  const job = analyzeJobDescription({
+    title: '经营分析实习生',
+    city: '上海',
+    description: '要求熟悉 Power Query、XLOOKUP 和数据透视表，能独立整理经营数据并产出周报。',
+  });
+
+  assert.ok(profile.skills.includes('Excel'));
+  assert.ok(job.tags.includes('Excel'));
+});
+
 test('recognizes spaced and spelled-out AI platform aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：唐宁
