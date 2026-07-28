@@ -549,6 +549,21 @@ test('keeps structured English resumes with visa and graduation headings on the 
   );
 });
 
+test('keeps concise English resumes with phone-number and technical-proficiencies headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Professional Summary: Business student with recruiting internship experience\nPhone Number: +49 151 23456789\nEmail Address: lina@example.com\nTechnical Proficiencies: Excel, Power Query',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Summary of Qualifications: Campus operations and data reporting\nPhone Number: +86 13800000000\nEmail Address: xu@example.com\nSkills & Tools: SQL, Tableau',
+    ),
+    false,
+  );
+});
+
 test('accepts PDF resume uploads and rejects unsupported file types early', () => {
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 1024 }));
   assert.doesNotThrow(() => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/x-pdf', size: 1024 }));
