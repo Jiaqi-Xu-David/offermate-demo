@@ -752,6 +752,44 @@ test('strips English OCR wrapper lines before returning resume text', async () =
   assert.equal(text, 'Name: Lina\nUniversity: Tongji University\nSkills: Excel, Recruiting');
 });
 
+test('strips polite English OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: "Certainly, here's the plain text extracted from the attached resume:\nName: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI",
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI');
+});
+
+test('strips polite Chinese OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '好的，以下为从简历图片中识别出的文本内容：\n姓名：赵禾\n学校：复旦大学\n技能：Office、招聘',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：赵禾\n学校：复旦大学\n技能：Office、招聘');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(
