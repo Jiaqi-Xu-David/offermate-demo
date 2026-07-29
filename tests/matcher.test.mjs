@@ -166,6 +166,29 @@ test('recognizes analytics platform aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('Google Analytics'));
 });
 
+test('recognizes modern product analytics and BI workspace aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：韩哲
+学校：复旦大学 信息系统 本科
+求职意向：增长分析实习
+技能：Am plitude、Mix Panel、Apache Superset、Re dash、SQL
+项目经历：使用 Am plitude 和 Mix Panel 分析新用户转化，在 Apache Superset 与 Re dash 中维护增长看板。`);
+  const job = analyzeJobDescription({
+    title: '增长分析实习生',
+    city: '上海',
+    description: '负责使用 Amplitude、Mixpanel、Superset、Redash 和 SQL 分析转化漏斗，并维护增长数据看板。',
+  });
+
+  assert.ok(profile.skills.includes('Amplitude'));
+  assert.ok(profile.skills.includes('Mixpanel'));
+  assert.ok(profile.skills.includes('Superset'));
+  assert.ok(profile.skills.includes('Redash'));
+  assert.ok(job.tags.includes('Amplitude'));
+  assert.ok(job.tags.includes('Mixpanel'));
+  assert.ok(job.tags.includes('Superset'));
+  assert.ok(job.tags.includes('Redash'));
+});
+
 test('recognizes OCR-spaced frontend and experiment aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：陈果
