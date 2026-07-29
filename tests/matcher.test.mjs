@@ -1429,6 +1429,20 @@ test('builds recruiter-facing candidate routing insights', () => {
   assert.ok(!combinedText.includes('简历优化'));
 });
 
+test('builds recruiter-facing screening guidance for upload-only high-potential resumes', () => {
+  const candidate = {
+    ...CANDIDATES.find((item) => item.id === 'davide'),
+    id: 'upload-only-high-potential-guidance',
+    submittedJobIds: [],
+  };
+  const insight = buildAdminCandidateInsight(candidate, JOBS);
+
+  assert.equal(insight.submittedJobs.length, 0);
+  assert.ok(insight.suggestedJobs.length > 0);
+  assert.match(insight.screeningRecommendation, /建议联系候选人补投递/);
+  assert.match(insight.screeningRecommendation, /数据分析实习生/);
+});
+
 test('sorts HR candidates by strongest submitted fit for review order', () => {
   const ordered = sortHrCandidatesForReview(CANDIDATES, JOBS);
 

@@ -1785,6 +1785,8 @@ export function buildAdminCandidateInsight(candidate, jobs = JOBS) {
     screeningRecommendation = `建议进入初筛：${candidate.name} 与 ${bestSubmitted.title} 匹配度 ${bestSubmitted.score} 分。`;
   } else if (bestSubmitted?.score < 60) {
     screeningRecommendation = `暂不建议进入初筛：当前投递岗位最高匹配度 ${bestSubmitted.score} 分。`;
+  } else if (!bestSubmitted && bestSuggested?.score >= 75) {
+    screeningRecommendation = `建议联系候选人补投递 ${bestSuggested.title}：当前简历匹配度 ${bestSuggested.score} 分。`;
   }
 
   const routingRecommendation =
