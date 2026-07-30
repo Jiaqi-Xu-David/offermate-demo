@@ -575,6 +575,19 @@ test('recognizes Feishu and Lark document-suite aliases in resumes and JDs', () 
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes applicant tracking system aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：宋禾
+学校：上海大学
+求职意向：招聘运营实习
+技能：Green house、Le ver、Moka
+项目经历：使用 Green house 和 Le ver 跟进入库候选人，并在 Moka 维护面试流程。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Greenhouse、Lever 或 Moka，支持候选人推进、面试排期和招聘流程协同。');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
