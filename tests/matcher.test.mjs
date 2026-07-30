@@ -538,6 +538,19 @@ test('recognizes Google Workspace office-suite aliases in resumes and JDs', () =
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes OCR-spaced Google Workspace aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：顾遥
+学校：华东师范大学
+求职意向：行政实习
+技能：Google Work space、Google Doc s、Google Sheet s、Google Slide s
+项目经历：使用 Google Doc s 和 Google Sheet s 协助维护招聘材料。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Google Work space、Google Doc s、Google Sheet s 与 Google Slide s，支持招聘文档协同与表格更新。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes Chinese online document-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：祝楠
