@@ -55,7 +55,7 @@ function normalizeOcrText(text) {
   const isPrefaceLine = (line) =>
     /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:(?:从|为|对)\s*){0,2})?(?:这份|该)?\s*(?:(?:简历|PDF|图片)\s*){0,2}(?:中)?\s*(?:识别|提取|整理)(?:出|后)?(?:的)?\s*(?:简历)?\s*(?:原文|文本|纯文本)(?:内容|结果)?\s*(?:如下)?\s*[：:]?\s*$/i.test(
       cleanedLine(line),
-    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's)\s+the\s+(?:text|plain\s+text)\s+(?:extracted|parsed)\s+from\s+(?:this\s+|the\s+attached\s+)?(?:resume|pdf|image)\s*[：:]?\s*$/i.test(
+    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's)\s+the\s+(?:text|plain[\s-]+text)(?:\s+resume\s+content)?\s+(?:extracted|parsed)\s+from\s+(?:this\s+|the\s+attached\s+)?(?:resume|pdf|image)\s*[：:]?\s*$/i.test(
       normalizedLine(line),
     );
   while (
@@ -89,11 +89,17 @@ export function shouldUseOcrTextExtraction(text) {
   ) ?? [];
   const hasIdentitySignal = identityLabelMatches.length > 0;
   const hasStructuredIdentityFields = identityLabelMatches.length >= 4 && lineCount >= 3;
+  const hasConciseStructuredHeader =
+    identityLabelMatches.length >= 3 &&
+    lineCount >= 3 &&
+    compact.length >= 32 &&
+    /(姓名|邮箱|电话|\bName\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bContact(?: Information)?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b)/i.test(normalized) &&
+    /(技能|项目|实习|教育|求职意向|\bSkills?(?: & Tools)?\b|\bTechnical Skills\b|\bTechnical Proficiencies\b|\bProjects?\b|\bExperience\b|\bEducation(?: Background)?\b|\bObjective\b|\bTarget Role\b)/i.test(normalized);
   const corruptGlyphs = /个亲简历|教育背施|籍设|特话|迎箱|与业|姓后|Werf基本资料/.test(compact);
   const denseSingleLine = compact.length > 360 && lineCount <= 3;
   const tooShortForResume = compact.length < 80;
   if (corruptGlyphs || denseSingleLine || !hasIdentitySignal) return true;
-  if (hasStructuredIdentityFields) return false;
+  if (hasStructuredIdentityFields || hasConciseStructuredHeader) return false;
   return tooShortForResume;
 }
 

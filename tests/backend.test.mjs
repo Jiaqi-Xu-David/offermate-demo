@@ -465,6 +465,17 @@ test('keeps concise but clearly structured resume text on the PDF path', () => {
   );
 });
 
+test('keeps concise three-line resumes with direct contact and skills labels on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：林清\n邮箱：linqing@example.com\n技能：Office、招聘台账、文档写作'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nEmail: lina@example.com\nSkills: Office, Recruiting, Scheduling'),
+    false,
+  );
+});
+
 test('keeps common English resume section labels on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(
@@ -769,6 +780,25 @@ test('strips polite English OCR prefaces before returning resume text', async ()
   );
 
   assert.equal(text, 'Name: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI');
+});
+
+test('strips plain-text content OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Below is the plain-text resume content extracted from the attached PDF:\nName: Iris\nUniversity: TUM\nSkills: SQL, Tableau',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Iris\nUniversity: TUM\nSkills: SQL, Tableau');
 });
 
 test('strips polite Chinese OCR prefaces before returning resume text', async () => {
