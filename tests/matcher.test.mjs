@@ -1575,7 +1575,7 @@ test('filters the HR review queue by search text and review stage', () => {
     extractionWarning: '',
   };
   const openAiOcrCandidate = {
-    ...CANDIDATES[1],
+    ...CANDIDATES[0],
     id: 'candidate-openai-ocr-filter-test',
     name: '全量 OCR 候选人',
     email: 'openai-ocr@example.com',
@@ -1651,6 +1651,10 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'unsubmitted' }).map((candidate) => candidate.id),
     [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
   );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'high-potential-unsubmitted' }).map((candidate) => candidate.id),
+    [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
+  );
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).length > 0);
   const nativePdfStageIds = filterHrCandidatesForReview(candidates, JOBS, { stage: 'native-pdf' }).map((candidate) => candidate.id);
   assert.ok(nativePdfStageIds.includes(nativePdfCandidate.id));
@@ -1674,6 +1678,7 @@ test('adds accessible HR candidate search and stage filters to the workspace', a
   assert.ok(indexHtml.includes('id="hr-candidate-search"'));
   assert.ok(indexHtml.includes('id="hr-candidate-stage"'));
   assert.ok(indexHtml.includes('只看高匹配'));
+  assert.ok(indexHtml.includes('只看高潜待分流'));
   assert.ok(indexHtml.includes('只看原生 PDF 文本'));
   assert.ok(indexHtml.includes('只看 OpenAI OCR'));
   assert.ok(indexHtml.includes('只看 OCR 回退'));

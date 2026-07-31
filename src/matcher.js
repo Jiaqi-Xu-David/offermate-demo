@@ -1888,7 +1888,7 @@ function getHrCandidateExtractionSearchTerms(candidate) {
 
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
   const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
-  const stage = ['all', 'submitted', 'unsubmitted', 'strong', 'native-pdf', 'openai-ocr', 'ocr-fallback'].includes(filters.stage)
+  const stage = ['all', 'submitted', 'unsubmitted', 'high-potential-unsubmitted', 'strong', 'native-pdf', 'openai-ocr', 'ocr-fallback'].includes(filters.stage)
     ? filters.stage
     : 'all';
 
@@ -1896,9 +1896,11 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const submittedJobIds = candidate.submittedJobIds ?? [];
     const insight = buildAdminCandidateInsight(candidate, jobs);
     const bestMatch = insight.submittedJobs[0] ?? insight.suggestedJobs[0];
+    const bestSuggestedScore = insight.suggestedJobs[0]?.score ?? 0;
     const textSource = candidate.textSource ?? 'pdf-text';
     if (stage === 'submitted' && submittedJobIds.length === 0) return false;
     if (stage === 'unsubmitted' && submittedJobIds.length > 0) return false;
+    if (stage === 'high-potential-unsubmitted' && (submittedJobIds.length > 0 || bestSuggestedScore < 80)) return false;
     if (stage === 'strong' && (bestMatch?.score ?? 0) < 80) return false;
     if (stage === 'native-pdf' && textSource !== 'pdf-text') return false;
     if (stage === 'openai-ocr' && textSource !== 'openai-ocr') return false;
