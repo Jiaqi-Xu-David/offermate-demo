@@ -4,6 +4,7 @@ import { jsonResponse, requireUser } from '../_lib/api.js';
 
 const MAX_STORED_RESUME_FILE_BYTES = 700_000;
 const PDF_MIME_TYPES = new Set(['application/pdf', 'application/x-pdf', 'application/acrobat']);
+const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46];
 
 function bytesToBase64(bytes) {
   if (typeof btoa === 'function') {
@@ -24,9 +25,13 @@ function textToBase64(text) {
   return bytesToBase64(new TextEncoder().encode(text));
 }
 
-export function ensureSupportedResumeUpload(file) {
+function looksLikePdfBuffer(bytes) {
+  return PDF_MAGIC_BYTES.every((byte, index) => bytes?.[index] === byte);
+}
+
+export function ensureSupportedResumeUpload(file, fileBytes = null) {
   const fileName = String(file?.name ?? '');
-  const mimeType = normalizeResumeMimeType(fileName, file?.type);
+  const mimeType = normalizeResumeMimeType(fileName, file?.type, fileBytes);
   const looksLikePdf = mimeType === 'application/pdf';
   if (!looksLikePdf) {
     throw new Error('仅支持 PDF 简历上传，请重新选择 .pdf 文件。');
@@ -36,9 +41,10 @@ export function ensureSupportedResumeUpload(file) {
   }
 }
 
-function normalizeResumeMimeType(fileName = '', mimeType = '') {
+function normalizeResumeMimeType(fileName = '', mimeType = '', fileBytes = null) {
   const normalizedMimeType = String(mimeType ?? '').toLowerCase().trim();
   if (PDF_MIME_TYPES.has(normalizedMimeType)) return 'application/pdf';
+  if (looksLikePdfBuffer(fileBytes)) return 'application/pdf';
   return String(fileName ?? '').toLowerCase().endsWith('.pdf') ? 'application/pdf' : normalizedMimeType;
 }
 
@@ -62,12 +68,13 @@ async function readResumeText(request, env) {
     const form = await request.formData();
     const file = form.get('resume');
     if (file && typeof file.arrayBuffer === 'function') {
-      ensureSupportedResumeUpload(file);
       const buffer = await file.arrayBuffer();
+      const bufferBytes = new Uint8Array(buffer);
+      ensureSupportedResumeUpload(file, bufferBytes);
       if (buffer.byteLength === 0) {
         throw new Error('上传的 PDF 为空，请重新导出后再试。');
       }
-      const normalizedMimeType = normalizeResumeMimeType(file.name, file.type);
+      const normalizedMimeType = normalizeResumeMimeType(file.name, file.type, bufferBytes);
       const extraction = await extractResumeTextFromPdf(env, buffer, {
         fileName: file.name || 'resume.pdf',
         mimeType: normalizedMimeType,
