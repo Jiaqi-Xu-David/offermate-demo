@@ -4,6 +4,28 @@ const STATIC_ASSET_PATTERN =
   /\.(?:avif|css|gif|ico|jpeg|jpg|js|json|map|mjs|png|svg|txt|webmanifest|webp|woff2?)$/i;
 const PRIVATE_FILE_PATTERN = /^\/(?:db|functions|tests|src\/backend)\//i;
 const PRIVATE_ROOT_FILES = new Set(['/package.json', '/README.md', '/wrangler.toml']);
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'none'",
+  "connect-src 'self'",
+  "font-src 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data:",
+  "object-src 'none'",
+  "script-src 'self'",
+  "style-src 'self'",
+].join('; ');
+
+function withBrowserSecurityHeaders(response) {
+  const securedResponse = new Response(response.body, response);
+  securedResponse.headers.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+  securedResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  securedResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  securedResponse.headers.set('X-Content-Type-Options', 'nosniff');
+  securedResponse.headers.set('X-Frame-Options', 'DENY');
+  return securedResponse;
+}
 
 function cleanHeader(value, maxLength = 500) {
   return (value ?? '').replace(/\s+/g, ' ').trim().slice(0, maxLength);
@@ -205,7 +227,7 @@ async function recordVisit(context, response) {
 export async function onRequest(context) {
   const url = new URL(context.request.url);
   if (PRIVATE_FILE_PATTERN.test(url.pathname) || PRIVATE_ROOT_FILES.has(url.pathname)) {
-    return new Response('Not found', { status: 404 });
+    return withBrowserSecurityHeaders(new Response('Not found', { status: 404 }));
   }
 
   const response = await context.next();
@@ -219,5 +241,5 @@ export async function onRequest(context) {
     await logging;
   }
 
-  return response;
+  return withBrowserSecurityHeaders(response);
 }

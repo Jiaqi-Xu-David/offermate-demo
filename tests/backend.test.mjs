@@ -21,6 +21,7 @@ import {
 import { parseResumeText } from '../src/matcher.js';
 import { buildDownloadContentDisposition } from '../functions/api/hr/resume-download.js';
 import { ensureSupportedResumeUpload } from '../functions/api/resumes.js';
+import { onRequest as runPagesMiddleware } from '../functions/_middleware.js';
 
 function buildMinimalPdf(streamBody) {
   return new TextEncoder().encode(`%PDF-1.4
@@ -1345,4 +1346,21 @@ test('resume history preserves extraction metadata for reload status copy', asyn
   assert.ok(databaseJs.includes('extractionWarning: row.extraction_warning'));
   assert.ok(appJs.includes('buildResumeParseStatus(latestResume, state.profile'));
   assert.ok(appJs.includes('payload.resume.extractionWarning'));
+});
+
+test('adds browser security headers to Pages responses', async () => {
+  const response = await runPagesMiddleware({
+    request: new Request('https://offermate.example/'),
+    env: {},
+    next: async () => new Response('<!doctype html><title>OfferMate</title>', {
+      headers: { 'Content-Type': 'text/html;charset=utf-8' },
+    }),
+  });
+
+  assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+  assert.equal(response.headers.get('X-Frame-Options'), 'DENY');
+  assert.equal(response.headers.get('Referrer-Policy'), 'strict-origin-when-cross-origin');
+  assert.equal(response.headers.get('Permissions-Policy'), 'camera=(), microphone=(), geolocation=()');
+  assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-ancestors 'none'/);
+  assert.match(response.headers.get('Content-Security-Policy') ?? '', /object-src 'none'/);
 });
