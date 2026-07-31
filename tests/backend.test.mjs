@@ -596,6 +596,13 @@ test('accepts PDF resume uploads and rejects unsupported file types early', () =
     /仅支持 PDF 简历上传/,
   );
   assert.throws(
+    () => ensureSupportedResumeUpload(
+      { name: 'resume.pdf', type: 'application/pdf', size: 1024 },
+      new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]),
+    ),
+    /文件内容不是有效的 PDF/,
+  );
+  assert.throws(
     () => ensureSupportedResumeUpload({ name: 'resume.pdf', type: 'application/pdf', size: 0 }),
     /上传的 PDF 为空/,
   );

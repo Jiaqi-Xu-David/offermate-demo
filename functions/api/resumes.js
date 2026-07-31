@@ -31,6 +31,11 @@ function looksLikePdfBuffer(bytes) {
 
 export function ensureSupportedResumeUpload(file, fileBytes = null) {
   const fileName = String(file?.name ?? '');
+  const declaredMimeType = String(file?.type ?? '').toLowerCase().trim();
+  const claimsToBePdf = PDF_MIME_TYPES.has(declaredMimeType) || fileName.toLowerCase().endsWith('.pdf');
+  if (claimsToBePdf && fileBytes?.byteLength > 0 && !looksLikePdfBuffer(fileBytes)) {
+    throw new Error('文件内容不是有效的 PDF，请重新导出后再试。');
+  }
   const mimeType = normalizeResumeMimeType(fileName, file?.type, fileBytes);
   const looksLikePdf = mimeType === 'application/pdf';
   if (!looksLikePdf) {
