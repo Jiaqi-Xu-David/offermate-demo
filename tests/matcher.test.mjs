@@ -525,6 +525,18 @@ test('recognizes full Microsoft 365 aliases in admin resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Outlook and Exchange scheduling aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：顾言
+学校：上海大学
+求职意向：行政支持实习
+技能：熟练使用 Outlook Calendar、Exchange 和邮件排期，负责会议排期与邮箱管理。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Microsoft Outlook、Outlook Calendar、Exchange，支持会议排期、邮箱管理和行政协同。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes Google Workspace office-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：苏禾
