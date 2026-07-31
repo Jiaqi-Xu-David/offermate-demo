@@ -1,4 +1,7 @@
 const SESSION_COOKIE = 'om_session';
+const PASSWORD_HASH_VERSION = 'pbkdf2-sha256';
+const PASSWORD_HASH_ITERATIONS = 120_000;
+const MAX_PASSWORD_HASH_ITERATIONS = 1_000_000;
 
 function safeDecodeCookieValue(value) {
   try {
@@ -73,14 +76,53 @@ function safeEqual(left, right) {
   return mismatch === 0;
 }
 
-export async function hashPassword(password, salt) {
+async function hashLegacyPassword(password, salt) {
   const bytes = new TextEncoder().encode(`${salt}:${password}`);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return bytesToHex(new Uint8Array(digest));
 }
 
+async function derivePasswordHash(password, salt, iterations) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(String(password ?? '')),
+    'PBKDF2',
+    false,
+    ['deriveBits'],
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      salt: encoder.encode(String(salt ?? '')),
+      iterations,
+    },
+    keyMaterial,
+    256,
+  );
+  return bytesToHex(new Uint8Array(derivedBits));
+}
+
+export async function hashPassword(password, salt) {
+  const digest = await derivePasswordHash(password, salt, PASSWORD_HASH_ITERATIONS);
+  return `${PASSWORD_HASH_VERSION}$${PASSWORD_HASH_ITERATIONS}$${digest}`;
+}
+
 export async function verifyPassword(password, salt, expectedHash) {
-  return safeEqual(await hashPassword(password, salt), expectedHash);
+  const storedHash = String(expectedHash ?? '');
+  const versionedMatch = storedHash.match(/^pbkdf2-sha256\$(\d+)\$([a-f0-9]{64})$/i);
+  if (versionedMatch) {
+    const iterations = Number(versionedMatch[1]);
+    if (!Number.isSafeInteger(iterations) || iterations < 10_000 || iterations > MAX_PASSWORD_HASH_ITERATIONS) {
+      return false;
+    }
+    return safeEqual(
+      await derivePasswordHash(password, salt, iterations),
+      versionedMatch[2].toLowerCase(),
+    );
+  }
+  return safeEqual(await hashLegacyPassword(password, salt), storedHash);
 }
 
 export function parseCookieHeader(header = '') {

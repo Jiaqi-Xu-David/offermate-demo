@@ -105,9 +105,9 @@ npx wrangler pages dev . --port 4173
 | `OFFERMATE_ADMIN_EMAIL` | 初始化管理员邮箱 | 生产环境建议覆盖 |
 | `OFFERMATE_ADMIN_NAME` | 初始化管理员名称 | 可选 |
 | `OFFERMATE_ADMIN_PASSWORD_SALT` | 初始化管理员密码 salt | 生产环境建议覆盖 |
-| `OFFERMATE_ADMIN_PASSWORD_HASH` | 初始化管理员密码 SHA-256 哈希 | 生产环境建议覆盖 |
+| `OFFERMATE_ADMIN_PASSWORD_HASH` | 初始化管理员密码哈希 | 生产环境建议覆盖 |
 
-管理员密码哈希由 `SHA-256(salt + ":" + password)` 生成，具体实现见 `src/backend/auth.js` 的 `hashPassword`。管理员配置应在第一次生产请求前设置，不要沿用仓库内的开发默认值。
+新账号密码使用带版本标识的 PBKDF2-SHA-256（120,000 次迭代）派生，具体实现见 `src/backend/auth.js` 的 `hashPassword`。登录校验仍兼容已有的无版本 SHA-256 哈希，因此旧管理员配置可以平滑过渡；新部署应使用 `hashPassword` 生成版本化哈希，并在第一次生产请求前覆盖仓库内的开发默认值。
 
 ## 简历上传规则
 

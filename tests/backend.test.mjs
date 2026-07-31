@@ -902,14 +902,18 @@ test('falls back to local PDF text if OCR is unavailable but text exists', async
   assert.match(result.text, /慕尼黑工业大学/);
 });
 
-test('hashes and verifies passwords without storing plaintext', async () => {
+test('uses PBKDF2 for new passwords and still verifies legacy hashes', async () => {
   const first = await hashPassword('sample-password-123', 'fixed-salt');
   const second = await hashPassword('sample-password-123', 'fixed-salt');
+  const legacyHash = 'e6e8c1b164bb9ba75b83ab16e01777d97267421725e2d81108006adb5a398a2a';
 
   assert.equal(first, second);
   assert.notEqual(first, 'sample-password-123');
+  assert.match(first, /^pbkdf2-sha256\$120000\$[a-f0-9]{64}$/);
   assert.equal(await verifyPassword('sample-password-123', 'fixed-salt', first), true);
   assert.equal(await verifyPassword('wrong-password', 'fixed-salt', first), false);
+  assert.equal(await verifyPassword('sample-password-123', 'fixed-salt', legacyHash), true);
+  assert.equal(await verifyPassword('wrong-password', 'fixed-salt', legacyHash), false);
 });
 
 test('encrypts personal fields before database storage', async () => {
