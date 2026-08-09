@@ -6,12 +6,12 @@ function getCrypto() {
 }
 
 function getSecret(env = {}) {
-  return String(
-    env.OFFERMATE_ENCRYPTION_KEY ??
-      env.APP_ENCRYPTION_KEY ??
-      env.PII_ENCRYPTION_KEY ??
-      'offermate-local-development-encryption-key',
-  );
+  const configured = env.OFFERMATE_ENCRYPTION_KEY ?? env.APP_ENCRYPTION_KEY ?? env.PII_ENCRYPTION_KEY;
+  const environment = String(env.OFFERMATE_ENV ?? env.ENVIRONMENT ?? '').trim().toLowerCase();
+  if (environment === 'production' && (!configured || String(configured).length < 32)) {
+    throw new Error('Production requires OFFERMATE_ENCRYPTION_KEY with at least 32 characters');
+  }
+  return String(configured ?? 'offermate-local-development-encryption-key');
 }
 
 function bytesToHex(bytes) {

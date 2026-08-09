@@ -996,6 +996,59 @@ function detectRequirementLevel(text, skill) {
   return '需具备';
 }
 
+function getRequirementClauses(text, skill) {
+  const terms = [skill, ...(KEYWORD_ALIASES[skill] ?? [])]
+    .map((item) => String(item).toLocaleLowerCase('zh-CN'));
+  return String(text ?? '')
+    .split(/[。；;\n]/)
+    .map((item) => item.trim())
+    .filter((clause) => {
+      const normalized = clause.toLocaleLowerCase('zh-CN');
+      return terms.some((term) => normalized.includes(term));
+    });
+}
+
+function detectRequirementPriority(text, skill) {
+  const source = String(text ?? '');
+  const terms = [skill, ...(KEYWORD_ALIASES[skill] ?? [])];
+  const markers = [
+    { priority: 'required', pattern: /必须|必备|硬性|最低要求|任职要求|岗位要求|要求|required|must|minimum/gi },
+    { priority: 'preferred', pattern: /优先|加分|preferred|nice to have|a plus|bonus/gi },
+  ];
+  const positions = terms.flatMap((term) => {
+    const indexes = [];
+    const escaped = String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const expression = new RegExp(escaped, 'gi');
+    let match;
+    while ((match = expression.exec(source))) indexes.push(match.index);
+    return indexes;
+  });
+  for (const position of positions) {
+    const beforeStart = Math.max(0, position - 32);
+    const before = source.slice(beforeStart, position);
+    const beforeMarkers = markers
+      .flatMap(({ priority, pattern }) => {
+        pattern.lastIndex = 0;
+        return [...before.matchAll(pattern)].map((match) => ({ priority, distance: before.length - match.index }));
+      })
+      .sort((left, right) => left.distance - right.distance);
+    if (beforeMarkers[0]?.distance <= 28) return beforeMarkers[0].priority;
+
+    const after = source.slice(position + String(skill).length, position + String(skill).length + 14);
+    const afterMarkers = markers
+      .flatMap(({ priority, pattern }) => {
+        pattern.lastIndex = 0;
+        return [...after.matchAll(pattern)].map((match) => ({ priority, distance: match.index }));
+      })
+      .sort((left, right) => left.distance - right.distance);
+    if (afterMarkers[0]?.distance <= 12) return afterMarkers[0].priority;
+  }
+  const clauses = getRequirementClauses(text, skill).join(' ');
+  if (/必须|必备|硬性|最低要求|任职要求|岗位要求|要求|required|must|minimum/i.test(clauses)) return 'required';
+  if (/优先|加分|preferred|nice to have|a plus|bonus/i.test(clauses)) return 'preferred';
+  return 'unclear';
+}
+
 function normalizeSalaryText(value) {
   return String(value ?? '')
     .replace(/[￥¥]/g, '')
@@ -1014,8 +1067,9 @@ export function parseJobDescription(description) {
   const hardSkillRequirements = extractKnownTerms(description, SKILL_DICTIONARY).map((name) => ({
     name,
     requiredLevel: detectRequirementLevel(description, name),
+    priority: detectRequirementPriority(description, name),
   }));
-  const redLines = hardSkillRequirements.filter((skill) => ['高级', '必须', '熟练'].includes(skill.requiredLevel));
+  const redLines = hardSkillRequirements.filter((skill) => skill.priority === 'required');
   const compositeCapabilities = extractCompositeCapabilities(description, 'jdSignals');
 
   return {
@@ -1314,6 +1368,75 @@ export function getSkillMatchDetails(profile, job) {
   });
 }
 
+export function buildRequirementLedger(profile, job) {
+  const requirements = job.hardSkillRequirements ?? parseJobDescription(job.description ?? '').hardSkillRequirements;
+
+  return requirements.map((requirement) => {
+    const detail = getSkillMatchDetails(profile, {
+      ...job,
+      tags: [requirement.name],
+      hardSkillRequirements: [requirement],
+    })[0];
+    const status = detail.score === 0
+      ? 'not_evidenced'
+      : detail.score >= 8 && detail.confidence >= 0.9
+        ? 'met'
+        : 'partial';
+    const jdEvidence = getRequirementClauses(job.description ?? '', requirement.name)[0]
+      ?? `${requirement.name}（${requirement.requiredLevel}）`;
+
+    return {
+      name: requirement.name,
+      kind: 'hard_skill',
+      priority: requirement.priority ?? 'unclear',
+      requiredLevel: requirement.requiredLevel,
+      status,
+      score: detail.score,
+      max: detail.max ?? 10,
+      jdEvidence,
+      resumeEvidence: detail.resumeEvidence,
+      sourceText: detail.sourceText,
+      explanation: status === 'met'
+        ? '简历中有可定位的经历证据。'
+        : status === 'partial'
+          ? '简历提到了该能力，但经历证据或熟练度仍不足。'
+          : '简历中未找到证据；这不等同于断言候选人不具备该能力。',
+    };
+  });
+}
+
+function applyRequiredQualificationCap(rawScore, profile, job) {
+  const required = buildRequirementLedger(profile, job).filter((item) => item.priority === 'required');
+  if (required.length === 0) return { score: rawScore, cap: null };
+
+  const missing = required.filter((item) => item.status === 'not_evidenced');
+  const coveredUnits = required.reduce(
+    (sum, item) => sum + (item.status === 'met' ? 1 : item.status === 'partial' ? 0.5 : 0),
+    0,
+  );
+  const coverage = coveredUnits / required.length;
+  let limit = 100;
+  if (coverage < 0.5) limit = 59;
+  else if (missing.length > 0) limit = 74;
+  else if (coverage < 0.8) limit = 84;
+  if (limit === 100) return { score: rawScore, cap: null };
+
+  const missingLabel = missing.length > 0 ? missing.map((item) => item.name).join('、') : '部分必备要求';
+  const adjusted = rawScore > limit;
+  return {
+    score: adjusted ? limit : rawScore,
+    cap: {
+      limit,
+      coverage: Math.round(coverage * 100),
+      missing: missing.map((item) => item.name),
+      adjusted,
+      reason: adjusted
+        ? `必备要求证据不足（${missingLabel}），总分由 ${rawScore} 调整为 ${limit}。`
+        : `必备要求证据不足（${missingLabel}），评分上限为 ${limit}；当前原始分 ${rawScore} 未触及上限。`,
+    },
+  };
+}
+
 function getSoftSkillEvidence(profile, skill) {
   const aliases = SOFT_SKILL_EVIDENCE_RULES[skill] ?? [skill];
   const explicit = (profile.softSkills ?? []).includes(skill);
@@ -1447,7 +1570,10 @@ export function getScoreBreakdown(profile, job) {
   const languageScore = scoreLanguageDimension(profile, job);
   const interestScore = Math.round((matchedNiceToHave.length / Math.max((job.niceToHave ?? []).length, 1)) * 10);
   const cityScore = cityMatch ? 10 : 0;
-  const evidenceScore = matchedTags.length >= 3 ? 10 : matchedTags.length >= 2 ? 6 : 2;
+  const experienceEvidenceCount = skillDetails.filter(
+    (item) => item.score > 0 && item.sourceText.split('、').includes('项目/经历'),
+  ).length;
+  const evidenceScore = experienceEvidenceCount >= 3 ? 10 : experienceEvidenceCount >= 2 ? 6 : experienceEvidenceCount === 1 ? 3 : 0;
 
   return [
     {
@@ -1472,7 +1598,9 @@ export function getScoreBreakdown(profile, job) {
       label: '经历证据',
       points: evidenceScore,
       max: 10,
-      detail: matchedTags.length >= 3 ? '简历有多条相关经历支撑' : '需要补充更直接的经历证据',
+      detail: experienceEvidenceCount > 0
+        ? `${experienceEvidenceCount}/${skillDetails.length} 项核心能力有项目或经历支撑`
+        : '核心能力仅出现在技能列表或尚未出现，需要补充真实经历证据',
     },
     {
       label: '地点匹配',
@@ -1491,15 +1619,22 @@ export function getScoreBreakdown(profile, job) {
 
 export function buildScoreExplanation(profile, job) {
   const breakdown = getScoreBreakdown(profile, job);
-  const total = breakdown.reduce((sum, item) => sum + item.points, 0);
-  const formula = `总分 ${total} = ${breakdown
-    .map((item) => `${item.label} ${item.points}`)
-    .join(' + ')}`;
+  const rawTotal = breakdown.reduce((sum, item) => sum + item.points, 0);
+  const capped = applyRequiredQualificationCap(rawTotal, profile, job);
+  const formulaBase = `${breakdown.map((item) => `${item.label} ${item.points}`).join(' + ')}`;
+  const formula = capped.cap?.adjusted
+    ? `原始分 ${rawTotal} = ${formulaBase}；${capped.cap.reason}`
+    : capped.cap
+      ? `总分 ${capped.score} = ${formulaBase}；${capped.cap.reason}`
+      : `总分 ${capped.score} = ${formulaBase}`;
 
   return {
-    total,
+    total: capped.score,
+    rawTotal,
     formula,
     breakdown,
+    scoreCap: capped.cap,
+    requirementLedger: buildRequirementLedger(profile, job),
     skillDetails: getSkillMatchDetails(profile, job),
     softSkillDetails: buildSoftSkillMatchDetails(profile, job),
   };
@@ -1712,7 +1847,8 @@ export function buildEvidenceTrace(profile, job, focus) {
 
 export function analyzeJobFit(profile, job) {
   const { matchedTags, matchedNiceToHave, cityMatch } = getMatchInputs(profile, job);
-  const score = clampScore(getScoreBreakdown(profile, job).reduce((sum, item) => sum + item.points, 0));
+  const explanation = buildScoreExplanation(profile, job);
+  const score = clampScore(explanation.total);
 
   let level = '暂缓';
   if (score >= 80) level = '优先投递';
@@ -1725,6 +1861,8 @@ export function analyzeJobFit(profile, job) {
     matchedTags,
     matchedNiceToHave,
     gaps: (job.tags ?? []).filter((tag) => !matchedTags.includes(tag)),
+    scoreCap: explanation.scoreCap,
+    requirementLedger: explanation.requirementLedger,
     reasons: [
       `${matchedTags.length}/${(job.tags ?? []).length} 个核心能力已被简历证据覆盖`,
       scoreSoftSkillDimension(profile, job).detail,
@@ -2012,67 +2150,38 @@ export function buildCandidateFitHighlights(candidate, jobs = JOBS) {
 
 export function buildResumeAdvice(profile, job) {
   const analysis = analyzeJobFit(profile, job);
-  const firstGap = analysis.gaps[0] ?? job.tags[0];
-  const primaryExperience = profile.experiences[0] ?? '暂无可直接改写的经历';
-  const researchExperience = profile.experiences.find((item) => item.includes('问卷')) ?? profile.experiences[1] ?? primaryExperience;
-  const courseEvidence =
-    String(profile.rawResume ?? '')
-      .split('\n')
-      .find((line) => /(主修|核心课程|组织行为学|劳动法|招聘与选拔)/.test(line)) ?? researchExperience;
-  const profileText = [
-    profile.target,
-    ...(profile.skills ?? []),
-    ...(profile.experiences ?? []),
-    profile.rawResume ?? '',
-  ].join(' ');
-  const hasDataEvidence = /(SQL|Python|Tableau|Excel|A\/B测试|数据清洗|转化漏斗|数据看板)/i.test(profileText);
-  const hasHrEvidence = /(人事|人力资源|招聘|考勤|员工档案|入职|离职|行政管理|Office|文档写作)/i.test(profileText);
-  const rewrites = hasDataEvidence
-    ? [
-        {
-          before: primaryExperience,
-          after:
-            '基于 SQL 与 Python 清洗 10万+ 用户行为数据，搭建注册-激活-留存转化漏斗，定位关键流失节点并输出看板洞察。',
-        },
-        {
-          before: researchExperience,
-          after:
-            '围绕校园 App 新用户体验设计问卷，回收并整理 80 份反馈，将问题归因到功能认知、路径阻塞和内容吸引力三类。',
-        },
-      ]
-    : hasHrEvidence
-      ? [
-          {
-            before: primaryExperience,
-            after:
-              '围绕人事管理、招聘支持与员工档案整理，承担考勤统计、入离职手续协助和面试邀约协调等工作，沉淀可复盘的人事流程经验。',
-          },
-          {
-            before: courseEvidence,
-            after:
-              '系统学习人力资源管理、组织行为学、劳动法、招聘与选拔等课程，可将课程知识迁移到招聘筛选、员工关系和日常人事支持场景。',
-          },
-        ]
-      : [
-          {
-            before: primaryExperience,
-            after:
-              '围绕目标岗位要求，补充一段真实经历，写清具体任务、使用工具、协作对象和可量化结果，避免只罗列课程或职责。',
-          },
-        ];
-  const nextActions = hasDataEvidence
-    ? [
-        `在简历技能区补充 ${firstGap} 的真实使用场景`,
-        '把最相关项目放到简历第一页上半部分',
-        '每段经历补充动作、工具、规模、结果四个要素',
-        '投递前准备 30 秒岗位匹配自我介绍',
-      ]
-    : [
-        `如果确实具备 ${firstGap}，补充真实使用场景；如果没有，避免包装成不存在的能力`,
-        '优先选择与当前经历更接近的人事、行政、运营支持或组织协调类岗位',
-        '把课程、实习职责改写为“任务、动作、结果”的经历证据',
-        '投递前准备 30 秒岗位匹配自我介绍',
-      ];
+  const relevantExperiences = selectGroundedExperiences(profile, job);
+  const rewrites = relevantExperiences.length > 0
+    ? relevantExperiences.slice(0, 2).map((experience) => ({
+        before: experience,
+        after: normalizeGroundedResumeLine(experience),
+        targetSection: '与目标岗位最相关的项目或经历',
+        reason: '只调整表达顺序，不增加原简历中不存在的工具、数字、结果或职责。',
+      }))
+    : [{
+        before: '暂无可直接改写的相关经历',
+        after: '请先补充一段真实经历，再按“任务—动作—工具—结果”组织；没有的经历或结果不要添加。',
+        targetSection: '项目或经历',
+        reason: '当前简历没有可安全改写的岗位相关事实。',
+      }];
+
+  const weakEvidence = getSkillMatchDetails(profile, job)
+    .filter((item) => item.score > 0 && item.confidence < 0.9)
+    .map((item) => item.name);
+  const nextActions = [];
+  if (analysis.gaps.length > 0) {
+    nextActions.push(
+      `核对 JD 中尚无简历证据的 ${analysis.gaps.slice(0, 2).join('、')}：只有确实具备时才补充真实使用场景。`,
+    );
+  }
+  if (weakEvidence.length > 0) {
+    nextActions.push(`为 ${weakEvidence.slice(0, 2).join('、')} 补充已有项目中的任务、动作和结果证据。`);
+  }
+  nextActions.push(
+    '把上方最相关的真实经历移到简历第一页上半部分。',
+    '逐条核对数字、工具和结果是否能由原始经历或材料证明。',
+    '投递前准备 30 秒岗位匹配自我介绍，并明确说明尚未具备的要求。',
+  );
 
   return {
     coveredKeywords: analysis.matchedTags,
@@ -2084,32 +2193,53 @@ export function buildResumeAdvice(profile, job) {
           ? '具备投递基础，建议先补强关键能力表述'
           : '当前证据支撑不足，建议先补充项目经历',
     rewrites,
-    nextActions,
+    nextActions: unique(nextActions).slice(0, 5),
+    groundingNotice: '所有改写仅重组原简历事实；系统不会替你新增技能、数字、成果或经历。',
   };
 }
 
+function normalizeGroundedResumeLine(experience) {
+  const normalized = String(experience ?? '')
+    .replace(/^[-•·]\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!normalized) return '请补充真实经历后再改写。';
+  return /[。！？.!?]$/.test(normalized) ? normalized : `${normalized}。`;
+}
+
+function selectGroundedExperiences(profile, job) {
+  const jobTerms = unique([
+    ...(job.tags ?? []),
+    ...(job.softSkills ?? []),
+    ...(job.languageRequirements ?? []),
+    ...(job.responsibilities ?? []).flatMap((item) => String(item).split(/[、/\s]+/)),
+  ]).filter((term) => String(term).length >= 2);
+
+  const ranked = (profile.experiences ?? [])
+    .map((experience, index) => ({
+      experience,
+      index,
+      relevance: jobTerms.reduce(
+        (score, term) => score + (hasTextMatch([experience], term) || String(experience).includes(term) ? 1 : 0),
+        0,
+      ),
+    }))
+    .filter((item) => item.relevance > 0)
+    .sort((left, right) => right.relevance - left.relevance || left.index - right.index)
+    .map((item) => item.experience);
+  return ranked.length > 0 ? ranked : (profile.experiences ?? []).slice(0, 2);
+}
+
 export function buildTailoredResumeSnippet(profile, job) {
-  const dataExperience = profile.experiences.find((item) => item.includes('Python') || item.includes('SQL')) ?? profile.experiences[0];
-  const researchExperience = profile.experiences.find((item) => item.includes('问卷')) ?? profile.experiences[1] ?? dataExperience;
-  const activityExperience = profile.experiences.find((item) => item.includes('活动')) ?? profile.experiences[2] ?? dataExperience;
-  const titleText = `${job.title} ${job.tags.join(' ')} ${job.responsibilities.join(' ')}`;
-
-  if (titleText.includes('运营') || titleText.includes('增长') || titleText.includes('用户分层')) {
-    return [
-      '校园 App 新用户体验研究与活动复盘',
-      `${researchExperience}；结合 ${activityExperience}，围绕用户分层、问卷洞察和活动复盘沉淀可执行优化建议，支撑增长运营岗位所需的用户理解与转化分析能力。`,
-    ].join('：');
+  const selected = selectGroundedExperiences(profile, job).slice(0, 4);
+  if (selected.length === 0) {
+    return `针对「${job.title}」暂无可安全改写的直接证据；请先补充真实项目或经历。`;
   }
-
-  if (titleText.includes('商业分析') || titleText.includes('市场研究')) {
-    return [
-      '商业数据分析与用户研究项目',
-      `${dataExperience}；结合问卷与访谈反馈，将业务问题拆解为数据指标、用户行为和市场机会三类，形成可复用的数据看板和分析结论。`,
-    ].join('：');
-  }
-
-  return [
-    '用户行为数据分析项目',
-    `${dataExperience}；使用 SQL 与 Tableau 制作指标看板，围绕注册、激活、留存链路定位转化漏斗中的关键流失节点，并输出面向业务团队的优化建议。`,
-  ].join('：');
+  const requirementFocus = (job.tags ?? [])
+    .filter((tag) => selected.some((experience) => hasTextMatch([experience], tag)))
+    .slice(0, 3);
+  const focusLabel = requirementFocus.length > 0 ? `（对应 ${requirementFocus.join('、')}）` : '';
+  return `针对「${job.title}」可优先展示的现有证据${focusLabel}：${selected
+    .map(normalizeGroundedResumeLine)
+    .join('；')}`;
 }

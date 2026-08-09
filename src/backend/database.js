@@ -768,6 +768,26 @@ export async function listStudentHistory(env, user) {
   };
 }
 
+export async function deleteStudentResume(env, user, rawResumeId) {
+  const db = await ensureAppData(env);
+  const resumeId = String(rawResumeId ?? '').trim();
+  if (!resumeId || resumeId === 'resume-seed-davide') throw new Error('没有找到可删除的简历记录。');
+  const resume = await db
+    .prepare('SELECT id FROM resumes WHERE id = ? AND user_id = ? LIMIT 1')
+    .bind(resumeId, user.id)
+    .first();
+  if (!resume) throw new Error('没有找到可删除的简历记录。');
+
+  await db
+    .prepare('DELETE FROM match_scores WHERE run_id IN (SELECT id FROM match_runs WHERE resume_id = ? AND user_id = ?)')
+    .bind(resumeId, user.id)
+    .run();
+  await db.prepare('DELETE FROM match_runs WHERE resume_id = ? AND user_id = ?').bind(resumeId, user.id).run();
+  await db.prepare('UPDATE applications SET resume_id = NULL WHERE resume_id = ? AND user_id = ?').bind(resumeId, user.id).run();
+  await db.prepare('DELETE FROM resumes WHERE id = ? AND user_id = ?').bind(resumeId, user.id).run();
+  return { deleted: true, resumeId };
+}
+
 async function listScoresForRun(db, runId) {
   const rows = await db
     .prepare(

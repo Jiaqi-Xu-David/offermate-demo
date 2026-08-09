@@ -119,7 +119,7 @@
                 <span id="selected-file-name">未选择文件</span>
               </div>
               <div class="resume-upload-actions">
-                <button class="primary-button compact-button" type="submit">上传并解析</button>
+                <button id="resume-submit-button" class="primary-button compact-button" type="submit">上传并解析</button>
                 <button id="sample-resume-button" class="secondary-button compact-button" type="button">使用示例简历</button>
               </div>
             </form>
@@ -170,6 +170,33 @@
         </aside>
 
         <section class="job-panel" aria-label="岗位推荐">
+          <form id="custom-jd-form" class="custom-jd-form" aria-labelledby="custom-jd-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">分析你关注的岗位</p>
+                <h2 id="custom-jd-title">粘贴职位描述（JD）</h2>
+              </div>
+              <span class="privacy-chip">仅当前会话</span>
+            </div>
+            <div class="custom-jd-meta">
+              <label>
+                岗位名称
+                <input id="custom-jd-job-title" type="text" maxlength="120" placeholder="例如：数据分析实习生" required>
+              </label>
+              <label>
+                地点（可选）
+                <input id="custom-jd-city" type="text" maxlength="80" placeholder="例如：上海 / 远程">
+              </label>
+            </div>
+            <label>
+              完整 JD
+              <textarea id="custom-jd-description" rows="7" minlength="40" maxlength="30000" placeholder="请粘贴职责、必备要求、优先条件与地点信息。至少 40 个字符。" required></textarea>
+            </label>
+            <div class="custom-jd-actions">
+              <p id="custom-jd-status" role="status" aria-live="polite">不会把这份 JD 保存到岗位库；分析结果只保留在本次页面会话。</p>
+              <button class="primary-button compact-button" type="submit">解析并匹配</button>
+            </div>
+          </form>
           <div class="section-heading">
             <div>
               <p class="eyebrow" id="company-name"></p>
@@ -206,6 +233,7 @@
                 </div>
               </div>
               <p id="score-formula" class="score-formula"></p>
+              <div id="requirement-ledger" class="requirement-ledger" aria-label="岗位要求证据台账"></div>
               <div id="score-breakdown" class="breakdown-list"></div>
               <div id="confidence-panel" class="confidence-panel"></div>
               <div id="confidence-chain" class="confidence-chain" aria-label="置信度证据链"></div>

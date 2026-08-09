@@ -154,6 +154,7 @@ export async function extractResumeTextWithOpenAI(env, input, options = {}) {
         },
       ],
       max_output_tokens: 4096,
+      store: false,
     }),
   });
 

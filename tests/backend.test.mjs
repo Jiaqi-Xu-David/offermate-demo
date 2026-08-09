@@ -11,6 +11,7 @@ import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
   ensureAppData,
   createSession,
+  deleteStudentResume,
   findSessionUser,
   listHrCandidates,
   listStudentApplications,
@@ -20,7 +21,7 @@ import {
 } from '../src/backend/database.js';
 import { parseResumeText } from '../src/matcher.js';
 import { buildDownloadContentDisposition } from '../functions/api/hr/resume-download.js';
-import { ensureSupportedResumeUpload } from '../functions/api/resumes.js';
+import { ensureSupportedResumeUpload, validateResumeText } from '../functions/api/resumes.js';
 import { onRequest as runPagesMiddleware } from '../functions/_middleware.js';
 
 function buildMinimalPdf(streamBody) {
@@ -415,7 +416,41 @@ test('parses OCR resume text with OpenAI structured output when DeepSeek is abse
   assert.equal(calls[0].options.headers.Authorization, 'Bearer openai-test-key');
   const body = JSON.parse(calls[0].options.body);
   assert.equal(body.model, 'gpt-4o-mini');
+  assert.equal(body.store, false);
   assert.match(body.input[0].content[0].text, /严格 JSON/);
+});
+
+test('drops model-extracted resume claims that are not grounded in source text', async () => {
+  const profile = await parseResumeWithDeepSeek(
+    { DEEPSEEK_API_KEY: 'test-key' },
+    '姓名：周实\n技能：SQL\n项目经历：使用 SQL 分析 300 条订单。\n邮箱：real@example.com',
+    {
+      fetchImpl: async (_url, options) => {
+        const body = JSON.parse(options.body);
+        assert.doesNotMatch(body.messages[1].content, /real@example\.com/);
+        assert.match(body.messages[0].content, /不可信数据/);
+        return Response.json({
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                name: '周实',
+                skills: ['SQL', 'Kubernetes'],
+                experiences: ['使用 SQL 分析 300 条订单。', '主导 Kubernetes 集群迁移并提升性能 99%。'],
+                cityPreferences: ['北京'],
+                softSkills: ['领导力'],
+              }),
+            },
+          }],
+        });
+      },
+    },
+  );
+
+  assert.deepEqual(profile.skills, ['SQL']);
+  assert.ok(profile.experiences.some((item) => item.includes('300 条订单')));
+  assert.ok(!profile.experiences.some((item) => item.includes('Kubernetes') || item.includes('99%')));
+  assert.ok(!profile.cityPreferences.includes('北京'));
+  assert.ok(profile.groundingDiscardedClaimCount >= 3);
 });
 
 test('keeps parser fallback warnings when model-based resume parsing fails', async () => {
@@ -609,6 +644,13 @@ test('accepts PDF resume uploads and rejects unsupported file types early', () =
   );
 });
 
+test('rejects empty, very short, and oversized extracted resume text', () => {
+  assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
+  assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
+  assert.throws(() => validateResumeText('x'.repeat(50_001)), /最多处理 50000/);
+  assert.equal(validateResumeText('姓名：测试\n求职意向：数据分析实习\n技能：SQL、Python、Excel\n项目经历：使用 SQL 完成数据分析并输出报告，向团队汇报结果。').length > 40, true);
+});
+
 test('extracts resume text through OpenAI PDF OCR when configured', async () => {
   const calls = [];
   const text = await extractResumeTextWithOpenAI(
@@ -642,6 +684,7 @@ test('extracts resume text through OpenAI PDF OCR when configured', async () => 
   assert.equal(calls[0].options.headers.Authorization, 'Bearer openai-test-key');
   const body = JSON.parse(calls[0].options.body);
   assert.equal(body.model, 'gpt-4o-mini');
+  assert.equal(body.store, false);
   assert.equal(body.input[0].content[0].type, 'input_file');
   assert.equal(body.input[0].content[0].filename, 'resume.pdf');
   assert.match(body.input[0].content[0].file_data, /^data:application\/pdf;base64,/);
@@ -926,6 +969,17 @@ test('encrypts personal fields before database storage', async () => {
   assert.equal(await hashLookup(' JiangChun@Example.COM '), await hashLookup('jiangchun@example.com'));
 });
 
+test('refuses the local fallback encryption key in production mode', async () => {
+  await assert.rejects(
+    encryptText({ OFFERMATE_ENV: 'production' }, 'private resume'),
+    /Production requires OFFERMATE_ENCRYPTION_KEY/,
+  );
+  await assert.rejects(
+    encryptText({ OFFERMATE_ENV: 'production', OFFERMATE_ENCRYPTION_KEY: 'too-short' }, 'private resume'),
+    /at least 32 characters/,
+  );
+});
+
 test('parses cookie headers for session lookup', () => {
   assert.deepEqual(parseCookieHeader('theme=light; om_session=abc123; role=student'), {
     theme: 'light',
@@ -1056,6 +1110,34 @@ test('creates idempotent student applications and lets students withdraw them', 
 
   await withdrawApplication(env, user, 'data-analyst-intern');
   assert.deepEqual((await listStudentApplications(env, user)).applications, []);
+});
+
+test('lets students delete only their own resume and dependent match history', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'resume-delete-test-key' };
+  const user = { id: 'user-resume-delete', role: 'student' };
+  const otherUser = { id: 'other-resume-user', role: 'student' };
+  await ensureAppData(env);
+  const createdAt = new Date().toISOString();
+  for (const item of [user, otherUser]) {
+    sqlite.prepare(`INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+      VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`).run(item.id, `${item.id}@example.com`, item.id, createdAt);
+  }
+  sqlite.prepare(`INSERT INTO resumes (id, user_id, file_name, raw_text, profile_json, created_at)
+    VALUES ('resume-delete-target', ?, 'private.pdf', '[encrypted]', '{}', ?)`).run(user.id, createdAt);
+  sqlite.prepare(`INSERT INTO match_runs (id, user_id, resume_id, created_at)
+    VALUES ('run-delete-target', ?, 'resume-delete-target', ?)`).run(user.id, createdAt);
+  sqlite.prepare(`INSERT INTO match_scores (id, run_id, job_id, score, level, matched_tags_json, reasons_json, explanation_json, created_at)
+    VALUES ('score-delete-target', 'run-delete-target', 'data-analyst-intern', 70, '可投递', '[]', '[]', '{}', ?)`).run(createdAt);
+
+  await assert.rejects(deleteStudentResume(env, otherUser, 'resume-delete-target'), /没有找到/);
+  assert.ok(sqlite.prepare("SELECT id FROM resumes WHERE id = 'resume-delete-target'").get());
+  const result = await deleteStudentResume(env, user, 'resume-delete-target');
+  assert.deepEqual(result, { deleted: true, resumeId: 'resume-delete-target' });
+  assert.equal(sqlite.prepare("SELECT id FROM resumes WHERE id = 'resume-delete-target'").get(), undefined);
+  assert.equal(sqlite.prepare("SELECT id FROM match_runs WHERE id = 'run-delete-target'").get(), undefined);
+  assert.equal(sqlite.prepare("SELECT id FROM match_scores WHERE id = 'score-delete-target'").get(), undefined);
 });
 
 test('replaces older sessions when the same user logs in again', async (t) => {

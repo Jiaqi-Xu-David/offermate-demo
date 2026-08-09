@@ -91,6 +91,8 @@ const state = {
   resumeText: '',
   resumeFileName: '',
   hasParsedResume: false,
+  customJob: null,
+  customJdStatus: '不会把这份 JD 保存到岗位库；分析结果只保留在本次页面会话。',
   jobs: [...savedAdminJobs, ...JOBS],
   candidates: [],
   accountUsers: [],
@@ -143,6 +145,7 @@ const elements = {
   resumeUploadForm: document.querySelector('#resume-upload-form'),
   resumeFile: document.querySelector('#resume-file'),
   resumePickerButton: document.querySelector('#resume-picker-button'),
+  resumeSubmitButton: document.querySelector('#resume-submit-button'),
   selectedFileName: document.querySelector('#selected-file-name'),
   sampleResumeButton: document.querySelector('#sample-resume-button'),
   resumeHistoryList: document.querySelector('#resume-history-list'),
@@ -157,6 +160,11 @@ const elements = {
   jobCount: document.querySelector('#job-count'),
   jobList: document.querySelector('#job-list'),
   refreshJobsButton: document.querySelector('#refresh-jobs-button'),
+  customJdForm: document.querySelector('#custom-jd-form'),
+  customJdJobTitle: document.querySelector('#custom-jd-job-title'),
+  customJdCity: document.querySelector('#custom-jd-city'),
+  customJdDescription: document.querySelector('#custom-jd-description'),
+  customJdStatus: document.querySelector('#custom-jd-status'),
   openAdminModal: document.querySelector('#open-admin-modal'),
   closeAdminModal: document.querySelector('#close-admin-modal'),
   adminDialog: document.querySelector('#admin-job-dialog'),
@@ -194,6 +202,7 @@ const elements = {
   applicationAction: document.querySelector('#application-action'),
   compositeList: document.querySelector('#composite-list'),
   scoreFormula: document.querySelector('#score-formula'),
+  requirementLedger: document.querySelector('#requirement-ledger'),
   scoreBreakdown: document.querySelector('#score-breakdown'),
   confidencePanel: document.querySelector('#confidence-panel'),
   confidenceChain: document.querySelector('#confidence-chain'),
@@ -219,6 +228,8 @@ function resetStudentWorkspaceState(name = '求职者') {
   state.resumeText = '';
   state.resumeFileName = '';
   state.hasParsedResume = false;
+  state.customJob = null;
+  state.customJdStatus = '不会把这份 JD 保存到岗位库；分析结果只保留在本次页面会话。';
   state.history = { resumes: [], matchRuns: [] };
   state.applications = [];
   state.applicationPendingJobId = '';
@@ -230,14 +241,25 @@ function resetStudentWorkspaceState(name = '求职者') {
 }
 
 async function apiRequest(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: 'same-origin',
-    ...options,
-    headers: options.body instanceof FormData ? options.headers : {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs ?? 90_000);
+  let response;
+  try {
+    response = await fetch(path, {
+      credentials: 'same-origin',
+      ...options,
+      signal: options.signal ?? controller.signal,
+      headers: options.body instanceof FormData ? options.headers : {
+        'Content-Type': 'application/json',
+        ...(options.headers ?? {}),
+      },
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('请求超时，请检查网络后重试；当前输入仍保留在页面中。');
+    throw new Error('网络请求失败，请检查连接后重试。');
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const fallback =
@@ -560,7 +582,29 @@ function renderResumeHistory() {
       title.textContent = run.fileName;
       const meta = document.createElement('p');
       meta.textContent = `${new Date(run.createdAt).toLocaleString('zh-CN')} · 最佳匹配：${best ? `${best.title} ${best.score}分` : '暂无评分'}`;
-      item.append(title, meta);
+      const remove = document.createElement('button');
+      remove.className = 'text-button danger-button';
+      remove.type = 'button';
+      remove.textContent = '删除记录';
+      remove.setAttribute('aria-label', `删除简历记录 ${run.fileName}`);
+      remove.addEventListener('click', async () => {
+        if (!window.confirm(`确定删除「${run.fileName}」及其匹配记录吗？此操作无法撤销。`)) return;
+        remove.disabled = true;
+        try {
+          await apiRequest(`/api/resumes?resumeId=${encodeURIComponent(run.resumeId)}`, { method: 'DELETE' });
+          state.hasParsedResume = false;
+          state.profile = createEmptyProfile(state.currentUser?.name ?? '求职者');
+          state.resumeText = '';
+          state.resumeFileName = '';
+          await refreshStudentHistory();
+          state.parseStatus = state.hasParsedResume ? '记录已删除，已加载上一份简历。' : DEFAULT_PARSE_STATUS;
+          render();
+        } catch (error) {
+          state.parseStatus = error.message;
+          renderProfile();
+        }
+      });
+      item.append(title, meta, remove);
       return item;
     }),
   );
@@ -1061,14 +1105,18 @@ function createJobCard(analysis) {
 
   const footer = document.createElement('div');
   footer.className = 'job-card-footer';
-  const detailLink = document.createElement('a');
+  const detailLink = document.createElement(analysis.job.source === 'custom' ? 'span' : 'a');
   detailLink.className = 'job-detail-link';
-  detailLink.href = buildJobDetailUrl(analysis.job.id);
-  detailLink.textContent = '查看公司招聘详情';
-  detailLink.setAttribute('aria-label', `查看${analysis.job.company}${analysis.job.title}招聘详情`);
-  detailLink.addEventListener('click', (event) => {
-    event.stopPropagation();
-  });
+  detailLink.textContent = analysis.job.source === 'custom' ? '仅当前会话' : '查看公司招聘详情';
+  if (analysis.job.source === 'custom') {
+    detailLink.setAttribute('aria-label', '自定义 JD 仅在当前会话中可见');
+  } else {
+    detailLink.href = buildJobDetailUrl(analysis.job.id);
+    detailLink.setAttribute('aria-label', `查看${analysis.job.company}${analysis.job.title}招聘详情`);
+    detailLink.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+  }
   footer.append(level, detailLink);
 
   card.append(titleRow, description, requirementList, tagList, footer);
@@ -1363,6 +1411,24 @@ function renderScoreBreakdown(profile, job) {
   const explanation = buildScoreExplanation(profile, job);
   const breakdown = explanation.breakdown;
   elements.scoreFormula.textContent = explanation.formula;
+  const priorityLabels = { required: '必备', preferred: '优先', unclear: '未标明优先级' };
+  const statusLabels = { met: '有证据', partial: '部分证据', not_evidenced: '未找到证据' };
+  elements.requirementLedger.replaceChildren(
+    ...explanation.requirementLedger.map((requirement) => {
+      const item = document.createElement('article');
+      item.className = `requirement-item ${requirement.status}`;
+      const header = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = requirement.name;
+      const status = document.createElement('span');
+      status.textContent = `${priorityLabels[requirement.priority]} · ${statusLabels[requirement.status]}`;
+      header.append(name, status);
+      const evidence = document.createElement('p');
+      evidence.textContent = `${requirement.explanation} 来源：${requirement.sourceText}`;
+      item.append(header, evidence);
+      return item;
+    }),
+  );
   renderConfidencePanel(profile, job);
   elements.scoreBreakdown.replaceChildren(
     ...breakdown.map((item) => {
@@ -1690,6 +1756,7 @@ function renderAnalysis() {
       Object.assign(document.createElement('p'), { textContent: '上传并成功解析简历后，会展示该岗位的复合能力匹配。' }),
     );
     elements.scoreFormula.textContent = '等待简历解析完成后生成评分。';
+    elements.requirementLedger.replaceChildren();
     elements.scoreBreakdown.replaceChildren();
     elements.confidencePanel.replaceChildren(
       Object.assign(document.createElement('p'), { textContent: '暂无可计算的证据链。' }),
@@ -1748,7 +1815,10 @@ function renderAnalysis() {
 async function refreshJobs() {
   const payload = await apiRequest('/api/jobs');
   if (Array.isArray(payload.jobs) && payload.jobs.length) {
-    state.jobs = payload.jobs.map(enrichJob);
+    const apiJobs = payload.jobs.map(enrichJob);
+    state.jobs = state.customJob
+      ? [state.customJob, ...apiJobs.filter((job) => job.id !== state.customJob.id)]
+      : apiJobs;
     if (!state.jobs.some((job) => job.id === state.selectedJobId)) {
       state.selectedJobId = state.jobs[0].id;
     }
@@ -1943,6 +2013,38 @@ elements.refreshJobsButton.addEventListener('click', async () => {
   }
 });
 
+elements.customJdForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const title = elements.customJdJobTitle.value.trim();
+  const city = elements.customJdCity.value.trim();
+  const description = elements.customJdDescription.value.trim();
+  if (title.length < 2) {
+    state.customJdStatus = '请填写至少 2 个字符的岗位名称。';
+    elements.customJdStatus.textContent = state.customJdStatus;
+    return;
+  }
+  if (description.length < 40) {
+    state.customJdStatus = 'JD 过短：请至少粘贴 40 个字符，并尽量包含职责、必备要求和优先条件。';
+    elements.customJdStatus.textContent = state.customJdStatus;
+    return;
+  }
+
+  const parsedJob = analyzeJobDescription({ title, city, description, company: '自定义 JD' });
+  if ((parsedJob.hardSkillRequirements ?? []).length === 0) {
+    state.customJdStatus = '没有识别到明确技能要求。请补充具体工具、技术或岗位能力后重试。';
+    elements.customJdStatus.textContent = state.customJdStatus;
+    return;
+  }
+  state.customJob = { ...parsedJob, id: `custom-${parsedJob.id}`, source: 'custom' };
+  state.jobs = [state.customJob, ...state.jobs.filter((job) => job.source !== 'custom')];
+  state.selectedJobId = state.customJob.id;
+  state.customJdStatus = `已识别 ${(state.customJob.hardSkillRequirements ?? []).length} 项技能要求；必备与优先条件会分别展示。`;
+  elements.customJdStatus.textContent = state.customJdStatus;
+  renderJobs();
+  renderAnalysis();
+  elements.selectedJobTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
 elements.hrCandidateSearch.addEventListener('input', () => {
   state.hrCandidateFilters.query = elements.hrCandidateSearch.value;
   renderCandidates();
@@ -2005,6 +2107,13 @@ async function submitResumeText(body) {
   await applyParsedResume(payload);
 }
 
+function setResumePending(pending) {
+  elements.resumeUploadForm.setAttribute('aria-busy', String(pending));
+  elements.resumeSubmitButton.disabled = pending;
+  elements.resumePickerButton.disabled = pending;
+  elements.sampleResumeButton.disabled = pending;
+}
+
 elements.resumePickerButton.addEventListener('click', () => {
   elements.resumeFile.click();
 });
@@ -2015,6 +2124,7 @@ elements.resumeFile.addEventListener('change', () => {
 });
 
 elements.sampleResumeButton.addEventListener('click', async () => {
+  setResumePending(true);
   try {
     await submitResumeText({
       fileName: 'offermate-example-resume.txt',
@@ -2023,6 +2133,8 @@ elements.sampleResumeButton.addEventListener('click', async () => {
   } catch (error) {
     state.parseStatus = error.message;
     renderProfile();
+  } finally {
+    setResumePending(false);
   }
 });
 
@@ -2039,6 +2151,7 @@ elements.resumeUploadForm.addEventListener('submit', async (event) => {
   form.append('resume', file);
   state.parseStatus = '正在上传并解析 PDF...';
   renderProfile();
+  setResumePending(true);
 
   try {
     const payload = await apiRequest('/api/resumes', { method: 'POST', body: form });
@@ -2046,6 +2159,8 @@ elements.resumeUploadForm.addEventListener('submit', async (event) => {
   } catch (error) {
     state.parseStatus = error.message;
     renderProfile();
+  } finally {
+    setResumePending(false);
   }
 });
 

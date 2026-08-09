@@ -1,8 +1,11 @@
 import { extractResumeTextFromPdf } from '../../src/backend/ocr.js';
-import { createResumeAndMatchRun, listStudentHistory } from '../../src/backend/database.js';
+import { createResumeAndMatchRun, deleteStudentResume, listStudentHistory } from '../../src/backend/database.js';
 import { jsonResponse, requireUser } from '../_lib/api.js';
 
 const MAX_STORED_RESUME_FILE_BYTES = 700_000;
+const MAX_RESUME_UPLOAD_BYTES = 10_000_000;
+const MAX_RESUME_TEXT_CHARS = 50_000;
+const MIN_RESUME_TEXT_CHARS = 40;
 const PDF_MIME_TYPES = new Set(['application/pdf', 'application/x-pdf', 'application/acrobat']);
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46];
 
@@ -44,6 +47,20 @@ export function ensureSupportedResumeUpload(file, fileBytes = null) {
   if (Number(file?.size ?? 0) === 0) {
     throw new Error('上传的 PDF 为空，请重新导出后再试。');
   }
+  if (Number(file?.size ?? 0) > MAX_RESUME_UPLOAD_BYTES) {
+    throw new Error('PDF 文件过大，当前上传上限为 10MB。');
+  }
+}
+
+export function validateResumeText(rawText) {
+  const normalized = String(rawText ?? '').trim();
+  if (normalized.length < MIN_RESUME_TEXT_CHARS) {
+    throw new Error('简历文字过短，至少需要 40 个字符才能生成可信分析。');
+  }
+  if (normalized.length > MAX_RESUME_TEXT_CHARS) {
+    throw new Error('简历文字过长，当前最多处理 50000 个字符。');
+  }
+  return normalized;
 }
 
 function normalizeResumeMimeType(fileName = '', mimeType = '', fileBytes = null) {
@@ -73,6 +90,7 @@ async function readResumeText(request, env) {
     const form = await request.formData();
     const file = form.get('resume');
     if (file && typeof file.arrayBuffer === 'function') {
+      ensureSupportedResumeUpload(file);
       const buffer = await file.arrayBuffer();
       const bufferBytes = new Uint8Array(buffer);
       ensureSupportedResumeUpload(file, bufferBytes);
@@ -87,7 +105,7 @@ async function readResumeText(request, env) {
       const { storedFileDataBase64, storedMimeType } = createStoredResumeFilePayload(buffer, normalizedMimeType);
       return {
         fileName: file.name || 'resume.pdf',
-        rawText: extraction.text,
+        rawText: validateResumeText(extraction.text),
         fileDataBase64: storedFileDataBase64,
         mimeType: storedMimeType,
         textSource: extraction.source,
@@ -97,14 +115,14 @@ async function readResumeText(request, env) {
     const rawText = String(form.get('rawText') ?? '');
     return {
       fileName: 'resume.txt',
-      rawText,
+      rawText: validateResumeText(rawText),
       fileDataBase64: textToBase64(rawText),
       mimeType: 'text/plain;charset=utf-8',
     };
   }
 
   const body = await request.json().catch(() => ({}));
-  const rawText = String(body.rawText ?? '');
+  const rawText = validateResumeText(body.rawText);
   return {
     fileName: String(body.fileName ?? 'resume.txt'),
     rawText,
@@ -130,10 +148,6 @@ export async function onRequestPost(context) {
   } catch (error) {
     return jsonResponse({ error: `PDF OCR 解析失败：${error.message}` }, 422);
   }
-  if (!resume.rawText.trim()) {
-    return jsonResponse({ error: '没有从简历中提取到文字。请确认 PDF 内容清晰，或配置 OPENAI_API_KEY 启用 OCR。' }, 400);
-  }
-
   try {
     const payload = await createResumeAndMatchRun(context.env, auth.user, resume);
     return jsonResponse(
@@ -148,5 +162,16 @@ export async function onRequestPost(context) {
     );
   } catch (error) {
     return jsonResponse({ error: error.message }, 422);
+  }
+}
+
+export async function onRequestDelete(context) {
+  const auth = await requireUser(context, ['student']);
+  if (auth.response) return auth.response;
+  try {
+    const resumeId = new URL(context.request.url).searchParams.get('resumeId');
+    return jsonResponse(await deleteStudentResume(context.env, auth.user, resumeId));
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 404);
   }
 }

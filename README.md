@@ -53,6 +53,10 @@ flowchart LR
 
 ## 本地运行
 
+OfferMate 是一个 Cloudflare Pages + Functions + D1 的简历/JD 匹配工具。学生可以上传 PDF 简历或粘贴自定义 JD；系统先做本地文本与规则解析，再输出分维度、可追溯的匹配结果。分数是本项目的证据分，不是任何 ATS 的官方分数，也不是录用或面试概率。
+
+核心结果包括：已覆盖、部分覆盖、简历中未找到证据的要求；必备/优先级台账；硬技能、软技能、语言、经历、地点和兴趣子分；评分封顶原因；以及只基于原简历事实的改写建议。完整研究与设计依据见 [`docs/research-and-design.md`](docs/research-and-design.md)。
+
 ### 环境要求
 
 - Node.js 22 或更新版本。
@@ -106,6 +110,7 @@ npx wrangler pages dev . --port 4173
 | `OFFERMATE_ADMIN_NAME` | 初始化管理员名称 | 可选 |
 | `OFFERMATE_ADMIN_PASSWORD_SALT` | 初始化管理员密码 salt | 生产环境建议覆盖 |
 | `OFFERMATE_ADMIN_PASSWORD_HASH` | 初始化管理员密码哈希 | 生产环境建议覆盖 |
+| `OFFERMATE_ENV=production` | 启用生产密钥强校验 | 生产部署必需 |
 
 新账号密码使用带版本标识的 PBKDF2-SHA-256（120,000 次迭代）派生，具体实现见 `src/backend/auth.js` 的 `hashPassword`。登录校验仍兼容已有的无版本 SHA-256 哈希，因此旧管理员配置可以平滑过渡；新部署应使用 `hashPassword` 生成版本化哈希，并在第一次生产请求前覆盖仓库内的开发默认值。
 
@@ -118,7 +123,20 @@ npx wrangler pages dev . --port 4173
 - OCR 失败但本地文本仍可用时，系统会回退到本地文本并显示警告。
 - 对于包含 `Expected Graduation`、`Availability`、`Languages`、`Citizenship`、`Visa Status` 等结构化英文字段的短简历，会优先保留本地 PDF 文本结果，不强制走 OCR。
 - 对于部分扫描仪或导出工具产生的 `application/x-pdf`、`application/acrobat` 等旧 MIME 类型，上传时会统一按 PDF 处理。
+- 上传文件最多 10MB，提取后的简历文本最多 50000 字；过短输入会直接提示，不会生成虚假匹配。
+- 学生端粘贴的自定义 JD 只保留在当前浏览器会话，不会写入岗位库；岗位库新增仍只开放给 HR。
+- 历史记录可由学生主动删除；删除会清理该简历的匹配运行和评分，并解除投递记录对该简历版本的引用。
 - 文本质量不足以形成可靠画像时，不会保存误导性的匹配结果。
+
+## 测试与质量检查
+
+```bash
+npm test
+npm run check
+npx wrangler pages dev . --port 4173
+```
+
+`npm test` 覆盖 PDF/OCR 回退、解析、别名、评分边界、必备条件封顶、模型失败与模型结果落地校验、删除权限和 API 行为。当前仓库没有引入重量级 lint/type 依赖；`npm run check` 会运行语法扫描和完整测试。
 
 ## API 一览
 

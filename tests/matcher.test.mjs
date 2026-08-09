@@ -20,6 +20,7 @@ import {
   buildInterviewQuestions,
   buildMatchHeatmap,
   buildPotentialAnalysis,
+  buildRequirementLedger,
   buildScoreExplanation,
   buildResumeAdvice,
   buildResumeSummary,
@@ -53,7 +54,7 @@ test('produces resume advice with missing keywords and rewrite suggestions', () 
 
   assert.ok(advice.coveredKeywords.includes('SQL'));
   assert.ok(advice.missingKeywords.includes('用户分层'));
-  assert.ok(advice.rewrites[0].after.includes('SQL'));
+  assert.ok(advice.rewrites.every((item) => STUDENT_PROFILE.experiences.some((source) => item.after.includes(source))));
   assert.ok(advice.nextActions.length >= 3);
 });
 
@@ -70,6 +71,25 @@ test('resume advice does not fabricate data-analysis templates for HR resumes', 
   assert.ok(!rewrittenText.includes('Python'));
   assert.ok(!rewrittenText.includes('10万+'));
   assert.ok(!rewrittenText.includes('校园 App'));
+});
+
+test('resume advice and tailored snippets only reuse facts present in the resume', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const profile = parseResumeText(`张真
+求职意向：数据分析实习
+核心技能：SQL
+项目经历
+- 使用 SQL 分析 300 条订单，整理周度销售趋势并向课程小组汇报。`);
+  const advice = buildResumeAdvice(profile, targetJob);
+  const groundedClaims = [
+    ...advice.rewrites.map((item) => item.after),
+    buildTailoredResumeSnippet(profile, targetJob),
+  ].join(' ');
+
+  assert.match(groundedClaims, /SQL/);
+  assert.match(groundedClaims, /300 条订单/);
+  assert.doesNotMatch(groundedClaims, /10万|校园 App|80 份|Tableau|Python/);
+  assert.ok(!advice.nextActions.some((item) => /补充 SQL/.test(item)));
 });
 
 test('treats adjacent product operations evidence as a viable role match', () => {
@@ -1467,9 +1487,53 @@ test('builds tailored resume snippets for different target roles', () => {
 
   assert.ok(dataSnippet.includes('转化漏斗'));
   assert.ok(dataSnippet.includes('Tableau'));
-  assert.ok(productSnippet.includes('问卷'));
   assert.ok(productSnippet.includes('活动复盘'));
   assert.notEqual(dataSnippet, productSnippet);
+});
+
+test('caps the score when a required qualification has no resume evidence', () => {
+  const profile = parseResumeText(`李准
+求职意向：数据分析实习
+城市偏好：上海
+技能：SQL、Python、Excel
+软技能：跨部门沟通、结构化表达、业务敏感度
+经历：使用 SQL 和 Python 分析业务数据并向运营团队汇报。`);
+  const job = analyzeJobDescription({
+    title: '数据分析实习生',
+    city: '上海',
+    description: '必须熟练使用 SQL、Python 和 Tableau；具备 Excel 经验优先。要求跨部门沟通和结构化表达。',
+  });
+  const analysis = analyzeJobFit(profile, job);
+  const explanation = buildScoreExplanation(profile, job);
+  const ledger = buildRequirementLedger(profile, job);
+
+  assert.ok(ledger.some((item) => item.name === 'Tableau' && item.priority === 'required' && item.status === 'not_evidenced'));
+  assert.ok(ledger.some((item) => item.name === 'Excel' && item.priority === 'preferred'));
+  assert.ok(analysis.score <= 74);
+  assert.equal(analysis.score, explanation.total);
+  assert.ok(explanation.scoreCap?.reason.includes('Tableau'));
+});
+
+test('keeps nearby required and preferred JD phrases separate', () => {
+  const job = analyzeJobDescription({
+    title: '数据产品实习生',
+    city: '上海',
+    description: '必须熟练使用 SQL 和 Excel，优先掌握 Tableau。',
+  });
+  const priorities = Object.fromEntries(job.hardSkillRequirements.map((item) => [item.name, item.priority]));
+  assert.equal(priorities.SQL, 'required');
+  assert.equal(priorities.Excel, 'required');
+  assert.equal(priorities.Tableau, 'preferred');
+});
+
+test('scores project evidence lower when skills only appear in a skills list', () => {
+  const targetJob = JOBS.find((job) => job.id === 'data-analyst-intern');
+  const listOnly = parseResumeText('王同学\n核心技能：SQL、Python、Tableau、转化漏斗、A/B测试\n城市偏好：上海');
+  const withExperience = parseResumeText('王同学\n核心技能：SQL、Python、Tableau、转化漏斗、A/B测试\n城市偏好：上海\n项目经历：使用 SQL、Python 和 Tableau 完成转化漏斗与 A/B测试分析。');
+  const listOnlyEvidence = getScoreBreakdown(listOnly, targetJob).find((item) => item.label === '经历证据');
+  const withExperienceEvidence = getScoreBreakdown(withExperience, targetJob).find((item) => item.label === '经历证据');
+
+  assert.ok(listOnlyEvidence.points < withExperienceEvidence.points);
 });
 
 test('builds recruiter-facing candidate routing insights', () => {

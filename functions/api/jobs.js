@@ -17,8 +17,11 @@ export async function onRequestPost(context) {
   const city = String(body.city ?? '').trim();
   const description = String(body.description ?? '').trim();
 
-  if (!title || !city || description.length < 20) {
+  if (!title || !city || description.length < 40) {
     return jsonResponse({ error: '请填写岗位名称、地点和完整 JD。' }, 400);
+  }
+  if (title.length > 120 || city.length > 80 || description.length > 30_000) {
+    return jsonResponse({ error: '岗位内容过长：名称最多 120 字、地点最多 80 字、JD 最多 30000 字。' }, 413);
   }
 
   const job = await addJob(context.env, auth.user, { title, city, description });
