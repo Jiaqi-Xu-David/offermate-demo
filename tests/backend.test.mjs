@@ -882,6 +882,25 @@ test('strips polite Chinese OCR prefaces before returning resume text', async ()
   assert.equal(text, '姓名：赵禾\n学校：复旦大学\n技能：Office、招聘');
 });
 
+test('strips standalone OCR page markers before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '第 1 页 / 共 2 页\n姓名：秦朗\n学校：同济大学\nPage 2 of 2\n技能：SQL、Python\n2 / 2',
+        }),
+    },
+  );
+
+  assert.equal(text, '姓名：秦朗\n学校：同济大学\n技能：SQL、Python');
+});
+
 test('routes low-quality PDF extraction through OCR before matching', async () => {
   const calls = [];
   const result = await extractResumeTextFromPdf(
@@ -1232,6 +1251,94 @@ test('HR candidate listing preserves extraction source and OCR fallback warnings
   assert.equal(payload.uploadedCandidates[0].textSource, 'pdf-text-fallback');
   assert.equal(payload.uploadedCandidates[0].extractionWarning, 'OpenAI OCR failed: 502 upstream timeout');
   assert.equal(payload.uploadedCandidates[0].resumeDownloadUrl, '/api/hr/resume-download?id=resume-ocr-test');
+});
+
+test('HR candidate listing supports server-side search and stage filters', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'hr-filter-test-key' };
+
+  await ensureAppData(env);
+  const createdAt = new Date().toISOString();
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?), (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run(
+      'student-submitted',
+      'submitted@example.com',
+      '已投候选人',
+      createdAt,
+      'student-upload-only',
+      'upload@example.com',
+      '待分流候选人',
+      createdAt,
+    );
+  sqlite
+    .prepare(
+      `INSERT INTO resumes (
+        id, user_id, file_name, raw_text, profile_json, text_source, extraction_warning, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      'resume-submitted',
+      'student-submitted',
+      'submitted.pdf',
+      '姓名：已投候选人\n学校：同济大学\n技能：SQL、Python',
+      JSON.stringify({ name: '已投候选人', skills: ['SQL', 'Python'], target: '数据分析实习' }),
+      'openai-ocr',
+      '',
+      createdAt,
+      'resume-upload-only',
+      'student-upload-only',
+      'upload.pdf',
+      '姓名：待分流候选人\n学校：复旦大学\n技能：Office、招聘',
+      JSON.stringify({ name: '待分流候选人', skills: ['Office', '招聘'], target: 'HR 实习' }),
+      'pdf-text-fallback',
+      'OpenAI OCR failed: 502 upstream timeout',
+      createdAt,
+    );
+  sqlite
+    .prepare(
+      `INSERT INTO applications (id, user_id, job_id, resume_id, status, created_at)
+       VALUES (?, ?, ?, ?, 'submitted', ?)`,
+    )
+    .run('application-submitted', 'student-submitted', 'data-analyst-intern', 'resume-submitted', createdAt);
+  sqlite
+    .prepare(
+      `INSERT INTO match_runs (id, user_id, resume_id, created_at)
+       VALUES (?, ?, ?, ?), (?, ?, ?, ?)`,
+    )
+    .run(
+      'match-run-submitted',
+      'student-submitted',
+      'resume-submitted',
+      createdAt,
+      'match-run-upload-only',
+      'student-upload-only',
+      'resume-upload-only',
+      createdAt,
+    );
+
+  const submittedOnly = await listHrCandidates(env, { stage: 'submitted' });
+  const uploadOnlySearch = await listHrCandidates(env, { stage: 'ocr-fallback', query: '待分流' });
+
+  assert.equal(submittedOnly.totalCandidates, 2);
+  assert.equal(submittedOnly.filteredCount, 1);
+  assert.equal(submittedOnly.uploadedCandidates[0].id, 'student-submitted');
+  assert.equal(submittedOnly.summary, '1 人 · 已投递 1');
+  assert.equal(uploadOnlySearch.filteredCount, 1);
+  assert.equal(uploadOnlySearch.uploadedCandidates[0].id, 'student-upload-only');
+  assert.equal(uploadOnlySearch.uploadedCandidates[0].extractionWarning, 'OpenAI OCR failed: 502 upstream timeout');
+});
+
+test('HR candidates API forwards query params to server-side filters', async () => {
+  const candidatesApi = await readFile(new URL('../functions/api/hr/candidates.js', import.meta.url), 'utf8');
+
+  assert.ok(candidatesApi.includes("url.searchParams.get('query')"));
+  assert.ok(candidatesApi.includes("url.searchParams.get('stage')"));
+  assert.ok(candidatesApi.includes('listHrCandidates(context.env, { query, stage })'));
 });
 
 test('builds resume download headers with ascii fallback and utf-8 filename encoding', () => {

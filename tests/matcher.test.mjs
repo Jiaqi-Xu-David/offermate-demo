@@ -418,6 +418,29 @@ test('recognizes ops CRM and automation tools in resumes and JDs', () => {
   assert.ok(job.tags.includes('Make'));
 });
 
+test('recognizes newer AI workflow and automation aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：何舟
+学校：同济大学 信息管理 本科
+求职意向：AI 运营工具实习
+技能：N 8 N、Di fy、Co ze、Open AI API
+项目经历：使用 N 8 N 串联表单流转，通过 Di fy 和 Co ze 搭建校招问答助手，并接入 Open AI API 处理简历解析。`);
+  const job = analyzeJobDescription({
+    title: 'AI 运营工具实习生',
+    city: '上海',
+    description: '需要熟悉 n8n、Dify、扣子 Coze 和 OpenAI API，支持校招助手配置、线索自动化流转与提示词调试。',
+  });
+
+  assert.ok(profile.skills.includes('n8n'));
+  assert.ok(profile.skills.includes('Dify'));
+  assert.ok(profile.skills.includes('Coze'));
+  assert.ok(profile.skills.includes('OpenAI API'));
+  assert.ok(job.tags.includes('n8n'));
+  assert.ok(job.tags.includes('Dify'));
+  assert.ok(job.tags.includes('Coze'));
+  assert.ok(job.tags.includes('OpenAI API'));
+});
+
 test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林依
