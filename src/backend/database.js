@@ -1,8 +1,11 @@
 import {
   JOBS,
   analyzeJobDescription,
+  buildHrCandidateQueueSummary,
   buildScoreExplanation,
+  filterHrCandidatesForReview,
   rankJobs,
+  sortHrCandidatesForReview,
 } from '../matcher.js';
 import { hashPassword } from './auth.js';
 import { parseResumeProfile } from './deepseek.js';
@@ -782,7 +785,7 @@ async function listScoresForRun(db, runId) {
   return (rows.results ?? []).map(mapScoreRow);
 }
 
-export async function listHrCandidates(env) {
+export async function listHrCandidates(env, options = {}) {
   const db = await ensureAppData(env);
   const applicationRows = await db
     .prepare("SELECT user_id, job_id FROM applications WHERE status = 'submitted' ORDER BY created_at DESC")
@@ -841,9 +844,20 @@ export async function listHrCandidates(env) {
     });
   }
 
+  const filteredCandidates = sortHrCandidatesForReview(
+    filterHrCandidatesForReview(uploadedCandidates, JOBS, {
+      query: options.query ?? '',
+      stage: options.stage ?? 'all',
+    }),
+    JOBS,
+  );
+
   return {
     seededCandidates: [],
-    uploadedCandidates,
+    uploadedCandidates: filteredCandidates,
+    summary: buildHrCandidateQueueSummary(filteredCandidates, JOBS),
+    totalCandidates: uploadedCandidates.length,
+    filteredCount: filteredCandidates.length,
   };
 }
 

@@ -5,5 +5,9 @@ export async function onRequestGet(context) {
   const auth = await requireUser(context, ['hr']);
   if (auth.response) return auth.response;
 
-  return jsonResponse(await listHrCandidates(context.env));
+  const url = new URL(context.request.url);
+  const query = url.searchParams.get('query') ?? '';
+  const stage = url.searchParams.get('stage') ?? 'all';
+
+  return jsonResponse(await listHrCandidates(context.env, { query, stage }));
 }
