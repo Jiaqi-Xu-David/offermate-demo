@@ -882,7 +882,7 @@ test('strips polite Chinese OCR prefaces before returning resume text', async ()
   assert.equal(text, '姓名：赵禾\n学校：复旦大学\n技能：Office、招聘');
 });
 
-test('strips standalone OCR page markers before returning resume text', async () => {
+test('strips OCR page markers from extracted resume text', async () => {
   const text = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
     {
@@ -893,12 +893,12 @@ test('strips standalone OCR page markers before returning resume text', async ()
     {
       fetchImpl: async () =>
         Response.json({
-          output_text: '第 1 页 / 共 2 页\n姓名：秦朗\n学校：同济大学\nPage 2 of 2\n技能：SQL、Python\n2 / 2',
+          output_text: '第 1 页 / 共 3 页\n姓名：赵禾\nPage 2 of 3\n学校：复旦大学\n2 / 3\n- 3 -\n技能：Office、招聘',
         }),
     },
   );
 
-  assert.equal(text, '姓名：秦朗\n学校：同济大学\n技能：SQL、Python');
+  assert.equal(text, '姓名：赵禾\n学校：复旦大学\n技能：Office、招聘');
 });
 
 test('routes low-quality PDF extraction through OCR before matching', async () => {

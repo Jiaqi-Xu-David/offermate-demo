@@ -8,6 +8,20 @@ function cleanText(value) {
   return String(value ?? '').trim();
 }
 
+function isPageMarkerLine(line) {
+  const normalized = cleanText(line).replace(/\s+/g, ' ');
+  if (!normalized) return false;
+  return [
+    /^第\s*\d+\s*页(?:\s*[\/／]\s*共?\s*\d+\s*页?)?$/i,
+    /^第\s*\d+\s*\/\s*\d+\s*页$/i,
+    /^页码\s*[:：]?\s*\d+(?:\s*[\/／]\s*\d+)?$/i,
+    /^page\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/i,
+    /^p(?:age)?[.:]?\s*\d+(?:\s*[\/／]\s*\d+)?$/i,
+    /^\d+\s*[\/／]\s*\d+$/,
+    /^[\-–—_~·•]+\s*\d+\s*[\-–—_~·•]+$/,
+  ].some((pattern) => pattern.test(normalized));
+}
+
 function getOcrApiKey(env = {}) {
   return cleanText(env.OPENAI_API_KEY ?? env.OCR_OPENAI_API_KEY ?? env.OFFERMATE_OCR_API_KEY);
 }
@@ -46,12 +60,6 @@ function normalizeOcrText(text) {
   const lines = normalized.split('\n');
   const cleanedLine = (line) => line.trim().replace(/^[-*•\d.)\s]+/, '');
   const normalizedLine = (line) => cleanedLine(line).replace(/[’']/g, "'");
-  const isStandalonePageMarker = (line) => {
-    const candidate = line.trim();
-    if (!candidate || candidate.length > 24) return false;
-    return /^(?:第\s*\d+\s*页(?:\s*[\/／]\s*共?\s*\d+\s*页?)?|page\s*\d+(?:\s*(?:of|\/)\s*\d+)?|\d+\s*[\/／]\s*\d+)$/
-      .test(candidate.toLocaleLowerCase('en-US'));
-  };
   const isWrapperLine = (line) =>
     /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:为|提供|整理|提取)?\s*)?(?:(?:识别后|提取后|整理后|按原文(?:换行)?整理后)(?:的)?\s*)?(?:简历(?:(?:原文|文本)(?:整理后)?(?:的)?(?:纯文本)?)?|OCR\s*(?:识别)?\s*结果|识别结果|提取结果|文本内容|纯文本(?:结果)?)\s*(?:如下)?\s*[：:]?\s*$/i.test(
       cleanedLine(line),
@@ -70,7 +78,7 @@ function normalizeOcrText(text) {
   ) {
     lines.shift();
   }
-  return lines.filter((line) => !isStandalonePageMarker(line)).join('\n').trim();
+  return lines.filter((line) => !isPageMarkerLine(line)).join('\n').trim();
 }
 
 function extractOutputText(payload) {
