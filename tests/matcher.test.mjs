@@ -236,6 +236,35 @@ test('recognizes OCR-spaced frontend and experiment aliases in resumes and JDs',
   assert.ok(job.tags.includes('A/B测试'));
 });
 
+test('recognizes OCR-spaced workplace and creative-tool aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：许岚
+学校：上海大学 广告学 本科
+求职意向：内容运营实习
+技能：Micro Soft Office、MS Teams、Share Point、Hu bSpot、Photo shop、Pre miere、Illu strator
+项目经历：使用 Micro Soft Office 整理活动方案，通过 MS Teams 和 Share Point 协作推进校园活动，在 Hu bSpot 维护线索，并用 Photo shop、Pre miere、Illu strator 输出宣传素材。`);
+  const job = analyzeJobDescription({
+    title: '品牌内容运营实习生',
+    city: '上海',
+    description: '需要熟悉 Microsoft Office、Teams、SharePoint、HubSpot，以及 Photoshop、Premiere Pro、Illustrator 等内容制作工具。',
+  });
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(profile.skills.includes('Microsoft Teams'));
+  assert.ok(profile.skills.includes('SharePoint'));
+  assert.ok(profile.skills.includes('HubSpot'));
+  assert.ok(profile.skills.includes('PS'));
+  assert.ok(profile.skills.includes('PR'));
+  assert.ok(profile.skills.includes('Illustrator'));
+  assert.ok(job.tags.includes('Office'));
+  assert.ok(job.tags.includes('Microsoft Teams'));
+  assert.ok(job.tags.includes('SharePoint'));
+  assert.ok(job.tags.includes('HubSpot'));
+  assert.ok(job.tags.includes('PS'));
+  assert.ok(job.tags.includes('PR'));
+  assert.ok(job.tags.includes('Illustrator'));
+});
+
 test('recognizes OCR-spaced analytics and ML aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：高晨
