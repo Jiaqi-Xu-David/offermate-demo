@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeProfile, parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
 import { extractResumeTextFromPdf, extractResumeTextWithOpenAI, shouldUseOcrTextExtraction } from '../src/backend/ocr.js';
-import { clearSessionCookie, createSessionCookie, hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
+import { clearSessionCookie, createSessionCookie, getSessionMaxAgeSeconds, hashPassword, parseCookieHeader, verifyPassword } from '../src/backend/auth.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
@@ -1059,6 +1059,35 @@ test('keeps session parsing resilient for malformed cookies and sets explicit ex
   const fallbackClearedCookie = clearSessionCookie('/logout');
   assert.match(fallbackClearedCookie, /Max-Age=0/);
   assert.doesNotMatch(fallbackClearedCookie, /Secure/);
+});
+
+test('uses a shared env-configured session lifetime for cookies and database sessions', async (t) => {
+  assert.equal(getSessionMaxAgeSeconds({ OFFERMATE_SESSION_MAX_AGE_SECONDS: '7200' }), 7200);
+  assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: '86400' }), 86400);
+  assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: 'broken' }), 60 * 60 * 24 * 7);
+  assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: '30' }), 60 * 60);
+
+  const cookie = createSessionCookie('env-token', 'https://offermate.example.com/login', getSessionMaxAgeSeconds({
+    SESSION_MAX_AGE_SECONDS: '7200',
+  }));
+  assert.match(cookie, /Max-Age=7200/);
+
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'session-window-test-key', SESSION_MAX_AGE_SECONDS: '7200' };
+
+  await ensureAppData(env);
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run('user-session-window', 'window@example.com', '会话时长同学', new Date().toISOString());
+
+  const session = await createSession(env, 'user-session-window', 'env-configured-session');
+  const lifetimeSeconds = Math.round((Date.parse(session.expiresAt) - Date.parse(session.createdAt)) / 1000);
+
+  assert.equal(lifetimeSeconds, 7200);
 });
 
 test('keeps the first session cookie when duplicate names appear in the header', () => {

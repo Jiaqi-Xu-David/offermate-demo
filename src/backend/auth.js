@@ -2,6 +2,8 @@ const SESSION_COOKIE = 'om_session';
 const PASSWORD_HASH_VERSION = 'pbkdf2-sha256';
 const PASSWORD_HASH_ITERATIONS = 120_000;
 const MAX_PASSWORD_HASH_ITERATIONS = 1_000_000;
+const DEFAULT_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const MAX_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function safeDecodeCookieValue(value) {
   try {
@@ -50,8 +52,15 @@ function buildCookieExpiry(maxAgeSeconds) {
 
 function normalizeCookieMaxAge(maxAgeSeconds) {
   const parsed = Number(maxAgeSeconds);
-  if (!Number.isFinite(parsed)) return 60 * 60 * 24 * 7;
+  if (!Number.isFinite(parsed)) return DEFAULT_SESSION_MAX_AGE_SECONDS;
   return Math.max(0, Math.floor(parsed));
+}
+
+export function getSessionMaxAgeSeconds(env = {}) {
+  const configured = env.SESSION_MAX_AGE_SECONDS ?? env.OFFERMATE_SESSION_MAX_AGE_SECONDS;
+  const parsed = Number(configured);
+  if (!Number.isFinite(parsed)) return DEFAULT_SESSION_MAX_AGE_SECONDS;
+  return Math.min(MAX_SESSION_MAX_AGE_SECONDS, Math.max(60 * 60, Math.floor(parsed)));
 }
 
 function isSecureRequestUrl(requestUrl) {
@@ -146,7 +155,7 @@ export function createSessionToken() {
   return bytesToHex(bytes);
 }
 
-export function createSessionCookie(token, requestUrl, maxAgeSeconds = 60 * 60 * 24 * 7) {
+export function createSessionCookie(token, requestUrl, maxAgeSeconds = DEFAULT_SESSION_MAX_AGE_SECONDS) {
   const normalizedMaxAge = normalizeCookieMaxAge(maxAgeSeconds);
   const secure = isSecureRequestUrl(requestUrl) ? '; Secure' : '';
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Priority=High; Max-Age=${normalizedMaxAge}; Expires=${buildCookieExpiry(normalizedMaxAge)}${secure}`;

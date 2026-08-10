@@ -1,4 +1,4 @@
-import { createSessionCookie, createSessionToken } from '../../src/backend/auth.js';
+import { createSessionCookie, createSessionToken, getSessionMaxAgeSeconds } from '../../src/backend/auth.js';
 import { createSession, createStudentRegistration } from '../../src/backend/database.js';
 import { jsonResponse, readJson } from '../_lib/api.js';
 
@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
         },
       },
       201,
-      { 'Set-Cookie': createSessionCookie(token, request.url) },
+      { 'Set-Cookie': createSessionCookie(token, request.url, getSessionMaxAgeSeconds(env)) },
     );
   } catch (error) {
     return jsonResponse({ error: error.message }, 400);

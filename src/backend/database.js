@@ -7,7 +7,7 @@ import {
   rankJobs,
   sortHrCandidatesForReview,
 } from '../matcher.js';
-import { hashPassword } from './auth.js';
+import { getSessionMaxAgeSeconds, hashPassword } from './auth.js';
 import { parseResumeProfile } from './deepseek.js';
 import { decryptText, encryptText, hashLookup, isEncryptedText } from './secure-data.js';
 import { APP_SCHEMA_SQL } from './schema.js';
@@ -469,7 +469,7 @@ export async function findSessionUser(env, token) {
 export async function createSession(env, userId, token) {
   const db = await ensureAppData(env);
   const createdAt = nowIso();
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+  const expiresAt = new Date(Date.now() + getSessionMaxAgeSeconds(env) * 1000).toISOString();
   await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
   await db.prepare('INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, userId, createdAt, expiresAt).run();
   return { id: token, createdAt, expiresAt };

@@ -1,4 +1,4 @@
-import { createSessionCookie, createSessionToken, verifyPassword } from '../../src/backend/auth.js';
+import { createSessionCookie, createSessionToken, getSessionMaxAgeSeconds, verifyPassword } from '../../src/backend/auth.js';
 import { createSession, findUserByEmail } from '../../src/backend/database.js';
 import { jsonResponse, readJson } from '../_lib/api.js';
 
@@ -26,6 +26,6 @@ export async function onRequestPost(context) {
       },
     },
     200,
-    { 'Set-Cookie': createSessionCookie(token, request.url) },
+    { 'Set-Cookie': createSessionCookie(token, request.url, getSessionMaxAgeSeconds(env)) },
   );
 }
