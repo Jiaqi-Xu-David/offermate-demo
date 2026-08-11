@@ -1758,6 +1758,10 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF 文本提取保底' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
+  const nativePdfQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: '原生 PDF 文本' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfQueryIds.includes(uploadOnlyCandidate.id));
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search@example.com' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],

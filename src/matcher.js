@@ -2041,13 +2041,16 @@ export function buildHrCandidateQueueSummary(candidates = [], jobs = JOBS) {
 
 function getHrCandidateExtractionSearchTerms(candidate) {
   const textSource = candidate.textSource ?? 'pdf-text';
-  const labels = [
-    textSource,
+  const humanReadableLabel =
     textSource === 'openai-ocr'
       ? 'OpenAI OCR 提取'
       : textSource === 'pdf-text-fallback'
         ? 'PDF 文本提取保底'
-        : 'PDF 文本提取',
+        : '原生 PDF 文本';
+  const labels = [
+    textSource,
+    humanReadableLabel,
+    humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
   if (candidate.extractionWarning) labels.push('OCR 回退');
   return labels;
