@@ -512,6 +512,17 @@ test('keeps concise three-line resumes with direct contact and skills labels on 
   );
 });
 
+test('keeps concise resumes with WeChat contact headers on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：林清\n微信：linqing-hr\n技能：Office、招聘、面试排期'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nWeChat: lina-campus-ops\nSkills: Excel, Recruiting, Scheduling'),
+    false,
+  );
+});
+
 test('keeps common English resume section labels on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(
