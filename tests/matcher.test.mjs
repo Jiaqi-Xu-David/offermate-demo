@@ -420,6 +420,27 @@ test('recognizes modern collaboration workspace tools in resumes and JDs', () =>
   assert.ok(job.tags.includes('Trello'));
 });
 
+test('recognizes Linear and Apollo.io aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：赵临
+学校：华东师范大学 信息管理 本科
+求职意向：增长运营实习
+技能：Linear、Apollo.io、HubSpot
+项目经历：使用 Linear 跟进增长实验排期，在 Apollo.io 和 HubSpot 维护外联线索并同步触达进度。`);
+  const job = analyzeJobDescription({
+    title: '增长运营实习生',
+    city: '上海',
+    description: '需要熟悉 Linear、Apollo 或 Apollo.io、HubSpot，支持增长实验协同、外联线索管理与流程推进。',
+  });
+
+  assert.ok(profile.skills.includes('Linear'));
+  assert.ok(profile.skills.includes('Apollo.io'));
+  assert.ok(profile.skills.includes('HubSpot'));
+  assert.ok(job.tags.includes('Linear'));
+  assert.ok(job.tags.includes('Apollo.io'));
+  assert.ok(job.tags.includes('HubSpot'));
+});
+
 test('recognizes ops CRM and automation tools in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾闻
