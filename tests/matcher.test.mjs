@@ -491,6 +491,31 @@ test('recognizes newer AI workflow and automation aliases in resumes and JDs', (
   assert.ok(job.tags.includes('OpenAI API'));
 });
 
+test('recognizes modern product infrastructure aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周策
+学校：同济大学 软件工程 本科
+求职意向：产品工程实习
+技能：Post Hog、Sen try、Supa base、Stri pe、Neon Postgres
+项目经历：使用 Post Hog 监控转化事件，通过 Sen try 跟踪前端报错，基于 Supa base 和 Neon Postgres 搭建数据层，并接入 Stri pe 支付。`);
+  const job = analyzeJobDescription({
+    title: '产品工程实习生',
+    city: '上海',
+    description: '负责使用 PostHog 监控增长漏斗，接入 Sentry 观察线上错误，基于 Supabase / Neon Postgres 搭建后端数据能力，并完成 Stripe 支付链路集成。',
+  });
+
+  assert.ok(profile.skills.includes('PostHog'));
+  assert.ok(profile.skills.includes('Sentry'));
+  assert.ok(profile.skills.includes('Supabase'));
+  assert.ok(profile.skills.includes('Stripe'));
+  assert.ok(profile.skills.includes('Neon'));
+  assert.ok(job.tags.includes('PostHog'));
+  assert.ok(job.tags.includes('Sentry'));
+  assert.ok(job.tags.includes('Supabase'));
+  assert.ok(job.tags.includes('Stripe'));
+  assert.ok(job.tags.includes('Neon'));
+});
+
 test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林依
