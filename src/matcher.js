@@ -2060,11 +2060,48 @@ function getHrCandidateExtractionSearchTerms(candidate) {
   return labels;
 }
 
+function normalizeHrCandidateStage(stage) {
+  const normalized = String(stage ?? '')
+    .trim()
+    .toLocaleLowerCase('zh-CN')
+    .replace(/[_\s]+/g, '-');
+  const aliasMap = {
+    '': 'all',
+    all: 'all',
+    submitted: 'submitted',
+    '已投递': 'submitted',
+    unsubmitted: 'unsubmitted',
+    'upload-only': 'unsubmitted',
+    'uploaded-only': 'unsubmitted',
+    '待分流': 'unsubmitted',
+    'high-potential-unsubmitted': 'high-potential-unsubmitted',
+    'high-potential': 'high-potential-unsubmitted',
+    'high-potential-upload-only': 'high-potential-unsubmitted',
+    '高潜待分流': 'high-potential-unsubmitted',
+    strong: 'strong',
+    'strong-match': 'strong',
+    'high-match': 'strong',
+    '高匹配': 'strong',
+    'native-pdf': 'native-pdf',
+    'native-pdf-text': 'native-pdf',
+    'pdf-text': 'native-pdf',
+    '原生pdf': 'native-pdf',
+    '原生-pdf': 'native-pdf',
+    '原生-pdf-文本': 'native-pdf',
+    'openai-ocr': 'openai-ocr',
+    'openaiocr': 'openai-ocr',
+    ocr: 'openai-ocr',
+    'ocr-fallback': 'ocr-fallback',
+    'ocr-warning': 'ocr-fallback',
+    'ocr-review': 'ocr-fallback',
+    'ocr-回退': 'ocr-fallback',
+  };
+  return aliasMap[normalized] ?? 'all';
+}
+
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
   const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
-  const stage = ['all', 'submitted', 'unsubmitted', 'high-potential-unsubmitted', 'strong', 'native-pdf', 'openai-ocr', 'ocr-fallback'].includes(filters.stage)
-    ? filters.stage
-    : 'all';
+  const stage = normalizeHrCandidateStage(filters.stage);
 
   return candidates.filter((candidate) => {
     const submittedJobIds = candidate.submittedJobIds ?? [];

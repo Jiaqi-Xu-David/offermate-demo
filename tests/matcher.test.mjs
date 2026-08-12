@@ -1821,6 +1821,26 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'ocr-fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: ' 待分流 ' }).map((candidate) => candidate.id),
+    [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'high_potential' }).map((candidate) => candidate.id),
+    [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '高匹配' }).map((candidate) => candidate.id),
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).map((candidate) => candidate.id),
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'pdf_text' }).map((candidate) => candidate.id),
+    nativePdfStageIds,
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'OCR warning' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
 });
 
 test('adds accessible HR candidate search and stage filters to the workspace', async () => {
