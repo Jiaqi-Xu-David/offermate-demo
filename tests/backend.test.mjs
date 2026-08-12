@@ -9,6 +9,7 @@ import { clearSessionCookie, createSessionCookie, getSessionMaxAgeSeconds, hashP
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
+  createAccountUser,
   ensureAppData,
   createSession,
   deleteStudentResume,
@@ -1461,7 +1462,7 @@ test('stores resume and user personal data through encrypted columns', async () 
 
 test('public registration is student-only and validates basic account fields', () => {
   const normalized = normalizeStudentRegistrationInput({
-    name: '新同学',
+    name: '  新同学\t\n',
     email: 'New.Student@Example.COM ',
     password: 'student123',
     confirmPassword: 'student123',
@@ -1491,6 +1492,27 @@ test('public registration is student-only and validates basic account fields', (
     }),
     /两次密码/,
   );
+  assert.throws(
+    () => normalizeStudentRegistrationInput({ name: '\u0000 \n\t', email: 'a@example.com', password: 'student123' }),
+    /32 字以内的姓名/,
+  );
+});
+
+test('account creation normalizes display names before encrypted storage', async () => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  const env = { APP_DB: d1 };
+  await ensureAppData(env);
+
+  const user = await createAccountUser(env, {
+    name: '  林\t青 \n同学  ',
+    email: 'lin.qing@example.com',
+    role: 'hr',
+    password: 'student123',
+  });
+
+  const row = sqlite.prepare('SELECT name, name_cipher FROM users WHERE id = ?').get(user.id);
+  assert.equal(row.name, '加密账号');
+  assert.equal(await decryptText(env, row.name_cipher, ''), '林 青 同学');
 });
 
 test('registration API creates a student session without exposing role selection', async () => {

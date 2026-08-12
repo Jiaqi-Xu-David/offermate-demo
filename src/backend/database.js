@@ -50,6 +50,13 @@ function createId(prefix) {
   return `${prefix}-${[...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
+function normalizeAccountDisplayName(value) {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function toJson(value) {
   return JSON.stringify(value ?? []);
 }
@@ -927,13 +934,13 @@ export async function listAccountUsers(env) {
 
 export async function createAccountUser(env, input) {
   const db = await ensureAppData(env);
-  const name = String(input.name ?? '').trim();
+  const name = normalizeAccountDisplayName(input.name);
   const email = String(input.email ?? '').trim().toLowerCase();
   const role = String(input.role ?? '').trim();
   const password = String(input.password ?? '');
   const allowedRoles = new Set(['student', 'hr', 'admin']);
 
-  if (!name || !email || !allowedRoles.has(role) || password.length < 6) {
+  if (!name || name.length > 32 || !email || !allowedRoles.has(role) || password.length < 6) {
     throw new Error('请填写姓名、邮箱、角色，并设置至少 6 位密码。');
   }
 
@@ -970,7 +977,7 @@ export async function createAccountUser(env, input) {
 }
 
 export function normalizeStudentRegistrationInput(input) {
-  const name = String(input.name ?? '').trim();
+  const name = normalizeAccountDisplayName(input.name);
   const email = String(input.email ?? '').trim().toLowerCase();
   const password = String(input.password ?? '');
   const confirmPassword = String(input.confirmPassword ?? password);
