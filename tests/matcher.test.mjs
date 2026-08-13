@@ -1886,6 +1886,14 @@ test('filters the HR review queue by search text and review stage', () => {
     nativePdfStageIds,
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'OpenAI OCR 提取' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 文本提取保底' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'OCR warning' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );

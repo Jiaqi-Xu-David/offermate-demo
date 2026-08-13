@@ -2100,11 +2100,13 @@ function normalizeHrCandidateStage(stage) {
     '原生-pdf-文本': 'native-pdf',
     'openai-ocr': 'openai-ocr',
     'openaiocr': 'openai-ocr',
+    'openai-ocr-提取': 'openai-ocr',
     ocr: 'openai-ocr',
     'ocr-fallback': 'ocr-fallback',
     'ocr-warning': 'ocr-fallback',
     'ocr-review': 'ocr-fallback',
     'ocr-回退': 'ocr-fallback',
+    'pdf-文本提取保底': 'ocr-fallback',
   };
   return aliasMap[normalized] ?? 'all';
 }
