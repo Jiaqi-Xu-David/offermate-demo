@@ -875,6 +875,40 @@ test('strips plain-text content OCR prefaces before returning resume text', asyn
   assert.equal(text, 'Name: Iris\nUniversity: TUM\nSkills: SQL, Tableau');
 });
 
+test('strips OCR wrapper lines that include parenthetical formatting notes', async () => {
+  const chineseText = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: '以下是从该 PDF 中提取的简历文本（按原格式整理）：\n姓名：林岚\n学校：浙江大学\n技能：SQL、Tableau',
+        }),
+    },
+  );
+  const englishText = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Here is the extracted resume text (kept in original layout):\nName: Lin Lan\nUniversity: Zhejiang University\nSkills: SQL, Tableau',
+        }),
+    },
+  );
+
+  assert.equal(chineseText, '姓名：林岚\n学校：浙江大学\n技能：SQL、Tableau');
+  assert.equal(englishText, 'Name: Lin Lan\nUniversity: Zhejiang University\nSkills: SQL, Tableau');
+});
+
 test('strips polite Chinese OCR prefaces before returning resume text', async () => {
   const text = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
