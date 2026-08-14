@@ -137,7 +137,7 @@ export async function verifyPassword(password, salt, expectedHash) {
 export function parseCookieHeader(header = '') {
   return splitCookieHeader(header).reduce((cookies, part) => {
       const splitAt = part.indexOf('=');
-      const name = (splitAt === -1 ? part : part.slice(0, splitAt)).trim();
+      const name = (splitAt === -1 ? part : part.slice(0, splitAt)).trim().replace(/^,\s*/, '');
       if (!name) return cookies;
       if (name in cookies) return cookies;
       cookies[name] = splitAt === -1 ? '' : normalizeCookieValue(part.slice(splitAt + 1));

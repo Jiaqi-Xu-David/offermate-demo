@@ -1177,6 +1177,14 @@ test('keeps the first session cookie when duplicate names appear in the header',
   });
 });
 
+test('ignores leading comma fragments when cookie headers are merged by intermediaries', () => {
+  assert.deepEqual(parseCookieHeader('theme=dark; , om_session=trusted-token; role=student'), {
+    theme: 'dark',
+    om_session: 'trusted-token',
+    role: 'student',
+  });
+});
+
 test('defines application tables for auth, jobs, resumes, matches, and applications', () => {
   [
     'CREATE TABLE IF NOT EXISTS users',
