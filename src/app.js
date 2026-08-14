@@ -27,26 +27,9 @@ import {
 } from './matcher.js';
 import { buildJobDetailUrl } from './job-navigation.js';
 
-const ADMIN_JOBS_STORAGE_KEY = 'offermate-admin-jobs';
 const HIGHLIGHT_CLASS = 'hl-target';
 const HIGHLIGHT_FLASH_CLASS = 'hl-flash';
 const DEFAULT_PARSE_STATUS = '等待上传 PDF 简历。解析完成后会提取技能、经历证据、语言与求职偏好。';
-
-function loadAdminJobs() {
-  try {
-    const parsedJobs = JSON.parse(localStorage.getItem(ADMIN_JOBS_STORAGE_KEY) ?? '[]');
-    return Array.isArray(parsedJobs) ? parsedJobs.map(enrichJob) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAdminJobs(jobs) {
-  const adminJobs = jobs.filter((job) => job.source === 'admin');
-  localStorage.setItem(ADMIN_JOBS_STORAGE_KEY, JSON.stringify(adminJobs));
-}
-
-const savedAdminJobs = loadAdminJobs();
 
 function createEmptyProfile(name = '求职者') {
   return {
@@ -93,7 +76,7 @@ const state = {
   hasParsedResume: false,
   customJob: null,
   customJdStatus: '不会把这份 JD 保存到岗位库；分析结果只保留在本次页面会话。',
-  jobs: [...savedAdminJobs, ...JOBS],
+  jobs: [...JOBS],
   candidates: [],
   accountUsers: [],
   history: { resumes: [], matchRuns: [] },
@@ -101,15 +84,12 @@ const state = {
   applicationPendingJobId: '',
   applicationNotice: '',
   applicationNoticeTone: '',
-  selectedJobId: savedAdminJobs[0]?.id ?? 'data-analyst-intern',
+  selectedJobId: 'data-analyst-intern',
   selectedCandidateId: '',
   hrCandidateFilters: { query: '', stage: 'all' },
   rankings: rankJobs(createEmptyProfile('求职者'), JOBS),
   parseStatus: DEFAULT_PARSE_STATUS,
-  adminResult:
-    savedAdminJobs.length > 0
-      ? `已从本地恢复 ${savedAdminJobs.length} 个管理员新增岗位。`
-      : '粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。',
+  adminResult: '粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。',
   accountResult: '新增后即可用该邮箱和密码登录。',
 };
 
@@ -1098,9 +1078,7 @@ function createJobCard(analysis) {
   level.textContent = application
     ? `已投递 · ${analysis.level}`
     : hasEvidence
-      ? analysis.job.source === 'admin'
-        ? `新增 · ${analysis.level}`
-        : analysis.level
+      ? analysis.level
       : '待解析';
 
   const footer = document.createElement('div');

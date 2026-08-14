@@ -1965,7 +1965,7 @@ export function analyzeJobDescription({ title, city, description, company = COMP
     hardSkillRequirements: parsed.hardSkillRequirements,
     softSkills: parsed.softSkills,
     languageRequirements: parsed.languageRequirements,
-    source: 'admin',
+    source: 'hr',
   });
 }
 

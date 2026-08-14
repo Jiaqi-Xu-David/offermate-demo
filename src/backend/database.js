@@ -328,6 +328,16 @@ async function ensureResumeEncryptionColumns(db, env) {
 }
 
 async function seedAdminUser(db, env) {
+  const environment = String(env.OFFERMATE_ENV ?? env.ENVIRONMENT ?? '').trim().toLowerCase();
+  const hasExplicitAdminCredentials = Boolean(
+    env.OFFERMATE_ADMIN_PASSWORD_SALT && env.OFFERMATE_ADMIN_PASSWORD_HASH,
+  );
+  if (environment === 'production' && !hasExplicitAdminCredentials) {
+    throw new Error(
+      'Production requires OFFERMATE_ADMIN_PASSWORD_SALT and OFFERMATE_ADMIN_PASSWORD_HASH to override the demo administrator credentials.',
+    );
+  }
+
   const email = String(env.OFFERMATE_ADMIN_EMAIL ?? DEFAULT_ADMIN.email).trim().toLowerCase();
   const name = String(env.OFFERMATE_ADMIN_NAME ?? DEFAULT_ADMIN.name).trim();
   const emailLookup = await hashLookup(email);
@@ -492,6 +502,14 @@ export async function listJobs(env) {
   const db = await ensureAppData(env);
   const rows = await db.prepare('SELECT * FROM jobs ORDER BY source DESC, created_at DESC').all();
   return (rows.results ?? []).map(mapJobRow);
+}
+
+export async function getJobById(env, rawJobId) {
+  const db = await ensureAppData(env);
+  const jobId = String(rawJobId ?? '').trim();
+  if (!jobId) return null;
+  const row = await db.prepare('SELECT * FROM jobs WHERE id = ?').bind(jobId).first();
+  return row ? mapJobRow(row) : null;
 }
 
 export async function addJob(env, user, input) {

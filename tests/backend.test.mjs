@@ -9,11 +9,13 @@ import { clearSessionCookie, createSessionCookie, getSessionMaxAgeSeconds, hashP
 import { decryptText, encryptText, hashLookup, isEncryptedText } from '../src/backend/secure-data.js';
 import { APP_SCHEMA_SQL } from '../src/backend/schema.js';
 import {
+  addJob,
   createAccountUser,
   ensureAppData,
   createSession,
   deleteStudentResume,
   findSessionUser,
+  getJobById,
   listHrCandidates,
   listStudentApplications,
   normalizeStudentRegistrationInput,
@@ -105,6 +107,23 @@ function createD1TestDatabase() {
       },
     },
   };
+}
+
+function extractTableColumns(sql) {
+  const tables = new Map();
+  const tablePattern = /CREATE TABLE IF NOT EXISTS\s+(\w+)\s*\(([\s\S]*?)\)\s*;/g;
+  let match;
+  while ((match = tablePattern.exec(sql))) {
+    const name = match[1];
+    const columns = match[2]
+      .split('\n')
+      .map((line) => line.trim().replace(/,$/, '').trim())
+      .filter((line) => line && !/^(?:FOREIGN KEY|PRIMARY KEY|UNIQUE|CHECK|CONSTRAINT)/i.test(line))
+      .map((line) => line.split(/\s+/)[0])
+      .filter(Boolean);
+    tables.set(name, [...new Set(columns)]);
+  }
+  return tables;
 }
 
 test('extracts text from literal, array, and utf16 hex PDF text operators', async () => {
@@ -1694,4 +1713,73 @@ test('adds browser security headers to Pages responses', async () => {
   assert.equal(response.headers.get('Permissions-Policy'), 'camera=(), microphone=(), geolocation=()');
   assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-ancestors 'none'/);
   assert.match(response.headers.get('Content-Security-Policy') ?? '', /object-src 'none'/);
+});
+
+test('resolves a single job by id from D1 for the public detail page', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'job-detail-test-key' };
+
+  await ensureAppData(env);
+
+  const seedJob = await getJobById(env, 'data-analyst-intern');
+  assert.equal(seedJob.title, '数据分析实习生');
+  assert.equal(seedJob.source, 'seed');
+  assert.equal(seedJob.salary, '220-280元/天');
+  assert.ok(Array.isArray(seedJob.tags));
+
+  const hrJob = await addJob(env, { id: 'hr-user', role: 'hr' }, {
+    title: 'AI 应用开发实习生',
+    city: '上海',
+    description: '薪资：300-400元/天。使用 JavaScript 和 Node.js 开发求职匹配应用，熟悉 React 与 TypeScript。',
+  });
+  const fetchedHrJob = await getJobById(env, hrJob.id);
+  assert.equal(fetchedHrJob.title, 'AI 应用开发实习生');
+  assert.equal(fetchedHrJob.source, 'hr');
+  assert.ok(fetchedHrJob.tags.includes('JavaScript'));
+
+  assert.equal(await getJobById(env, 'does-not-exist'), null);
+  assert.equal(await getJobById(env, ''), null);
+});
+
+test('exposes a public single-job endpoint without session auth', async () => {
+  const jobsDetailApi = await readFile(new URL('../functions/api/jobs/[id].js', import.meta.url), 'utf8');
+
+  assert.ok(jobsDetailApi.includes('onRequestGet'));
+  assert.ok(jobsDetailApi.includes('getJobById'));
+  assert.ok(jobsDetailApi.includes('context.params?.id'));
+  assert.ok(jobsDetailApi.includes('404'));
+  assert.ok(jobsDetailApi.includes('jsonResponse({ job })'));
+  assert.ok(!jobsDetailApi.includes('requireUser'));
+});
+
+test('refuses to seed the demo administrator credentials in production', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = {
+    APP_DB: d1,
+    OFFERMATE_ENV: 'production',
+    OFFERMATE_ENCRYPTION_KEY: 'production-encryption-key-32-chars-long',
+  };
+
+  await assert.rejects(ensureAppData(env), /OFFERMATE_ADMIN_PASSWORD_SALT/);
+
+  const seeded = { ...env, OFFERMATE_ADMIN_PASSWORD_SALT: 'prod-salt', OFFERMATE_ADMIN_PASSWORD_HASH: 'prod-hash' };
+  await ensureAppData(seeded);
+  const admin = sqlite.prepare("SELECT password_salt, password_hash FROM users WHERE role = 'admin'").get();
+  assert.equal(admin.password_salt, 'prod-salt');
+  assert.equal(admin.password_hash, 'prod-hash');
+});
+
+test('keeps db/schema.sql and the runtime schema in sync', async () => {
+  const schemaSql = await readFile(new URL('../db/schema.sql', import.meta.url), 'utf8');
+  const runtimeTables = extractTableColumns(APP_SCHEMA_SQL);
+  const localTables = extractTableColumns(schemaSql);
+
+  assert.deepEqual([...localTables.keys()].sort(), [...runtimeTables.keys()].sort());
+
+  for (const [table, columns] of runtimeTables) {
+    const localColumns = localTables.get(table) ?? [];
+    assert.deepEqual([...localColumns].sort(), [...columns].sort(), `columns drifted for ${table}`);
+  }
 });

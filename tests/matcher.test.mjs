@@ -2006,3 +2006,28 @@ test('defines a guarded Cloudflare visit log backend', async () => {
   assert.ok(!middleware.includes('canvas'));
   assert.ok(!middleware.includes('fingerprint'));
 });
+
+test('labels admin-added jobs with the HR source instead of a stale admin source', () => {
+  const job = analyzeJobDescription({
+    title: '增长运营实习生',
+    city: '上海',
+    description: '薪资：180-230元/天。使用 SQL 分析转化漏斗，完成用户分层和 A/B 测试。',
+  });
+
+  assert.equal(job.source, 'hr');
+});
+
+test('loads the job detail page from the backend and drops the stale localStorage path', async () => {
+  const jobDetailJs = await readFile(new URL('../src/job-detail.js', import.meta.url), 'utf8');
+  const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.ok(jobDetailJs.includes("fetch(`/api/jobs/${encodeURIComponent(jobId)}`"));
+  assert.ok(jobDetailJs.includes('findJobById(jobId, JOBS) ?? JOBS[0]'));
+  assert.ok(jobDetailJs.includes("job.source === 'hr'"));
+  assert.ok(!jobDetailJs.includes('localStorage'));
+  assert.ok(!jobDetailJs.includes('offermate-admin-jobs'));
+  assert.ok(!jobDetailJs.includes("source === 'admin'"));
+  assert.ok(!appJs.includes('saveAdminJobs'));
+  assert.ok(!appJs.includes('loadAdminJobs'));
+  assert.ok(!appJs.includes("source === 'admin'"));
+});
