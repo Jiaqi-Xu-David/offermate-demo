@@ -468,6 +468,27 @@ test('recognizes ops CRM and automation tools in resumes and JDs', () => {
   assert.ok(job.tags.includes('Make'));
 });
 
+test('recognizes Semrush aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：陈一鸣
+学校：慕尼黑工业大学 市场与数据分析 本科
+求职意向：增长运营实习
+技能：Sem rush、Google Analytics、Notion
+项目经历：使用 Sem rush 和 Google Analytics 跟踪 SEO 表现，整理关键词机会并输出周报。`);
+  const job = analyzeJobDescription({
+    title: '增长运营实习生',
+    city: '上海',
+    description: '需要熟悉 Semrush / SEMrush、Google Analytics、Notion，支持 SEO 关键词研究、增长周报和内容复盘。',
+  });
+
+  assert.ok(profile.skills.includes('Semrush'));
+  assert.ok(profile.skills.includes('Google Analytics'));
+  assert.ok(profile.skills.includes('Notion'));
+  assert.ok(job.tags.includes('Semrush'));
+  assert.ok(job.tags.includes('Google Analytics'));
+  assert.ok(job.tags.includes('Notion'));
+});
+
 test('recognizes newer AI workflow and automation aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：何舟
