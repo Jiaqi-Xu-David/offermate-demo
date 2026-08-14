@@ -29,6 +29,7 @@ import {
 import { parseResumeText } from '../src/matcher.js';
 import { buildDownloadContentDisposition } from '../functions/api/hr/resume-download.js';
 import { ensureSupportedResumeUpload, validateResumeText } from '../functions/api/resumes.js';
+import { onRequestGet as getJobDetail } from '../functions/api/jobs/[id].js';
 import { onRequest as runPagesMiddleware } from '../functions/_middleware.js';
 
 function buildMinimalPdf(streamBody) {
@@ -1746,6 +1747,30 @@ test('resolves a single job by id from D1 for the public detail page', async (t)
   assert.equal(await getJobById(env, ''), null);
 });
 
+test('public job detail endpoint omits internal fields like createdBy', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'job-detail-public-test-key' };
+
+  await ensureAppData(env);
+  const hr = await createAccountUser(env, { name: 'HR 同学', email: 'hr-detail@example.com', role: 'hr', password: 'hrpass123' });
+  const created = await addJob(env, hr, {
+    title: 'AI 应用开发实习生',
+    city: '上海',
+    description: '薪资：300-400元/天。使用 JavaScript 和 Node.js 开发求职匹配应用，熟悉 React 与 TypeScript。',
+  });
+
+  const response = await getJobDetail({ env, params: { id: created.id } });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.job.title, 'AI 应用开发实习生');
+  assert.equal(payload.job.createdBy, undefined, 'public detail must not leak the creator id');
+  assert.equal(payload.job.source, 'hr');
+
+  const missing = await getJobDetail({ env, params: { id: 'does-not-exist' } });
+  assert.equal(missing.status, 404);
+});
+
 test('persists HR-created jobs in D1 across a reload', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'offermate-d1-'));
   const dbPath = join(dir, 'jobs.sqlite');
@@ -1803,7 +1828,7 @@ test('exposes a public single-job endpoint without session auth', async () => {
   assert.ok(jobsDetailApi.includes('getJobById'));
   assert.ok(jobsDetailApi.includes('context.params?.id'));
   assert.ok(jobsDetailApi.includes('404'));
-  assert.ok(jobsDetailApi.includes('jsonResponse({ job })'));
+  assert.ok(jobsDetailApi.includes('const { createdBy, ...publicJob } = job;'));
   assert.ok(!jobsDetailApi.includes('requireUser'));
 });
 

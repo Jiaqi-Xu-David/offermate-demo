@@ -12,5 +12,6 @@ export async function onRequestGet(context) {
     return jsonResponse({ error: '没有找到这个岗位。' }, 404);
   }
 
-  return jsonResponse({ job });
+  const { createdBy, ...publicJob } = job;
+  return jsonResponse({ job: publicJob });
 }

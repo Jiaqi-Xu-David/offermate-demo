@@ -39,6 +39,7 @@ import {
 } from '../src/matcher.js';
 import { buildJobDetailUrl } from '../src/job-navigation.js';
 import { fetchJobDetails } from '../src/job-api.js';
+import { refreshActionsForRole } from '../src/refresh-plan.js';
 
 test('ranks a data analyst internship as the strongest fit', () => {
   const scoredJobs = JOBS.map((job) => analyzeJobFit(STUDENT_PROFILE, job))
@@ -2016,6 +2017,14 @@ test('labels admin-added jobs with the HR source instead of a stale admin source
   });
 
   assert.equal(job.source, 'hr');
+});
+
+test('admin login refresh path includes job loading', () => {
+  assert.deepEqual(refreshActionsForRole('admin'), ['jobs', 'accounts']);
+  assert.deepEqual(refreshActionsForRole('hr'), ['jobs', 'candidates']);
+  assert.deepEqual(refreshActionsForRole('student'), ['jobs', 'history', 'applications']);
+  assert.deepEqual(refreshActionsForRole(null), []);
+  assert.deepEqual(refreshActionsForRole('unknown'), []);
 });
 
 test('job detail fetch distinguishes success, not-found, and error states', async () => {

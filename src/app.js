@@ -26,6 +26,7 @@ import {
   sortHrCandidatesForReview,
 } from './matcher.js';
 import { buildJobDetailUrl } from './job-navigation.js';
+import { refreshActionsForRole } from './refresh-plan.js';
 
 const HIGHLIGHT_CLASS = 'hl-target';
 const HIGHLIGHT_FLASH_CLASS = 'hl-flash';
@@ -1869,16 +1870,12 @@ async function refreshAccountUsers() {
 }
 
 async function refreshRoleData() {
-  if (state.currentUser?.role === 'student') {
-    await refreshJobs();
-    await refreshStudentHistory();
-    await refreshStudentApplications();
-  } else if (state.currentUser?.role === 'hr') {
-    await refreshJobs();
-    await refreshHrCandidates();
-  } else if (state.currentUser?.role === 'admin') {
-    await refreshAccountUsers();
-  }
+  const actions = refreshActionsForRole(state.currentUser?.role);
+  if (actions.includes('jobs')) await refreshJobs();
+  if (actions.includes('history')) await refreshStudentHistory();
+  if (actions.includes('applications')) await refreshStudentApplications();
+  if (actions.includes('candidates')) await refreshHrCandidates();
+  if (actions.includes('accounts')) await refreshAccountUsers();
 }
 
 function render() {
