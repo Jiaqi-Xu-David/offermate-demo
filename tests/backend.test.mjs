@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { extractPdfText } from '../src/backend/pdf.js';
 import { parseResumeProfile, parseResumeWithDeepSeek } from '../src/backend/deepseek.js';
@@ -17,6 +20,7 @@ import {
   findSessionUser,
   getJobById,
   listHrCandidates,
+  listJobs,
   listStudentApplications,
   normalizeStudentRegistrationInput,
   submitApplication,
@@ -1742,6 +1746,56 @@ test('resolves a single job by id from D1 for the public detail page', async (t)
   assert.equal(await getJobById(env, ''), null);
 });
 
+test('persists HR-created jobs in D1 across a reload', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'offermate-d1-'));
+  const dbPath = join(dir, 'jobs.sqlite');
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const encryptionKey = 'persistence-integration-key-32-chars';
+
+  function connect() {
+    const sqlite = new DatabaseSync(dbPath);
+    const d1 = {
+      prepare(sql) {
+        const statement = sqlite.prepare(sql);
+        let values = [];
+        return {
+          bind(...nextValues) { values = nextValues; return this; },
+          run() { return statement.run(...values); },
+          all() { return { results: statement.all(...values) }; },
+          first() { return statement.get(...values) ?? null; },
+        };
+      },
+    };
+    return { d1, close: () => sqlite.close() };
+  }
+
+  const first = connect();
+  const env = { APP_DB: first.d1, OFFERMATE_ENCRYPTION_KEY: encryptionKey };
+  await ensureAppData(env);
+  const hr = await createAccountUser(env, { name: 'HR 同学', email: 'hr@example.com', role: 'hr', password: 'hrpass123' });
+  await createSession(env, hr.id, 'persist-session-token');
+  const created = await addJob(env, hr, {
+    title: 'AI 应用开发实习生',
+    city: '上海',
+    description: '薪资：300-400元/天。使用 JavaScript 和 Node.js 开发求职匹配应用，熟悉 React 与 TypeScript。',
+  });
+  first.close();
+
+  const second = connect();
+  const reloadedEnv = { APP_DB: second.d1, OFFERMATE_ENCRYPTION_KEY: encryptionKey };
+  await ensureAppData(reloadedEnv);
+
+  const jobs = await listJobs(reloadedEnv);
+  const persisted = jobs.find((job) => job.id === created.id);
+  assert.ok(persisted, 'HR job should survive a database reload');
+  assert.equal(persisted.title, 'AI 应用开发实习生');
+  assert.equal(persisted.source, 'hr');
+
+  const byId = await getJobById(reloadedEnv, created.id);
+  assert.equal(byId.title, 'AI 应用开发实习生');
+  second.close();
+});
+
 test('exposes a public single-job endpoint without session auth', async () => {
   const jobsDetailApi = await readFile(new URL('../functions/api/jobs/[id].js', import.meta.url), 'utf8');
 
@@ -1763,6 +1817,8 @@ test('refuses to seed the demo administrator credentials in production', async (
   };
 
   await assert.rejects(ensureAppData(env), /OFFERMATE_ADMIN_PASSWORD_SALT/);
+  const noAdmin = sqlite.prepare("SELECT id FROM users WHERE role = 'admin'").all();
+  assert.equal(noAdmin.length, 0, 'production must not seed the demo administrator without explicit credentials');
 
   const seeded = { ...env, OFFERMATE_ADMIN_PASSWORD_SALT: 'prod-salt', OFFERMATE_ADMIN_PASSWORD_HASH: 'prod-hash' };
   await ensureAppData(seeded);

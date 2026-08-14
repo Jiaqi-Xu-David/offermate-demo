@@ -38,6 +38,7 @@ import {
   sortHrCandidatesForReview,
 } from '../src/matcher.js';
 import { buildJobDetailUrl } from '../src/job-navigation.js';
+import { fetchJobDetails } from '../src/job-api.js';
 
 test('ranks a data analyst internship as the strongest fit', () => {
   const scoredJobs = JOBS.map((job) => analyzeJobFit(STUDENT_PROFILE, job))
@@ -2017,13 +2018,54 @@ test('labels admin-added jobs with the HR source instead of a stale admin source
   assert.equal(job.source, 'hr');
 });
 
-test('loads the job detail page from the backend and drops the stale localStorage path', async () => {
+test('job detail fetch distinguishes success, not-found, and error states', async () => {
+  const success = await fetchJobDetails(
+    async () => new Response(JSON.stringify({ job: { id: 'j1', title: '数据分析实习生' } }), { status: 200 }),
+    'j1',
+  );
+  assert.equal(success.status, 'success');
+  assert.equal(success.job.title, '数据分析实习生');
+
+  const notFound = await fetchJobDetails(
+    async () => new Response('{}', { status: 404 }),
+    'missing',
+  );
+  assert.equal(notFound.status, 'not-found');
+
+  const emptyPayload = await fetchJobDetails(
+    async () => new Response(JSON.stringify({}), { status: 200 }),
+    'missing',
+  );
+  assert.equal(emptyPayload.status, 'not-found');
+
+  const serverError = await fetchJobDetails(
+    async () => new Response('oops', { status: 500 }),
+    'j1',
+  );
+  assert.equal(serverError.status, 'error');
+
+  const networkError = await fetchJobDetails(
+    async () => { throw new Error('network down'); },
+    'j1',
+  );
+  assert.equal(networkError.status, 'error');
+
+  const emptyId = await fetchJobDetails(
+    async () => new Response('{}', { status: 200 }),
+    '',
+  );
+  assert.equal(emptyId.status, 'not-found');
+});
+
+test('job detail page never falls back to another job on failure', async () => {
   const jobDetailJs = await readFile(new URL('../src/job-detail.js', import.meta.url), 'utf8');
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
-  assert.ok(jobDetailJs.includes("fetch(`/api/jobs/${encodeURIComponent(jobId)}`"));
-  assert.ok(jobDetailJs.includes('findJobById(jobId, JOBS) ?? JOBS[0]'));
+  assert.ok(jobDetailJs.includes("import { fetchJobDetails } from './job-api.js';"));
+  assert.ok(jobDetailJs.includes("result.status === 'not-found'"));
+  assert.ok(jobDetailJs.includes("result.status === 'error'"));
   assert.ok(jobDetailJs.includes("job.source === 'hr'"));
+  assert.ok(!jobDetailJs.includes('?? JOBS[0]'));
   assert.ok(!jobDetailJs.includes('localStorage'));
   assert.ok(!jobDetailJs.includes('offermate-admin-jobs'));
   assert.ok(!jobDetailJs.includes("source === 'admin'"));

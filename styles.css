@@ -2508,6 +2508,37 @@ ol {
   margin-bottom: 18px;
 }
 
+.job-detail-status {
+  margin-bottom: 18px;
+}
+
+.job-detail-status-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.job-detail-status-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 20px;
+}
+
+.job-detail-status-card p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.job-detail-status-card.error {
+  border-color: #d97b66;
+}
+
+.job-detail-status-card.error strong {
+  color: #b04a34;
+}
+
 .job-detail-hero {
   display: flex;
   align-items: center;

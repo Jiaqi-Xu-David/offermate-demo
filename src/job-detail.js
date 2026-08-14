@@ -4,8 +4,12 @@ import {
   enrichJob,
   findJobById,
 } from './matcher.js';
+import { fetchJobDetails } from './job-api.js';
 
 const elements = {
+  status: document.querySelector('#job-detail-status'),
+  hero: document.querySelector('#job-detail-hero'),
+  layout: document.querySelector('#job-detail-layout'),
   company: document.querySelector('#detail-company'),
   companySubtitle: document.querySelector('#detail-company-subtitle'),
   title: document.querySelector('#detail-title'),
@@ -97,38 +101,7 @@ function renderNiceToHave(container, tags) {
   container.replaceChildren(hint);
 }
 
-async function resolveJob() {
-  const params = new URLSearchParams(window.location.search);
-  const jobId = params.get('id');
-
-  if (jobId) {
-    try {
-      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
-        credentials: 'same-origin',
-      });
-      if (response.ok) {
-        const payload = await response.json();
-        if (payload?.job) return enrichJob(payload.job);
-      }
-    } catch {
-      // 后端不可用时回退到内置岗位列表，保证种子岗位页面仍然可用。
-    }
-  }
-
-  return findJobById(jobId, JOBS) ?? JOBS[0];
-}
-
-function mergeStaticExtras(job) {
-  const staticJob = findJobById(job.id, JOBS);
-  return {
-    ...job,
-    niceToHave: job.niceToHave ?? staticJob?.niceToHave ?? [],
-  };
-}
-
-async function renderJobDetailPage() {
-  const job = mergeStaticExtras(await resolveJob());
-
+function renderJob(job) {
   elements.company.textContent = job.company;
   elements.companySubtitle.textContent = `${COMPANY.subtitle} · 官方招聘信息`;
   elements.title.textContent = job.title;
@@ -144,6 +117,57 @@ async function renderJobDetailPage() {
     '邮件标题建议使用：姓名-学校-岗位名称-每周可实习天数。',
     '如有作品集、项目报告或数据分析案例，可随简历一并附上。',
   ]);
+}
+
+function showStatus(message, kind = 'info') {
+  elements.status.replaceChildren();
+  const content = document.createElement('div');
+  content.className = `job-detail-status-card ${kind}`;
+  const title = document.createElement('strong');
+  title.textContent = message.title;
+  const copy = document.createElement('p');
+  copy.textContent = message.copy;
+  content.append(title, copy);
+  elements.status.append(content);
+  elements.status.hidden = false;
+  elements.hero.hidden = true;
+  elements.layout.hidden = true;
+}
+
+function showJob() {
+  elements.status.hidden = true;
+  elements.hero.hidden = false;
+  elements.layout.hidden = false;
+}
+
+// 只给同一个 id 补充种子岗位里缺失的展示字段（如加分方向），绝不用作兜底岗位。
+function mergeStaticExtras(job) {
+  const staticJob = findJobById(job.id, JOBS);
+  return {
+    ...job,
+    niceToHave: job.niceToHave ?? staticJob?.niceToHave ?? [],
+  };
+}
+
+async function renderJobDetailPage() {
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get('id');
+
+  showStatus({ title: '正在加载岗位…', copy: '正在从招聘岗位库读取岗位信息。' }, 'loading');
+
+  const result = await fetchJobDetails(fetch, jobId);
+
+  if (result.status === 'not-found') {
+    showStatus({ title: '岗位不存在或已下线', copy: '请返回岗位池查看当前可投递的岗位。' }, 'not-found');
+    return;
+  }
+  if (result.status === 'error') {
+    showStatus({ title: '岗位加载失败', copy: '网络异常或服务暂时不可用，请稍后重试。' }, 'error');
+    return;
+  }
+
+  showJob();
+  renderJob(mergeStaticExtras(enrichJob(result.job)));
 }
 
 renderJobDetailPage();
