@@ -49,6 +49,7 @@ function normalizeOcrText(text) {
   const normalized = cleanText(text)
     .replace(/^```[a-z0-9_-]*\s*/i, '')
     .replace(/\s*```$/i, '')
+    .replace(/^\*\*(.*?)\*\*$/gm, '$1')
     .replace(/\u00AD/g, '')
     .replace(/[\u00A0\u2007\u202F]/g, ' ')
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
@@ -63,15 +64,15 @@ function normalizeOcrText(text) {
   const normalizedWrapperLine = (line) =>
     normalizedLine(line).replace(/\s*[（(][^()（）]{1,80}[)）]\s*(?=[：:]?$)/g, '');
   const isWrapperLine = (line) =>
-    /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:为|提供|整理|提取)?\s*)?(?:(?:识别后|提取后|整理后|按原文(?:换行)?整理后)(?:的)?\s*)?(?:简历(?:(?:原文|文本)(?:整理后)?(?:的)?(?:纯文本)?)?|OCR\s*(?:识别)?\s*结果|识别结果|提取结果|文本内容|纯文本(?:结果)?)\s*(?:如下)?\s*[：:]?\s*$/i.test(
+    /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:为|提供|整理|提取)?\s*)?(?:(?:识别后|提取后|整理后|按原文(?:换行)?整理后|清理格式后)(?:的)?\s*)?(?:简历(?:(?:原文|文本)(?:整理后)?(?:的)?(?:纯文本)?)?|OCR\s*(?:识别)?\s*结果|识别结果|提取结果|文本内容|纯文本(?:结果)?)\s*(?:如下)?\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
     ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's)\s+the\s+(?:extracted\s+)?(?:attached\s+)?(?:resume\s+)?(?:text|ocr\s+result)\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
     );
   const isPrefaceLine = (line) =>
-    /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:(?:从|为|对)\s*){0,2})?(?:这份|该)?\s*(?:(?:简历|PDF|图片)\s*){0,2}(?:中)?\s*(?:识别|提取|整理)(?:出|后)?(?:的)?\s*(?:简历)?\s*(?:原文|文本|纯文本)(?:内容|结果)?\s*(?:如下)?\s*[：:]?\s*$/i.test(
+    /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:(?:从|为|对)\s*){0,2})?(?:这份|该)?\s*(?:(?:简历|PDF|图片)\s*){0,2}(?:中)?\s*(?:识别|提取|整理)(?:出|后)?(?:的)?\s*(?:简历)?\s*(?:原文|文本|纯文本)(?:内容|结果)?(?:\s*[（(](?:已按原文(?:换行)?整理|清理格式)[)）])?\s*(?:如下)?\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
-    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's)\s+the\s+(?:text|plain[\s-]+text)(?:\s+resume\s+content)?\s+(?:extracted|parsed)\s+from\s+(?:this\s+|the\s+attached\s+)?(?:resume|pdf|image)\s*[：:]?\s*$/i.test(
+    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's)\s+the\s+(?:(?:extracted|parsed)\s+)?(?:text|plain[\s-]+text)(?:\s+resume\s+content)?(?:\s+\((?:cleaned|formatted|cleaned formatting|kept in original layout)\))?\s*(?:(?:extracted|parsed)\s+from\s+(?:this\s+|the\s+attached\s+)?(?:resume|pdf|image))?\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
     );
   while (
