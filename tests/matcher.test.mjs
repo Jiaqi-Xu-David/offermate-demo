@@ -560,6 +560,29 @@ test('recognizes CRM lifecycle tooling aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('Braze'));
 });
 
+test('recognizes AI builder and prototyping tool aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：徐淼
+学校：同济大学 软件工程 本科
+求职意向：AI 产品原型实习
+技能：Lovable、Base44、Replit、Remotion
+项目经历：使用 Lovable 和 Base44 快速搭建 AI 表单原型，通过 Replit 协作调试前端逻辑，并用 Remotion 生成产品演示视频。`);
+  const job = analyzeJobDescription({
+    title: 'AI 产品原型实习生',
+    city: '上海',
+    description: '需要熟悉 Lovable、Base44、Replit、Remotion，支持 AI 产品原型搭建、在线协作开发和演示视频生成。',
+  });
+
+  assert.ok(profile.skills.includes('Lovable'));
+  assert.ok(profile.skills.includes('Base44'));
+  assert.ok(profile.skills.includes('Replit'));
+  assert.ok(profile.skills.includes('Remotion'));
+  assert.ok(job.tags.includes('Lovable'));
+  assert.ok(job.tags.includes('Base44'));
+  assert.ok(job.tags.includes('Replit'));
+  assert.ok(job.tags.includes('Remotion'));
+});
+
 test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林依
