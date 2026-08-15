@@ -539,6 +539,27 @@ test('recognizes modern product infrastructure aliases in resumes and JDs', () =
   assert.ok(job.tags.includes('Neon'));
 });
 
+test('recognizes CRM lifecycle tooling aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：程澈
+学校：华东师范大学 市场营销 本科
+求职意向：CRM 运营实习
+技能：Mailchimp、Klaviyo、Braze
+项目经历：使用 Mailchimp 发送活动触达邮件，通过 Klaviyo 维护用户分层自动化，并在 Braze 跟踪消息触达效果。`);
+  const job = analyzeJobDescription({
+    title: 'CRM 运营实习生',
+    city: '上海',
+    description: '需要熟悉 Mailchimp、Klaviyo、Braze，支持用户生命周期触达、自动化分层和 CRM 消息运营。',
+  });
+
+  assert.ok(profile.skills.includes('Mailchimp'));
+  assert.ok(profile.skills.includes('Klaviyo'));
+  assert.ok(profile.skills.includes('Braze'));
+  assert.ok(job.tags.includes('Mailchimp'));
+  assert.ok(job.tags.includes('Klaviyo'));
+  assert.ok(job.tags.includes('Braze'));
+});
+
 test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：林依
