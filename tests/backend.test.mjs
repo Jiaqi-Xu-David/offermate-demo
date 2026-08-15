@@ -899,6 +899,44 @@ test('strips plain-text content OCR prefaces before returning resume text', asyn
   assert.equal(text, 'Name: Iris\nUniversity: TUM\nSkills: SQL, Tableau');
 });
 
+test('strips the-following-is OCR wrapper lines before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'The following is the plain text extracted from the attached resume:\nName: Lina\nUniversity: TUM\nSkills: SQL, Tableau',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Lina\nUniversity: TUM\nSkills: SQL, Tableau');
+});
+
+test('strips sure-the-following-is OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Sure - the following is the extracted text from the attached PDF:\nName: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI');
+});
+
 test('strips OCR wrapper lines that include parenthetical formatting notes', async () => {
   const chineseText = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
