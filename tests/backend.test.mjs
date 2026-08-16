@@ -971,6 +971,25 @@ test('strips OCR wrapper lines that include parenthetical formatting notes', asy
   assert.equal(englishText, 'Name: Lin Lan\nUniversity: Zhejiang University\nSkills: SQL, Tableau');
 });
 
+test('strips passive English OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Below is the resume text extracted from the attached PDF:\nName: Zoe\nUniversity: TUM\nSkills: SQL, Tableau',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Zoe\nUniversity: TUM\nSkills: SQL, Tableau');
+});
+
 test('strips markdown-styled OCR prefaces before returning resume text', async () => {
   const chineseText = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
