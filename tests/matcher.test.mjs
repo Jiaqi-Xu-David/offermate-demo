@@ -443,6 +443,27 @@ test('recognizes Linear and Apollo.io aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('HubSpot'));
 });
 
+test('recognizes Wix, HeyGen, and Zotero aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：顾言
+学校：华东理工大学 市场营销 本科
+求职意向：内容增长实习
+技能：Wix、HeyGen、Zotero、Canva
+项目经历：使用 Wix 搭建活动落地页，通过 HeyGen 生成英文宣传视频，并在 Zotero 中整理海外竞品与用户研究资料。`);
+  const job = analyzeJobDescription({
+    title: '内容增长实习生',
+    city: '上海',
+    description: '需要熟悉 Wix、HeyGen、Zotero 和 Canva，支持活动页面搭建、AI 视频素材生成以及研究资料整理。',
+  });
+
+  assert.ok(profile.skills.includes('Wix'));
+  assert.ok(profile.skills.includes('HeyGen'));
+  assert.ok(profile.skills.includes('Zotero'));
+  assert.ok(job.tags.includes('Wix'));
+  assert.ok(job.tags.includes('HeyGen'));
+  assert.ok(job.tags.includes('Zotero'));
+});
+
 test('recognizes ops CRM and automation tools in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾闻
