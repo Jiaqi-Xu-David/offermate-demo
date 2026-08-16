@@ -2153,9 +2153,11 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     if (!query) return true;
 
     const profile = candidate.profile ?? {};
-    const submittedTitles = submittedJobIds
-      .map((jobId) => jobs.find((job) => job.id === jobId)?.title)
+    const submittedJobs = submittedJobIds
+      .map((jobId) => jobs.find((job) => job.id === jobId))
       .filter(Boolean);
+    const submittedTitles = submittedJobs.map((job) => job.title).filter(Boolean);
+    const submittedCompanies = submittedJobs.map((job) => job.company).filter(Boolean);
     const fitHighlights = buildCandidateFitHighlights(candidate, jobs).map((item) => item.label);
     const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
@@ -2178,8 +2180,10 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...(profile.languages ?? []),
       ...(profile.softSkills ?? []),
       ...submittedTitles,
+      ...submittedCompanies,
       ...fitHighlights,
       ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.title),
+      ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.company),
       profile.rawResume,
     ]
       .filter(Boolean)

@@ -1899,6 +1899,11 @@ test('filters the HR review queue by search text and review stage', () => {
       (candidate) => candidate.id === 'li-ruohan',
     ),
   );
+  assert.ok(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '大卫德科技' }).some(
+      (candidate) => candidate.submittedJobIds.includes('data-analyst-intern'),
+    ),
+  );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: '竞品市场研究案例' }).map((candidate) => candidate.id),
     ['li-ruohan'],
