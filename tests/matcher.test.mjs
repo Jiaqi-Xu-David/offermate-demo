@@ -2004,6 +2004,50 @@ test('filters the HR review queue by search text and review stage', () => {
   );
 });
 
+test('searches HR candidates across lower-ranked suggested roles beyond the top two recommendations', () => {
+  const jobs = [
+    analyzeJobDescription({
+      title: '数据分析实习生',
+      company: '甲公司',
+      city: '上海',
+      description: '薪资：15K-20K/月。要求 SQL、Python。',
+    }),
+    analyzeJobDescription({
+      title: '产品运营实习生',
+      company: '乙公司',
+      city: '上海',
+      description: '薪资：15K-20K/月。要求 SQL、问卷调研。',
+    }),
+    analyzeJobDescription({
+      title: '商业分析实习生',
+      company: '丙公司',
+      city: '杭州',
+      description: '薪资：15K-20K/月。要求 SQL、Excel。',
+    }),
+  ];
+  const candidate = {
+    id: 'candidate-third-suggestion-search',
+    name: '王同学',
+    email: 'wang@example.com',
+    fileName: 'wang.pdf',
+    submittedJobIds: [],
+    profile: parseResumeText(`王同学
+求职意向：数据分析 / 产品运营 / 商业分析实习
+教育背景：慕尼黑工业大学 统计学
+核心技能：SQL、Python、Excel、Tableau、市场研究、问卷调研、转化漏斗、A/B测试、用户访谈、商业分析
+项目经历：使用 SQL、Python 和 Tableau 完成转化漏斗分析，做过问卷调研、市场研究和用户访谈。`),
+  };
+
+  assert.deepEqual(
+    filterHrCandidatesForReview([candidate], jobs, { query: '商业分析实习生' }).map((item) => item.id),
+    [candidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview([candidate], jobs, { query: '丙公司' }).map((item) => item.id),
+    [candidate.id],
+  );
+});
+
 test('adds accessible HR candidate search and stage filters to the workspace', async () => {
   const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const appJs = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');

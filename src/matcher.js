@@ -2158,8 +2158,13 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const submittedJobs = submittedJobIds
       .map((jobId) => jobs.find((job) => job.id === jobId))
       .filter(Boolean);
+    const nonSubmittedRankedJobs = rankJobs(profile, jobs)
+      .map((analysis) => analysis.job)
+      .filter((job) => !submittedJobIds.includes(job.id));
     const submittedTitles = submittedJobs.map((job) => job.title).filter(Boolean);
     const submittedCompanies = submittedJobs.map((job) => job.company).filter(Boolean);
+    const suggestedTitles = nonSubmittedRankedJobs.map((job) => job.title).filter(Boolean);
+    const suggestedCompanies = nonSubmittedRankedJobs.map((job) => job.company).filter(Boolean);
     const fitHighlights = buildCandidateFitHighlights(candidate, jobs).map((item) => item.label);
     const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
@@ -2183,9 +2188,9 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...(profile.softSkills ?? []),
       ...submittedTitles,
       ...submittedCompanies,
+      ...suggestedTitles,
+      ...suggestedCompanies,
       ...fitHighlights,
-      ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.title),
-      ...(insight.suggestedJobs ?? []).slice(0, 2).map((job) => job.company),
       profile.rawResume,
     ]
       .filter(Boolean)
