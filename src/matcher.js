@@ -1102,6 +1102,8 @@ function normalizeSalaryText(value) {
     .replace(/[￥¥]/g, '')
     .replace(/\s*([·•])\s*/g, '$1')
     .replace(/\s*([×xX*])\s*(\d{1,2}\s*薪)/g, '·$2')
+    .replace(/\s*[，,;；]\s*(?:另有)?\s*(\d{1,2}\s*薪)/g, '·$1')
+    .replace(/((?:元\/天|元\/日|元\/月|\/天|\/月|\/年))\s+(\d{1,2}\s*薪)/g, '$1·$2')
     .replace(/(\d+(?:\.\d+)?)\s*([Kk千]|万)\s*([~-])\s*(\d+(?:\.\d+)?)\s*\2(?=(?:\/月|\/年|$))/g, '$1$2$3$4$2')
     .replace(/\s*([~\-])\s*/g, '$1')
     .replace(/\s+/g, '')
@@ -1110,7 +1112,7 @@ function normalizeSalaryText(value) {
 
 export function parseJobDescription(description) {
   const salaryMatch = description.match(
-    /(?:薪资|薪酬|月薪|日薪|综合薪资|薪资待遇)[：:\s]*([￥¥]?\s*[0-9]+(?:\.\d+)?(?:\s*(?:[Kk千]|万))?(?:\s*[-~]\s*[￥¥]?\s*[0-9]+(?:\.\d+)?(?:\s*(?:[Kk千]|万))?)?\s*(?:元\/天|元\/日|元\/月|\/天|K\/月|k\/月|千\/月|万\/月|万\/年|[Kk千万])(?:\s*(?:[·•]|[×xX*])\s*\d{1,2}\s*薪)?)/,
+    /(?:薪资|薪酬|月薪|日薪|综合薪资|薪资待遇)[：:\s]*([￥¥]?\s*[0-9]+(?:\.\d+)?(?:\s*(?:[Kk千]|万))?(?:\s*[-~]\s*[￥¥]?\s*[0-9]+(?:\.\d+)?(?:\s*(?:[Kk千]|万))?)?\s*(?:元\/天|元\/日|元\/月|\/天|K\/月|k\/月|千\/月|万\/月|万\/年|[Kk千万])(?:\s*(?:(?:[·•]|[×xX*])\s*|[，,;；]\s*(?:另有)?\s*|\s+)\d{1,2}\s*薪)?)/,
   );
   const hardSkillRequirements = extractKnownTerms(description, SKILL_DICTIONARY).map((name) => ({
     name,

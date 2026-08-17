@@ -1502,6 +1502,18 @@ test('parses K-style salary ranges when each bound repeats the unit or currency 
   assert.equal(job.salary, '18K-22K/月·13薪');
 });
 
+test('parses bonus-month suffixes when they are written after commas or plain spaces', () => {
+  const commaSeparated = parseJobDescription('薪酬：15K-20K/月，另有14薪，支持经营分析与周报复盘。');
+  const spaceSeparated = analyzeJobDescription({
+    title: '经营分析实习生',
+    city: '上海',
+    description: '综合薪资：18K-22K/月 13薪，要求 SQL、Excel，支持业务复盘。',
+  });
+
+  assert.equal(commaSeparated.salary, '15K-20K/月·14薪');
+  assert.equal(spaceSeparated.salary, '18K-22K/月·13薪');
+});
+
 test('infers admin-added job city from JD text when the city field is empty', () => {
   const job = analyzeJobDescription({
     title: 'AI 产品实习生',
