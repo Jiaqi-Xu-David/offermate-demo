@@ -1251,6 +1251,13 @@ test('uses a shared env-configured session lifetime for cookies and database ses
   assert.equal(lifetimeSeconds, 7200);
 });
 
+test('caps direct session cookie max-age values to the supported 30-day window', () => {
+  const cookie = createSessionCookie('oversized-token', 'https://offermate.example.com/login', 60 * 60 * 24 * 365);
+
+  assert.match(cookie, /Max-Age=2592000/);
+  assert.doesNotMatch(cookie, /Max-Age=31536000/);
+});
+
 test('keeps the first session cookie when duplicate names appear in the header', () => {
   assert.deepEqual(parseCookieHeader('om_session=trusted-token; theme=dark; om_session=shadow-token'), {
     om_session: 'trusted-token',
