@@ -990,6 +990,55 @@ test('strips passive English OCR prefaces before returning resume text', async (
   assert.equal(text, 'Name: Zoe\nUniversity: TUM\nSkills: SQL, Tableau');
 });
 
+test('strips broader English OCR handoff prefaces before returning resume text', async () => {
+  const attachedBelow = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Attached below is the extracted plain text from the attached resume PDF:\nName: Lina\nUniversity: TUM\nSkills: SQL, Tableau',
+        }),
+    },
+  );
+  const pleaseFind = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Please find the extracted resume text below:\nName: Iris\nUniversity: LMU Munich\nSkills: Office, Recruiting',
+        }),
+    },
+  );
+  const extractedBelow = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'The resume text is extracted below:\nName: Marina\nUniversity: TUM\nSkills: SQL, Power BI',
+        }),
+    },
+  );
+
+  assert.equal(attachedBelow, 'Name: Lina\nUniversity: TUM\nSkills: SQL, Tableau');
+  assert.equal(pleaseFind, 'Name: Iris\nUniversity: LMU Munich\nSkills: Office, Recruiting');
+  assert.equal(extractedBelow, 'Name: Marina\nUniversity: TUM\nSkills: SQL, Power BI');
+});
+
 test('strips markdown-styled OCR prefaces before returning resume text', async () => {
   const chineseText = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },

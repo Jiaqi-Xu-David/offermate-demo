@@ -72,7 +72,11 @@ function normalizeOcrText(text) {
   const isPrefaceLine = (line) =>
     /^(?:(?:当然可以|好的)[，,:：]?\s*)?(?:(?:以下|这|下面)(?:里|是)?(?:(?:从|为|对)\s*){0,2})?(?:这份|该)?\s*(?:(?:简历|PDF|图片)\s*){0,2}(?:中)?\s*(?:识别|提取|整理)(?:出|后)?(?:的)?\s*(?:简历)?\s*(?:原文|文本|纯文本)(?:内容|结果)?(?:\s*[（(](?:已按原文(?:换行)?整理|清理格式)[)）])?\s*(?:如下)?\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
-    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's|the following is)\s+the\s+(?:(?:extracted|parsed)\s+)?(?:(?:resume\s+)?text|plain[\s-]+text)(?:\s+resume\s+content)?(?:\s+\((?:cleaned|formatted|cleaned formatting|kept in original layout)\))?\s*(?:(?:(?:extracted|parsed)\s+)?from\s+(?:this\s+|the\s+attached\s+)?(?:resume|pdf|image))?\s*[：:]?\s*$/i.test(
+    ) || /^(?:(?:sure|certainly|of course)[,:\s-]*)?(?:here is|below is|here's|the following is|please find)\s+(?:the\s+)?(?:(?:extracted|parsed)\s+)?(?:(?:resume\s+)?text|plain[\s-]+text)(?:\s+resume\s+content)?(?:\s+\((?:cleaned|formatted|cleaned formatting|kept in original layout)\))?\s*(?:below\s*)?(?:(?:(?:is\s+)?(?:extracted|parsed)\s+)?from\s+(?:this\s+|the\s+attached\s+)?(?:resume(?:\s+pdf)?|pdf|image))?\s*[：:]?\s*$/i.test(
+      normalizedWrapperLine(line),
+    ) || /^attached\s+below\s+is\s+the\s+(?:(?:extracted|parsed)\s+)?(?:resume\s+text|plain[\s-]+text)(?:\s+resume\s+content)?\s*(?:(?:(?:is\s+)?(?:extracted|parsed)\s+)?from\s+(?:this\s+|the\s+attached\s+)?(?:resume(?:\s+pdf)?|pdf|image))?\s*[：:]?\s*$/i.test(
+      normalizedWrapperLine(line),
+    ) || /^the\s+resume\s+text\s+is\s+(?:extracted|parsed)\s+below\s*[：:]?\s*$/i.test(
       normalizedWrapperLine(line),
     );
   while (
