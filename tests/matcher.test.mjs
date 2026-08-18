@@ -659,6 +659,33 @@ test('recognizes OCR-spaced Monday.com aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('Monday.com'));
 });
 
+test('recognizes Cloudflare platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：林青
+学校：复旦大学 软件工程 本科
+求职意向：增长工程实习
+技能：Cloud flare、Cloud flare Workers、Turn stile
+项目经历：使用 Cloudflare Workers 和 Turnstile 搭建投递表单入口，并通过 Cloud flare Pages 发布活动页面。`);
+  const parsed = parseJobDescription('需要熟悉 Cloudflare、Cloudflare Workers、Cloudflare Pages 和 Turnstile，支持边缘接口开发、页面部署与表单防刷。');
+  const job = analyzeJobDescription({
+    title: '增长工程实习生',
+    city: '上海',
+    description: '需要熟悉 Cloudflare、Cloudflare Workers、Cloudflare Pages 和 Turnstile，支持边缘接口开发、页面部署与表单防刷。',
+  });
+
+  assert.ok(profile.skills.includes('Cloudflare'));
+  assert.ok(profile.skills.includes('Cloudflare Workers'));
+  assert.ok(profile.skills.includes('Turnstile'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Cloudflare'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Cloudflare Workers'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Cloudflare Pages'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Turnstile'));
+  assert.ok(job.tags.includes('Cloudflare'));
+  assert.ok(job.tags.includes('Cloudflare Workers'));
+  assert.ok(job.tags.includes('Cloudflare Pages'));
+  assert.ok(job.tags.includes('Turnstile'));
+});
+
 test('recognizes OCR-spaced workspace coordination aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：沈越
