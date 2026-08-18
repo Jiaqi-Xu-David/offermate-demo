@@ -642,6 +642,23 @@ test('recognizes ClickUp and Monday.com aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('Monday.com'));
 });
 
+test('recognizes OCR-spaced Monday.com aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：赵宁
+学校：同济大学 信息管理 本科
+求职意向：项目运营实习
+技能：Mon day.com、Excel
+项目经历：使用 Mon day.com 维护活动排期看板，并同步 Excel 台账。`);
+  const job = analyzeJobDescription({
+    title: '项目运营实习生',
+    city: '上海',
+    description: '需要熟悉 Mon day.com，能维护协作看板、推进活动排期并同步 Excel 台账。',
+  });
+
+  assert.ok(profile.skills.includes('Monday.com'));
+  assert.ok(job.tags.includes('Monday.com'));
+});
+
 test('recognizes OCR-spaced workspace coordination aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：沈越

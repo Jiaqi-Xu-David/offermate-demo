@@ -316,7 +316,7 @@ const KEYWORD_ALIASES = {
   'Microsoft Teams': ['microsoft teams', 'Microsoft Teams', 'MS Teams', 'ms teams', 'Teams', 'teams', 'Mi cro soft Teams'],
   SharePoint: ['sharepoint', 'Share Point', 'share point', 'Microsoft SharePoint', 'microsoft sharepoint'],
   ClickUp: ['clickup', 'Click Up', 'click up', 'Click-up', 'click-up'],
-  'Monday.com': ['monday.com', 'Monday.com', 'monday', 'Monday', 'monday com', 'Monday com'],
+  'Monday.com': ['monday.com', 'Monday.com', 'monday', 'Monday', 'monday com', 'Monday com', 'Mon day.com', 'mon day.com'],
   Confluence: ['confluence', 'Con fluence', 'con fluence'],
   Asana: ['asana', 'Asa na', 'asa na'],
   Trello: ['trello', 'Trel lo', 'trel lo'],
