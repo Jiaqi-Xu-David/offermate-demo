@@ -548,6 +548,25 @@ test('keeps concise resumes with WeChat contact headers on the PDF path', () => 
   );
 });
 
+test('keeps concise resumes with phone and email contact label variants on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：林清\n手机号：13800000000\n电子邮箱：linqing@example.com\n技能：Office、招聘、面试排期'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('姓名：林清\n联系电话：13800000000\n技能：Office、排期协调、文档写作'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nMobile: +49 151 23456789\nSkills: Excel, Recruiting, Scheduling'),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nCell: +86 13800000000\nEmail: lina@example.com\nSkills: Office, Recruiting'),
+    false,
+  );
+});
+
 test('keeps common English resume section labels on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(
