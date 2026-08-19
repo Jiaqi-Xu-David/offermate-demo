@@ -2002,6 +2002,14 @@ test('filters the HR review queue by search text and review stage', () => {
     [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '已提交' }).map((candidate) => candidate.id),
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).map((candidate) => candidate.id),
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '未投递' }).map((candidate) => candidate.id),
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'unsubmitted' }).map((candidate) => candidate.id),
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'high-potential-unsubmitted' }).map((candidate) => candidate.id),
     [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
   );
@@ -2025,6 +2033,10 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'high_potential' }).map((candidate) => candidate.id),
     [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '高潜未投递' }).map((candidate) => candidate.id),
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'high-potential-unsubmitted' }).map((candidate) => candidate.id),
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: '高匹配' }).map((candidate) => candidate.id),
