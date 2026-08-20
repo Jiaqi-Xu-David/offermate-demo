@@ -597,6 +597,21 @@ test('keeps modern English resume labels on the PDF path', () => {
   );
 });
 
+test('keeps concise English contact-link resume headers on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nEmail: lina@example.com\nPortfolio: lina.dev',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Iris\nPhone Number: +49 151 23456789\nGitHub: github.com/iris',
+    ),
+    false,
+  );
+});
+
 test('keeps leadership and coursework style English resume labels on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(

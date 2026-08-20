@@ -118,11 +118,17 @@ export function shouldUseOcrTextExtraction(text) {
     compact.length >= 32 &&
     /(姓名|邮箱|电子邮箱|电话|手机号|联系电话|联系方式|微信|\bName\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTelephone\b|\bWeChat\b|\bContact(?: Information)?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b)/i.test(normalized) &&
     /(技能|项目|实习|教育|求职意向|\bSkills?(?: & Tools)?\b|\bTechnical Skills\b|\bTechnical Proficiencies\b|\bProjects?\b|\bExperience\b|\bEducation(?: Background)?\b|\bObjective\b|\bTarget Role\b)/i.test(normalized);
+  const hasConciseContactLinkHeader =
+    identityLabelMatches.length >= 3 &&
+    lineCount >= 3 &&
+    compact.length >= 24 &&
+    /(?:\bName\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTelephone\b|\bContact(?: Information)?\b)/i.test(normalized) &&
+    /(?:\bLinkedIn\b|\bPortfolio\b|\bWebsite\b|\bGitHub\b)/i.test(normalized);
   const corruptGlyphs = /个亲简历|教育背施|籍设|特话|迎箱|与业|姓后|Werf基本资料/.test(compact);
   const denseSingleLine = compact.length > 360 && lineCount <= 3;
   const tooShortForResume = compact.length < 80;
   if (corruptGlyphs || denseSingleLine || !hasIdentitySignal) return true;
-  if (hasStructuredIdentityFields || hasConciseStructuredHeader) return false;
+  if (hasStructuredIdentityFields || hasConciseStructuredHeader || hasConciseContactLinkHeader) return false;
   return tooShortForResume;
 }
 
