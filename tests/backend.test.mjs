@@ -899,6 +899,25 @@ test('strips polite English OCR prefaces before returning resume text', async ()
   assert.equal(text, 'Name: Marina\nUniversity: LMU Munich\nSkills: SQL, Power BI');
 });
 
+test('strips attached-resume PDF English OCR prefaces before returning resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    {
+      bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      fileName: 'resume.pdf',
+      mimeType: 'application/pdf',
+    },
+    {
+      fetchImpl: async () =>
+        Response.json({
+          output_text: 'Please find the extracted text from the attached resume PDF below:\nName: Iris\nUniversity: LMU Munich\nSkills: Office, Recruiting',
+        }),
+    },
+  );
+
+  assert.equal(text, 'Name: Iris\nUniversity: LMU Munich\nSkills: Office, Recruiting');
+});
+
 test('strips plain-text content OCR prefaces before returning resume text', async () => {
   const text = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
