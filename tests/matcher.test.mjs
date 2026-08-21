@@ -844,6 +844,19 @@ test('recognizes Google Workspace office-suite aliases in resumes and JDs', () =
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Google Drive and OneDrive admin document aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：曹芸
+学校：华东师范大学
+求职意向：行政实习
+技能：Google Drive shared folders、Google Docs、Microsoft OneDrive
+项目经历：使用 Google Drive 和 One Drive 协助维护招聘材料与共享文档。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Google Drive、Google Docs 和 Microsoft OneDrive，支持共享资料归档、协作文档维护与行政台账同步。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes OCR-spaced Google Workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾遥
