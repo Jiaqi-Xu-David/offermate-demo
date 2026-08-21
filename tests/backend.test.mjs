@@ -610,6 +610,18 @@ test('keeps concise English contact-link resume headers on the PDF path', () => 
     ),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Mira\nLinkedIn URL: linkedin.com/in/mira\nPortfolio URL: mira.dev',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Theo\nEmail Address: theo@example.com\nGitHub URL: github.com/theo',
+    ),
+    false,
+  );
 });
 
 test('keeps leadership and coursework style English resume labels on the PDF path', () => {
