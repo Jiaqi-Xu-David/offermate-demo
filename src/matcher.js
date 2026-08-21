@@ -2109,9 +2109,16 @@ function getHrCandidateExtractionSearchTerms(candidate) {
       : textSource === 'pdf-text-fallback'
         ? 'PDF 文本提取保底'
         : '原生 PDF 文本';
+  const englishLabel =
+    textSource === 'openai-ocr'
+      ? 'OpenAI OCR Extraction'
+      : textSource === 'pdf-text-fallback'
+        ? 'PDF Text Fallback'
+        : 'Native PDF Text';
   const labels = [
     textSource,
     humanReadableLabel,
+    englishLabel,
     humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
   if (candidate.extractionWarning) labels.push('OCR 回退');
@@ -2148,15 +2155,19 @@ function normalizeHrCandidateStage(stage) {
     '高匹配': 'strong',
     'native-pdf': 'native-pdf',
     'native-pdf-text': 'native-pdf',
+    'native-pdf-text-extraction': 'native-pdf',
     'pdf-text': 'native-pdf',
+    'pdf-text-extraction': 'native-pdf',
     '原生pdf': 'native-pdf',
     '原生-pdf': 'native-pdf',
     '原生-pdf-文本': 'native-pdf',
     'openai-ocr': 'openai-ocr',
     'openaiocr': 'openai-ocr',
     'openai-ocr-提取': 'openai-ocr',
+    'openai-ocr-extraction': 'openai-ocr',
     ocr: 'openai-ocr',
     'ocr-fallback': 'ocr-fallback',
+    'pdf-text-fallback': 'ocr-fallback',
     'ocr-warning': 'ocr-fallback',
     'ocr-review': 'ocr-fallback',
     'ocr-回退': 'ocr-fallback',

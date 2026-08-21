@@ -2014,6 +2014,10 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.ok(nativePdfQueryIds.includes(nativePdfCandidate.id));
   assert.ok(!nativePdfQueryIds.includes(openAiOcrCandidate.id));
   assert.ok(!nativePdfQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfEnglishQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: 'Native PDF Text' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfEnglishQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfEnglishQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfEnglishQueryIds.includes(uploadOnlyCandidate.id));
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search@example.com' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
@@ -2025,6 +2029,14 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OpenAI OCR 提取' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OpenAI OCR Extraction' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF Text Fallback' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
   );
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
@@ -2081,11 +2093,23 @@ test('filters the HR review queue by search text and review stage', () => {
     nativePdfStageIds,
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'Native PDF Text' }).map((candidate) => candidate.id),
+    nativePdfStageIds,
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'OpenAI OCR 提取' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'OpenAI OCR Extraction' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 文本提取保底' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF Text Fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
