@@ -82,6 +82,10 @@ VISIT_ADMIN_TOKEN="replace-with-a-private-dashboard-token"
 # 二选一或同时配置
 DEEPSEEK_API_KEY="your-deepseek-key"
 OPENAI_API_KEY="your-openai-key"
+
+# 可选：把 OCR 和结构化画像的 key / 时长策略拆开
+OCR_OPENAI_API_KEY="your-ocr-only-openai-key"
+SESSION_MAX_AGE_SECONDS="604800"
 ```
 
 没有 AI key 也可以运行。文本型 PDF 会使用本地提取与解析；图片扫描件需要 OpenAI OCR 才能可靠识别。
@@ -101,10 +105,16 @@ npx wrangler pages dev . --port 4173
 | `OFFERMATE_ENCRYPTION_KEY` | 加密账号、简历和访问日志中的敏感字段 | 生产环境必需 |
 | `DEEPSEEK_API_KEY` | 优先用于结构化简历画像 | 可选 |
 | `OPENAI_API_KEY` | PDF OCR，也可用于结构化画像 | 扫描 PDF 场景建议配置 |
+| `OCR_OPENAI_API_KEY` | 仅用于 PDF OCR；未配置时回退到 `OPENAI_API_KEY` | 可选 |
+| `OFFERMATE_OCR_API_KEY` | OCR key 的旧别名，兼容现有环境 | 可选 |
 | `OPENAI_PROFILE_API_KEY` | 只用于结构化画像，可与 OCR key 分离 | 可选 |
 | `OPENAI_OCR_MODEL` | 覆盖默认 OCR 模型 | 可选 |
 | `OPENAI_PROFILE_MODEL` | 覆盖默认画像解析模型 | 可选 |
+| `OCR_MAX_FILE_BYTES` | 覆盖单份 PDF 进入 OCR 前的大小上限；默认 8MB | 可选 |
 | `OCR_MODE` | 设为 `always` 时强制所有 PDF 走 OCR | 可选 |
+| `OFFERMATE_OCR_MODE` | `OCR_MODE` 的兼容别名 | 可选 |
+| `SESSION_MAX_AGE_SECONDS` | 覆盖登录会话时长；最短 1 小时，最长 30 天 | 可选 |
+| `OFFERMATE_SESSION_MAX_AGE_SECONDS` | `SESSION_MAX_AGE_SECONDS` 的兼容别名 | 可选 |
 | `VISIT_ADMIN_TOKEN` | 访问 `/admin/visits` | 生产环境建议配置 |
 | `OFFERMATE_ADMIN_EMAIL` | 初始化管理员邮箱 | 生产环境建议覆盖 |
 | `OFFERMATE_ADMIN_NAME` | 初始化管理员名称 | 可选 |
@@ -121,6 +131,7 @@ npx wrangler pages dev . --port 4173
 - 700KB 以内的原始 PDF 会加密保存，供 HR 下载。
 - 更大的 PDF 仍会解析和匹配，但只保留文本，不保存原始二进制。
 - OCR 失败但本地文本仍可用时，系统会回退到本地文本并显示警告。
+- 可用原生 PDF 文本时，系统会尽量保留本地提取结果；只有文本明显损坏、结构缺失，或 `OCR_MODE=always` 时才强制走 OCR。
 - 对于包含 `Expected Graduation`、`Availability`、`Languages`、`Citizenship`、`Visa Status` 等结构化英文字段的短简历，会优先保留本地 PDF 文本结果，不强制走 OCR。
 - 对于部分扫描仪或导出工具产生的 `application/x-pdf`、`application/acrobat` 等旧 MIME 类型，上传时会统一按 PDF 处理。
 - 上传文件最多 10MB，提取后的简历文本最多 50000 字；过短输入会直接提示，不会生成虚假匹配。
