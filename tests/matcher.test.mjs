@@ -831,6 +831,18 @@ test('recognizes Outlook and Exchange scheduling aliases in admin resumes and JD
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Google Calendar scheduling aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周杭
+学校：华东政法大学
+求职意向：行政支持实习
+技能：熟练使用 Google Calendar、calendar scheduling 和邮件日程协调，负责会议室预订与面试排期。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Google Calendar、calendar scheduling、meeting scheduling，支持面试安排和行政协同。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes Google Workspace office-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：苏禾
