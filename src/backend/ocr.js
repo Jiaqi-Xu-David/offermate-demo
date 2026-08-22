@@ -108,7 +108,7 @@ export function shouldUseOcrTextExtraction(text) {
   const compact = normalized.replace(/\s+/g, '');
   const lineCount = normalized.split('\n').filter((line) => line.trim()).length;
   const identityLabelMatches = normalized.match(
-    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电子邮箱|电话|手机号|联系电话|联系方式|微信|实习|项目|技能|工作经历|教育经历|\bName\b|\bProfile\b|\bSummary\b|\bProfessional Summary\b|\bSummary of Qualifications\b|\bContact(?: Information)?\b|\bLocation\b|\bTarget Role\b|\bObjective\b|\bEducation(?: Background)?\b|\bEducation & Training\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTelephone\b|\bWeChat\b|\bExperience\b|\bProfessional Experience\b|\bWork Experience\b|\bEmployment History\b|\bRelevant Experience\b|\bInternships?\b|\bInternship Experience\b|\bProjects?\b|\bProject Experience\b|\bRelevant Projects\b|\bSelected Projects\b|\bAcademic Projects\b|\bTechnical Skills\b|\bTechnical Proficiencies\b|\bKey Skills\b|\bSkills?(?: & Tools)?\b|\bLinkedIn(?: URL)?\b|\bPortfolio(?: URL)?\b|\bWebsite(?: URL)?\b|\bGitHub(?: URL)?\b|\bCore Competencies\b|\bCareer Highlights\b|\bCertifications\b|\bAwards\b|\bLeadership(?: Experience)?\b|\bActivities\b|\bRelevant Coursework\b|\bCoursework\b|\bTools\b|\bLanguages?\b|\bAvailability\b|\bExpected Graduation\b|\bCitizenship\b|\bVisa Status\b|\bWork Authorization\b)/gi,
+    /(姓名|求职意向|教育|学校|院校|专业|性别|邮箱|电子邮箱|电话|手机号|联系电话|联系方式|微信|实习|项目|技能|工作经历|教育经历|\bName\b|\bProfile\b|\bSummary\b|\bProfessional Summary\b|\bSummary of Qualifications\b|\bContact(?: Information)?\b|\bLocation\b|\bTarget Role\b|\bObjective\b|\bEducation(?: Background)?\b|\bEducation & Training\b|\bUniversity\b|\bSchool\b|\bMajor\b|\bGender\b|\bE-?mail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTel\b|\bTelephone\b|\bWeChat\b|\bExperience\b|\bProfessional Experience\b|\bWork Experience\b|\bEmployment History\b|\bRelevant Experience\b|\bInternships?\b|\bInternship Experience\b|\bProjects?\b|\bProject Experience\b|\bRelevant Projects\b|\bSelected Projects\b|\bAcademic Projects\b|\bTechnical Skills\b|\bTechnical Proficiencies\b|\bKey Skills\b|\bSkills?(?: & Tools)?\b|\bLinkedIn(?: URL)?\b|\bPortfolio(?: URL)?\b|\bWebsite(?: URL)?\b|\bGitHub(?: URL)?\b|\bCore Competencies\b|\bCareer Highlights\b|\bCertifications\b|\bAwards\b|\bLeadership(?: Experience)?\b|\bActivities\b|\bRelevant Coursework\b|\bCoursework\b|\bTools\b|\bLanguages?\b|\bAvailability\b|\bExpected Graduation\b|\bCitizenship\b|\bVisa Status\b|\bWork Authorization\b)/gi,
   ) ?? [];
   const hasIdentitySignal = identityLabelMatches.length > 0;
   const hasStructuredIdentityFields = identityLabelMatches.length >= 4 && lineCount >= 3;
@@ -116,13 +116,13 @@ export function shouldUseOcrTextExtraction(text) {
     identityLabelMatches.length >= 3 &&
     lineCount >= 3 &&
     compact.length >= 32 &&
-    /(姓名|邮箱|电子邮箱|电话|手机号|联系电话|联系方式|微信|\bName\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTelephone\b|\bWeChat\b|\bContact(?: Information)?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b)/i.test(normalized) &&
+    /(姓名|邮箱|电子邮箱|电话|手机号|联系电话|联系方式|微信|\bName\b|\bE-?mail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTel\b|\bTelephone\b|\bWeChat\b|\bContact(?: Information)?\b|\bLinkedIn\b|\bPortfolio\b|\bWebsite\b)/i.test(normalized) &&
     /(技能|项目|实习|教育|求职意向|\bSkills?(?: & Tools)?\b|\bTechnical Skills\b|\bTechnical Proficiencies\b|\bProjects?\b|\bExperience\b|\bEducation(?: Background)?\b|\bObjective\b|\bTarget Role\b)/i.test(normalized);
   const hasConciseContactLinkHeader =
     identityLabelMatches.length >= 3 &&
     lineCount >= 3 &&
     compact.length >= 24 &&
-    /(?:\bName\b|\bEmail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTelephone\b|\bContact(?: Information)?\b)/i.test(normalized) &&
+    /(?:\bName\b|\bE-?mail(?: Address)?\b|\bPhone(?: Number)?\b|\bMobile\b|\bCell\b|\bTel\b|\bTelephone\b|\bContact(?: Information)?\b)/i.test(normalized) &&
     /(?:\bLinkedIn(?: URL)?\b|\bPortfolio(?: URL)?\b|\bWebsite(?: URL)?\b|\bGitHub(?: URL)?\b)/i.test(normalized);
   const corruptGlyphs = /个亲简历|教育背施|籍设|特话|迎箱|与业|姓后|Werf基本资料/.test(compact);
   const denseSingleLine = compact.length > 360 && lineCount <= 3;

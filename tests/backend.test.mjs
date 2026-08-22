@@ -565,6 +565,10 @@ test('keeps concise resumes with phone and email contact label variants on the P
     shouldUseOcrTextExtraction('Name: Lina\nCell: +86 13800000000\nEmail: lina@example.com\nSkills: Office, Recruiting'),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction('Name: Lina\nTel: +49 151 23456789\nE-mail: lina@example.com\nSkills: Office, Recruiting'),
+    false,
+  );
 });
 
 test('keeps common English resume section labels on the PDF path', () => {
