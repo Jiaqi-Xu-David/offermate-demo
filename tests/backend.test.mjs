@@ -730,6 +730,15 @@ test('accepts PDF resume uploads and rejects unsupported file types early', () =
   );
 });
 
+test('keeps short English resumes with nationality and notice-period headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Nationality: China\nNotice Period: 2 weeks\nLanguages: English\nSkills: Excel',
+    ),
+    false,
+  );
+});
+
 test('rejects empty, very short, and oversized extracted resume text', () => {
   assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
   assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
