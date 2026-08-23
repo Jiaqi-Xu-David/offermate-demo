@@ -2063,6 +2063,10 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF Text Fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR fallback' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
   assert.ok(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'submitted' }).every(
       (candidate) => candidate.submittedJobIds.length > 0,
