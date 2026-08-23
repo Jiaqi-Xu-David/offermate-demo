@@ -919,6 +919,19 @@ test('recognizes applicant tracking system aliases in resumes and JDs', () => {
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes enterprise recruiting platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：余清
+学校：华东理工大学
+求职意向：HRIS 流程实习
+技能：Work day、i CIMS、Success Factors
+项目经历：使用 Work day 跟踪候选人流程，在 i CIMS 维护简历状态，并通过 Success Factors 同步面试进度。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Workday、iCIMS 或 SAP SuccessFactors，支持候选人流程管理、面试推进与人才系统维护。');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
