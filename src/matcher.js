@@ -2149,8 +2149,10 @@ function getHrCandidateExtractionSearchTerms(candidate) {
     textSource,
     humanReadableLabel,
     englishLabel,
+    textSource === 'pdf-text' ? 'native-pdf' : '',
     textSource === 'openai-ocr' ? 'OpenAI OCR' : '',
     textSource === 'pdf-text-fallback' ? 'OCR Fallback' : '',
+    textSource === 'pdf-text-fallback' ? 'ocr-fallback' : '',
     humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
   if (candidate.extractionWarning) labels.push('OCR 回退');

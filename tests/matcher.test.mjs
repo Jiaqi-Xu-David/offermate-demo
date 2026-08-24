@@ -2056,6 +2056,10 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.ok(nativePdfEnglishQueryIds.includes(nativePdfCandidate.id));
   assert.ok(!nativePdfEnglishQueryIds.includes(openAiOcrCandidate.id));
   assert.ok(!nativePdfEnglishQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfAliasQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: 'native-pdf' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfAliasQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfAliasQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfAliasQueryIds.includes(uploadOnlyCandidate.id));
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search@example.com' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
@@ -2078,6 +2082,10 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR fallback' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'ocr-fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.ok(
