@@ -844,6 +844,33 @@ test('drops broader assistant-style OCR wrapper lines before resume parsing', as
   assert.equal(text, '姓名：周可\n学校：同济大学\n技能：Office、文档写作');
 });
 
+test('strips broader English OCR handoff lines before resume parsing', async () => {
+  const cases = [
+    'Below is the extracted text from the resume attached below:',
+    'OCR output is as follows:',
+    'Resume text extracted from the attached PDF:',
+  ];
+
+  for (const preface of cases) {
+    const text = await extractResumeTextWithOpenAI(
+      { OPENAI_API_KEY: 'openai-test-key' },
+      {
+        bytes: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+        fileName: 'resume.pdf',
+        mimeType: 'application/pdf',
+      },
+      {
+        fetchImpl: async () =>
+          Response.json({
+            output_text: `${preface}\nName: Lina\nSkills: Excel, Recruiting\nProjects: Hiring dashboard`,
+          }),
+      },
+    );
+
+    assert.equal(text, 'Name: Lina\nSkills: Excel, Recruiting\nProjects: Hiring dashboard');
+  }
+});
+
 test('strips BOM and zero-width OCR artifacts from resume text', async () => {
   const text = await extractResumeTextWithOpenAI(
     { OPENAI_API_KEY: 'openai-test-key' },
