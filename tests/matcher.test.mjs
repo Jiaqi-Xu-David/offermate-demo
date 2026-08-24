@@ -869,6 +869,19 @@ test('recognizes Google Drive and OneDrive admin document aliases in resumes and
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes e-signature and PDF workflow aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：丁岚
+学校：上海大学
+求职意向：行政运营实习
+技能：Docu Sign、Adobe Acrobat、合同归档
+项目经历：使用 Docu Sign 跟进签署流程，并通过 Acrobat Sign 与 Adobe Acrobat 整理 offer 文件和入职材料。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 DocuSign、Acrobat Sign 或 Adobe Acrobat，支持合同签署流转、PDF 整理与行政文档归档。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes OCR-spaced Google Workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾遥
