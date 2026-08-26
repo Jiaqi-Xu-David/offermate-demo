@@ -1594,6 +1594,14 @@ test('parses annual salary ranges from admin JDs', () => {
   assert.equal(job.salary, '20-30万/年');
 });
 
+test('parses salary ranges written with Chinese or typographic separators', () => {
+  const chineseRange = parseJobDescription('薪资：15K至20K/月，负责 SQL 数据分析。');
+  const typographicRange = parseJobDescription('薪酬：18K–22K/月，要求 Excel 和商业分析。');
+
+  assert.equal(chineseRange.salary, '15K-20K/月');
+  assert.equal(typographicRange.salary, '18K-22K/月');
+});
+
 test('parses comprehensive monthly salary formats from admin JDs', () => {
   const parsed = parseJobDescription('综合薪资：1.5 - 2 万/月，负责招聘数据整理与流程跟进。');
   const job = analyzeJobDescription({
