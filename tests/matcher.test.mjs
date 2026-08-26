@@ -623,6 +623,18 @@ test('recognizes Microsoft collaboration workspace aliases in resumes and JDs', 
   assert.ok(job.tags.includes('SharePoint'));
 });
 
+test('recognizes Zoom collaboration aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：林桥
+学校：同济大学 软件工程 本科
+技能：Zoom Workplace、Office
+项目经历：使用 Zoom Meetings 组织远程面试和跨部门会议。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Zo om 和 Office，支持线上面试安排与会议协调。');
+
+  assert.ok(profile.skills.includes('Zoom'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Zoom'));
+});
+
 test('recognizes ClickUp and Monday.com aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：郑可
