@@ -754,6 +754,21 @@ test('keeps concise English resumes with personal-information and address headin
   );
 });
 
+test('keeps concise English resumes with location and start-availability headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Preferred City: Shanghai\nAvailable From: September 2026\nLanguages: English, German\nSkills: Excel',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Present Location: Munich\nAvailable to Start: Immediate\nLanguages: Mandarin, English\nSkills: SQL',
+    ),
+    false,
+  );
+});
+
 test('rejects empty, very short, and oversized extracted resume text', () => {
   assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
   assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
