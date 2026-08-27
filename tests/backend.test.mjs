@@ -739,6 +739,21 @@ test('keeps short English resumes with nationality and notice-period headings on
   );
 });
 
+test('keeps concise English resumes with personal-information and address headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Personal Information\nName: Lina Chen\nAddress: Shanghai\nSkill Set: Excel, Recruiting',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Date of Birth: 2004-01\nAddress: Munich\nLanguages: English, German\nSkills: SQL',
+    ),
+    false,
+  );
+});
+
 test('rejects empty, very short, and oversized extracted resume text', () => {
   assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
   assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
