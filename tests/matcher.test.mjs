@@ -925,6 +925,21 @@ test('recognizes e-signature and PDF workflow aliases in admin resumes and JDs',
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Dropbox Sign and HelloSign as office e-signature workflows', () => {
+  const profile = parseResumeText(`个人简历
+姓名：周敏
+学校：上海大学
+求职意向：行政运营实习
+技能：Dropbox Sign、HelloSign、合同签署流转
+项目经历：使用 Dropbox Sign 跟进签署状态，并通过 HelloSign 协助归档 offer 文件。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Dropbox Sign 或 HelloSign，支持合同签署流转、offer 文件归档与入职材料整理。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(!profile.skills.includes('Dropbox'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+  assert.ok(!parsed.hardSkillRequirements.some((item) => item.name === 'Dropbox'));
+});
+
 test('recognizes OCR-spaced Google Workspace aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾遥

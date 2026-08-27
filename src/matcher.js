@@ -444,6 +444,12 @@ const KEYWORD_ALIASES = {
     'docusign',
     'Docu Sign',
     'docu sign',
+    'Dropbox Sign',
+    'dropbox sign',
+    'HelloSign',
+    'hellosign',
+    'Hello Sign',
+    'hello sign',
     'Acrobat Sign',
     'acrobat sign',
     'Adobe Acrobat',
@@ -551,6 +557,7 @@ function buildTermPattern(term, flags = 'gi') {
 
 const TERM_FALSE_POSITIVE_PATTERNS = {
   Zoom: [/\bZoom Scheduler\b/gi],
+  Dropbox: [/\bDropbox Sign\b/gi],
 };
 
 function getIgnoredMatchRanges(text, term) {
