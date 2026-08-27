@@ -325,7 +325,7 @@ const KEYWORD_ALIASES = {
   Linear: ['linear', 'Li near', 'li near'],
   Notion: ['notion', 'No tion', 'no tion'],
   Jira: ['JIRA', 'jira', 'Jira Software', 'jira software', 'Ji ra', 'ji ra'],
-  Slack: ['slack', 'S lack', 's lack', 'Sla ck', 'sla ck', 'Lark', 'lark', '飞书'],
+  Slack: ['slack', 'S lack', 's lack', 'Sla ck', 'sla ck', '飞书'],
   'Microsoft Teams': ['microsoft teams', 'Microsoft Teams', 'MS Teams', 'ms teams', 'Teams', 'teams', 'Mi cro soft Teams'],
   Zoom: ['zoom', 'Zoom Meetings', 'zoom meetings', 'Zoom Workplace', 'zoom workplace', 'Zo om', 'zo om'],
   SharePoint: ['sharepoint', 'Share Point', 'share point', 'Microsoft SharePoint', 'microsoft sharepoint'],
@@ -414,6 +414,18 @@ const KEYWORD_ALIASES = {
     'Calendar scheduling',
     'meeting scheduling',
     'Meeting scheduling',
+    'interview scheduling',
+    'Interview scheduling',
+    'Google Meet',
+    'google meet',
+    'Calendly',
+    'calendly',
+    'Cal endly',
+    'cal endly',
+    'Zoom Scheduler',
+    'zoom scheduler',
+    'Lark Calendar',
+    'lark calendar',
     'Google Docs',
     'google docs',
     'Google Doc s',
@@ -445,6 +457,7 @@ const KEYWORD_ALIASES = {
     'one drive',
     'Microsoft OneDrive',
     'microsoft onedrive',
+    '飞书日历',
     '飞书文档',
     '飞书表格',
     'Lark Docs',
@@ -525,16 +538,32 @@ function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function usesAsciiWordBoundaries(term) {
+  return /[A-Za-z0-9]/.test(term) && !/[\u4e00-\u9fa5]/.test(term);
+}
+
+function buildTermPattern(term, flags = 'gi') {
+  const escaped = escapeRegExp(String(term ?? ''));
+  if (!escaped) return null;
+  if (!usesAsciiWordBoundaries(term)) return new RegExp(escaped, flags);
+  return new RegExp(`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9])`, flags);
+}
+
+function hasTermMatch(text, term) {
+  const pattern = buildTermPattern(term, 'i');
+  return pattern ? pattern.test(String(text ?? '')) : false;
+}
+
 function extractKnownTerms(text, dictionary) {
   return dictionary.filter((term) => {
     const aliases = KEYWORD_ALIASES[term] ?? [];
-    return [term, ...aliases].some((candidate) => text.includes(candidate));
+    return [term, ...aliases].some((candidate) => hasTermMatch(text, candidate));
   });
 }
 
 function extractAliasTerms(text, rules) {
   return rules
-    .filter((rule) => rule.aliases.some((alias) => text.includes(alias)))
+    .filter((rule) => rule.aliases.some((alias) => hasTermMatch(text, alias)))
     .map((rule) => rule.name);
 }
 
@@ -551,7 +580,7 @@ function extractCompositeCapabilities(text, signalKey = 'jdSignals') {
 function countTermOccurrences(text, term) {
   const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
   return aliases.reduce((sum, candidate) => {
-    const matches = text.match(new RegExp(escapeRegExp(candidate), 'gi'));
+    const matches = text.match(buildTermPattern(candidate));
     return sum + (matches?.length ?? 0);
   }, 0);
 }
@@ -560,7 +589,8 @@ function findTermWindows(text, term, radius = 18) {
   const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
   return aliases.flatMap((candidate) => {
     const windows = [];
-    const pattern = new RegExp(escapeRegExp(candidate), 'gi');
+    const pattern = buildTermPattern(candidate);
+    if (!pattern) return windows;
     let match = pattern.exec(text);
     while (match) {
       const start = Math.max(0, match.index - radius);
@@ -1314,7 +1344,7 @@ export const CANDIDATES = [
 
 const hasTextMatch = (items, keyword) => {
   const terms = [keyword, ...(KEYWORD_ALIASES[keyword] ?? [])];
-  return items.some((item) => terms.some((term) => item.includes(term)));
+  return items.some((item) => terms.some((term) => hasTermMatch(item, term)));
 };
 
 const clampScore = (score) => Math.max(0, Math.min(100, score));

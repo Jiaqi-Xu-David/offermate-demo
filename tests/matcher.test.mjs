@@ -267,6 +267,25 @@ test('recognizes OCR-spaced workplace and creative-tool aliases in resumes and J
   assert.ok(job.tags.includes('Illustrator'));
 });
 
+test('recognizes scheduling-workspace aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：沈乔
+学校：华东政法大学 行政管理 本科
+求职意向：行政运营实习
+技能：Google Meet、Calendly、Zoom Scheduler、Lark Calendar
+项目经历：使用 Google Meet 与 Zoom Scheduler 协调面试，通过 Calendly 和 Lark Calendar 维护会议排期。`);
+  const job = analyzeJobDescription({
+    title: '行政运营实习生',
+    city: '上海',
+    description: '需要熟悉 Google Meet、Calendly、Zoom Scheduler、Lark Calendar 等会议与日程协同工具，支持面试排期和跨团队会议组织。',
+  });
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(job.tags.includes('Office'));
+  assert.ok(!profile.skills.includes('深度学习'));
+  assert.ok(!profile.skills.includes('Slack'));
+});
+
 test('recognizes OCR-spaced analytics and ML aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：高晨
@@ -850,6 +869,18 @@ test('recognizes Google Calendar scheduling aliases in admin resumes and JDs', (
 求职意向：行政支持实习
 技能：熟练使用 Google Calendar、calendar scheduling 和邮件日程协调，负责会议室预订与面试排期。`);
   const parsed = parseJobDescription('岗位要求：熟悉 Google Calendar、calendar scheduling、meeting scheduling，支持面试安排和行政协同。');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
+test('recognizes Calendly scheduling aliases in admin resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：贺宁
+学校：上海大学
+求职意向：招聘运营实习
+技能：熟练使用 Calendly、Cal endly 和 interview scheduling，支持面试邀约与候选人时间协调。`);
+  const parsed = parseJobDescription('岗位要求：熟悉 Calendly、interview scheduling 与候选人面试排期，能够维护招聘日程并同步面试官安排。');
 
   assert.ok(profile.skills.includes('Office'));
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
