@@ -1238,7 +1238,7 @@ test('strips OCR page markers from extracted resume text', async () => {
     {
       fetchImpl: async () =>
         Response.json({
-          output_text: '第 1 页 / 共 3 页\n第 2 页， 共 3 页\n姓名：赵禾\nPage 2 of 3\nPage 3, of 3\n学校：复旦大学\n2 / 3\n- 3 -\n技能：Office、招聘',
+          output_text: '第 1 页 / 共 3 页\n第 2 页， 共 3 页\nPg. 2 of 3\nPage No. 2\n姓名：赵禾\nPage 2 of 3\nPage 3, of 3\n学校：复旦大学\n2 / 3\n- 3 -\n技能：Office、招聘',
         }),
     },
   );
