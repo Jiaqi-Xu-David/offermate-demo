@@ -549,15 +549,45 @@ function buildTermPattern(term, flags = 'gi') {
   return new RegExp(`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9])`, flags);
 }
 
-function hasTermMatch(text, term) {
-  const pattern = buildTermPattern(term, 'i');
-  return pattern ? pattern.test(String(text ?? '')) : false;
+const TERM_FALSE_POSITIVE_PATTERNS = {
+  Zoom: [/\bZoom Scheduler\b/gi],
+};
+
+function getIgnoredMatchRanges(text, term) {
+  const patterns = TERM_FALSE_POSITIVE_PATTERNS[term] ?? [];
+  return patterns.flatMap((pattern) =>
+    [...String(text ?? '').matchAll(pattern)].map((match) => ({
+      start: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
+    })),
+  );
+}
+
+function findTermMatches(text, term, candidate = term) {
+  const source = String(text ?? '');
+  const pattern = buildTermPattern(candidate);
+  if (!pattern) return [];
+  const ignoredRanges = getIgnoredMatchRanges(source, term);
+  const matches = [];
+  let match = pattern.exec(source);
+  while (match) {
+    const start = match.index ?? 0;
+    const end = start + match[0].length;
+    const isIgnored = ignoredRanges.some((range) => start >= range.start && end <= range.end);
+    if (!isIgnored) matches.push({ start, end, text: match[0] });
+    match = pattern.exec(source);
+  }
+  return matches;
+}
+
+function hasTermMatch(text, term, candidate = term) {
+  return findTermMatches(text, term, candidate).length > 0;
 }
 
 function extractKnownTerms(text, dictionary) {
   return dictionary.filter((term) => {
     const aliases = KEYWORD_ALIASES[term] ?? [];
-    return [term, ...aliases].some((candidate) => hasTermMatch(text, candidate));
+    return [term, ...aliases].some((candidate) => hasTermMatch(text, term, candidate));
   });
 }
 
@@ -579,26 +609,17 @@ function extractCompositeCapabilities(text, signalKey = 'jdSignals') {
 
 function countTermOccurrences(text, term) {
   const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
-  return aliases.reduce((sum, candidate) => {
-    const matches = text.match(buildTermPattern(candidate));
-    return sum + (matches?.length ?? 0);
-  }, 0);
+  return aliases.reduce((sum, candidate) => sum + findTermMatches(text, term, candidate).length, 0);
 }
 
 function findTermWindows(text, term, radius = 18) {
   const aliases = [term, ...(KEYWORD_ALIASES[term] ?? [])];
   return aliases.flatMap((candidate) => {
-    const windows = [];
-    const pattern = buildTermPattern(candidate);
-    if (!pattern) return windows;
-    let match = pattern.exec(text);
-    while (match) {
-      const start = Math.max(0, match.index - radius);
-      const end = Math.min(text.length, match.index + candidate.length + radius);
-      windows.push(text.slice(start, end));
-      match = pattern.exec(text);
-    }
-    return windows;
+    return findTermMatches(text, term, candidate).map((match) => {
+      const start = Math.max(0, match.start - radius);
+      const end = Math.min(text.length, match.end + radius);
+      return text.slice(start, end);
+    });
   });
 }
 
@@ -2186,9 +2207,12 @@ function getHrCandidateExtractionSearchTerms(candidate) {
     textSource === 'openai-ocr' ? 'OpenAI OCR' : '',
     textSource === 'pdf-text-fallback' ? 'OCR Fallback' : '',
     textSource === 'pdf-text-fallback' ? 'ocr-fallback' : '',
+    textSource === 'pdf-text-fallback' ? 'manual review' : '',
+    textSource === 'pdf-text-fallback' ? 'needs review' : '',
+    textSource === 'pdf-text-fallback' ? '需复核' : '',
     humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
-  if (candidate.extractionWarning) labels.push('OCR 回退');
+  if (candidate.extractionWarning) labels.push('OCR 回退', 'manual review', 'needs review', '需复核');
   return labels;
 }
 
@@ -2237,7 +2261,11 @@ function normalizeHrCandidateStage(stage) {
     'pdf-text-fallback': 'ocr-fallback',
     'ocr-warning': 'ocr-fallback',
     'ocr-review': 'ocr-fallback',
+    'manual-review': 'ocr-fallback',
+    'needs-review': 'ocr-fallback',
+    'needsreview': 'ocr-fallback',
     'ocr-回退': 'ocr-fallback',
+    '需复核': 'ocr-fallback',
     'pdf-文本提取保底': 'ocr-fallback',
   };
   return aliasMap[normalized] ?? 'all';
