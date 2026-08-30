@@ -2165,6 +2165,14 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.ok(nativePdfAliasQueryIds.includes(nativePdfCandidate.id));
   assert.ok(!nativePdfAliasQueryIds.includes(openAiOcrCandidate.id));
   assert.ok(!nativePdfAliasQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfExtractionQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF Text Extraction' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfExtractionQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfExtractionQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfExtractionQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfEnglishAliasQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: 'Native PDF Extraction' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfEnglishAliasQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfEnglishAliasQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfEnglishAliasQueryIds.includes(uploadOnlyCandidate.id));
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search@example.com' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
@@ -2179,6 +2187,10 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OpenAI OCR Extraction' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR Extraction' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
   );
   assert.deepEqual(
@@ -2199,6 +2211,14 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'needs review' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR Warning' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'review required' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(

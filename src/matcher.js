@@ -2229,15 +2229,20 @@ function getHrCandidateExtractionSearchTerms(candidate) {
     humanReadableLabel,
     englishLabel,
     textSource === 'pdf-text' ? 'native-pdf' : '',
+    textSource === 'pdf-text' ? 'Native PDF Extraction' : '',
+    textSource === 'pdf-text' ? 'PDF Text Extraction' : '',
     textSource === 'openai-ocr' ? 'OpenAI OCR' : '',
+    textSource === 'openai-ocr' ? 'OCR Extraction' : '',
     textSource === 'pdf-text-fallback' ? 'OCR Fallback' : '',
     textSource === 'pdf-text-fallback' ? 'ocr-fallback' : '',
+    textSource === 'pdf-text-fallback' ? 'OCR Warning' : '',
     textSource === 'pdf-text-fallback' ? 'manual review' : '',
     textSource === 'pdf-text-fallback' ? 'needs review' : '',
+    textSource === 'pdf-text-fallback' ? 'review required' : '',
     textSource === 'pdf-text-fallback' ? '需复核' : '',
     humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
-  if (candidate.extractionWarning) labels.push('OCR 回退', 'manual review', 'needs review', '需复核');
+  if (candidate.extractionWarning) labels.push('OCR 回退', 'OCR Warning', 'manual review', 'needs review', 'review required', '需复核');
   return labels;
 }
 
