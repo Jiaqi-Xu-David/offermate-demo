@@ -462,6 +462,27 @@ test('recognizes Linear and Apollo.io aliases in resumes and JDs', () => {
   assert.ok(job.tags.includes('HubSpot'));
 });
 
+test('recognizes Framer and Webflow aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`个人简历
+姓名：许舟
+学校：同济大学 数字媒体 本科
+求职意向：增长设计实习
+技能：Fra mer、Web flow、Figma
+项目经历：使用 Fra mer 制作活动原型，通过 Web flow 搭建招募落地页，并在 Figma 中维护页面样式稿。`);
+  const job = analyzeJobDescription({
+    title: '增长设计实习生',
+    city: '上海',
+    description: '需要熟悉 Framer、Webflow 和 Figma，支持活动页面原型设计、落地页搭建与样式协同。',
+  });
+
+  assert.ok(profile.skills.includes('Framer'));
+  assert.ok(profile.skills.includes('Webflow'));
+  assert.ok(profile.skills.includes('Figma'));
+  assert.ok(job.tags.includes('Framer'));
+  assert.ok(job.tags.includes('Webflow'));
+  assert.ok(job.tags.includes('Figma'));
+});
+
 test('recognizes Wix, HeyGen, and Zotero aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：顾言
