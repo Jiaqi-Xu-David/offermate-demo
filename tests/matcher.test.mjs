@@ -899,6 +899,15 @@ test('recognizes Google Workspace office-suite aliases in resumes and JDs', () =
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
 });
 
+test('recognizes Google Forms and Google Chat as office workflow aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Lina
+Experience: Coordinated campus event signups through Google Forms and kept hiring updates aligned in Google Chat.`);
+  const parsed = parseJobDescription('Need familiarity with Google Forms and Google Chat to support team coordination, form collection, and interview follow-ups.');
+
+  assert.ok(profile.skills.includes('Office'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === 'Office'));
+});
+
 test('recognizes Google Drive and OneDrive admin document aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：曹芸
