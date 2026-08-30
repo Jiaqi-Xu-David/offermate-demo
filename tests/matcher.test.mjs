@@ -1012,6 +1012,15 @@ test('recognizes enterprise recruiting platform aliases in resumes and JDs', () 
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes Taleo and SmartRecruiters platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Nora
+Experience: Managed candidate pipeline updates in Taleo and Smart Recruiters while coordinating interview status changes.`);
+  const parsed = parseJobDescription('Need familiarity with Taleo or SmartRecruiters to maintain candidate pipelines, status tracking, and interview workflow updates.');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
