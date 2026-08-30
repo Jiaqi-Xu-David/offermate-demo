@@ -132,7 +132,7 @@ npx wrangler pages dev . --port 4173
 - 更大的 PDF 仍会解析和匹配，但只保留文本，不保存原始二进制。
 - OCR 失败但本地文本仍可用时，系统会回退到本地文本并显示警告。
 - 可用原生 PDF 文本时，系统会尽量保留本地提取结果；只有文本明显损坏、结构缺失，或 `OCR_MODE=always` 时才强制走 OCR。
-- 对于包含 `Expected Graduation`、`Availability`、`Languages`、`Citizenship`、`Visa Status` 等结构化英文字段的短简历，会优先保留本地 PDF 文本结果，不强制走 OCR。
+- 对于包含 `Expected Graduation`、`Availability`、`Available to Join`、`Current Location`、`Languages`、`Citizenship`、`Visa Status` 等结构化英文字段的短简历，会优先保留本地 PDF 文本结果，不强制走 OCR。
 - 对于部分扫描仪或导出工具产生的 `application/x-pdf`、`application/acrobat` 等旧 MIME 类型，上传时会统一按 PDF 处理。
 - 上传文件最多 10MB，提取后的简历文本最多 50000 字；过短输入会直接提示，不会生成虚假匹配。
 - 学生端粘贴的自定义 JD 只保留在当前浏览器会话，不会写入岗位库；岗位库新增仍只开放给 HR。

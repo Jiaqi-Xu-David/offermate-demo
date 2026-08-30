@@ -773,6 +773,18 @@ test('keeps concise English resumes with location and start-availability heading
     ),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Current Location: Munich\nGitHub: github.com/lina\nSkills: SQL',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nAvailable to Join: 2 weeks\nSkills: Excel',
+    ),
+    false,
+  );
 });
 
 test('rejects empty, very short, and oversized extracted resume text', () => {
