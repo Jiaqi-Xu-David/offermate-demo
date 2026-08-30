@@ -584,6 +584,12 @@ test('keeps common English resume section labels on the PDF path', () => {
     ),
     false,
   );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nContact: lina@example.com\nTools: Notion, Slack, Jira',
+    ),
+    false,
+  );
 });
 
 test('keeps modern English resume labels on the PDF path', () => {
