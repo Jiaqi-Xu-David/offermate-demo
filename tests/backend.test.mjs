@@ -1783,6 +1783,93 @@ test('HR fallback stage includes PDF-text fallback candidates even without an ex
   assert.equal(fallbackOnly.uploadedCandidates[0].textSource, 'pdf-text-fallback');
 });
 
+test('HR stage filters normalize human-readable extraction aliases', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'hr-stage-alias-test-key' };
+
+  await ensureAppData(env);
+  const createdAt = new Date().toISOString();
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?), (?, ?, ?, 'student', 'salt', 'hash', ?), (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run(
+      'student-native-pdf',
+      'native@example.com',
+      '原生提取候选人',
+      createdAt,
+      'student-openai-ocr',
+      'ocr@example.com',
+      'OCR 候选人',
+      createdAt,
+      'student-fallback-alias',
+      'fallback-alias@example.com',
+      '保底候选人',
+      createdAt,
+    );
+  sqlite
+    .prepare(
+      `INSERT INTO resumes (
+        id, user_id, file_name, raw_text, profile_json, text_source, extraction_warning, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      'resume-native-pdf',
+      'student-native-pdf',
+      'native.pdf',
+      '姓名：原生提取候选人\n技能：SQL',
+      JSON.stringify({ name: '原生提取候选人', skills: ['SQL'], target: '数据分析实习' }),
+      'pdf-text',
+      '',
+      createdAt,
+      'resume-openai-ocr',
+      'student-openai-ocr',
+      'ocr.pdf',
+      '姓名：OCR 候选人\n技能：Python',
+      JSON.stringify({ name: 'OCR 候选人', skills: ['Python'], target: '算法实习' }),
+      'openai-ocr',
+      '',
+      createdAt,
+      'resume-fallback-alias',
+      'student-fallback-alias',
+      'fallback.pdf',
+      '姓名：保底候选人\n技能：Office、招聘',
+      JSON.stringify({ name: '保底候选人', skills: ['Office', '招聘'], target: 'HR 实习' }),
+      'pdf-text-fallback',
+      '',
+      createdAt,
+    );
+  sqlite
+    .prepare(
+      `INSERT INTO match_runs (id, user_id, resume_id, created_at)
+       VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)`,
+    )
+    .run(
+      'match-run-native-pdf',
+      'student-native-pdf',
+      'resume-native-pdf',
+      createdAt,
+      'match-run-openai-ocr',
+      'student-openai-ocr',
+      'resume-openai-ocr',
+      createdAt,
+      'match-run-fallback-alias',
+      'student-fallback-alias',
+      'resume-fallback-alias',
+      createdAt,
+    );
+
+  const nativePdfOnly = await listHrCandidates(env, { stage: 'native pdf extraction' });
+  const ocrOnly = await listHrCandidates(env, { stage: 'ocr extraction' });
+  const reviewOnly = await listHrCandidates(env, { stage: 'manual review queue' });
+
+  assert.deepEqual(nativePdfOnly.uploadedCandidates.map((candidate) => candidate.id), ['student-native-pdf']);
+  assert.deepEqual(ocrOnly.uploadedCandidates.map((candidate) => candidate.id), ['student-openai-ocr']);
+  assert.deepEqual(reviewOnly.uploadedCandidates.map((candidate) => candidate.id), ['student-fallback-alias']);
+});
+
 test('HR candidates API forwards query params to server-side filters', async () => {
   const candidatesApi = await readFile(new URL('../functions/api/hr/candidates.js', import.meta.url), 'utf8');
 
