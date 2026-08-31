@@ -1042,6 +1042,15 @@ Experience: Managed candidate pipeline updates in Taleo and Smart Recruiters whi
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes Ashby, Jobvite, and Pinpoint platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Iris
+Experience: Used Ashby and Jobvite to track candidate progress, and updated interview stages in Pin point.`);
+  const parsed = parseJobDescription('Need familiarity with Ashby, Jobvite, or Pinpoint to maintain candidate pipelines, recruiter coordination, and ATS status updates.');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
