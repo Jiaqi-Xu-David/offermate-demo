@@ -2317,7 +2317,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     if (stage === 'strong' && (bestMatch?.score ?? 0) < 80) return false;
     if (stage === 'native-pdf' && textSource !== 'pdf-text') return false;
     if (stage === 'openai-ocr' && textSource !== 'openai-ocr') return false;
-    if (stage === 'ocr-fallback' && !candidate.extractionWarning) return false;
+    if (stage === 'ocr-fallback' && textSource !== 'pdf-text-fallback' && !candidate.extractionWarning) return false;
     if (!query) return true;
 
     const profile = candidate.profile ?? {};

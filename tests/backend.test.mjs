@@ -1740,6 +1740,49 @@ test('HR candidate listing supports server-side search and stage filters', async
   assert.equal(uploadOnlySearch.uploadedCandidates[0].extractionWarning, 'OpenAI OCR failed: 502 upstream timeout');
 });
 
+test('HR fallback stage includes PDF-text fallback candidates even without an explicit warning string', async (t) => {
+  const { sqlite, d1 } = createD1TestDatabase();
+  t.after(() => sqlite.close());
+  const env = { APP_DB: d1, OFFERMATE_ENCRYPTION_KEY: 'hr-fallback-stage-test-key' };
+
+  await ensureAppData(env);
+  const createdAt = new Date().toISOString();
+  sqlite
+    .prepare(
+      `INSERT INTO users (id, email, name, role, password_salt, password_hash, created_at)
+       VALUES (?, ?, ?, 'student', 'salt', 'hash', ?)`,
+    )
+    .run('student-fallback-stage', 'fallback@example.com', '保底候选人', createdAt);
+  sqlite
+    .prepare(
+      `INSERT INTO resumes (
+        id, user_id, file_name, raw_text, profile_json, text_source, extraction_warning, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      'resume-fallback-stage',
+      'student-fallback-stage',
+      'fallback.pdf',
+      '姓名：保底候选人\n技能：Office、招聘',
+      JSON.stringify({ name: '保底候选人', skills: ['Office', '招聘'], target: 'HR 实习' }),
+      'pdf-text-fallback',
+      '',
+      createdAt,
+    );
+  sqlite
+    .prepare(
+      `INSERT INTO match_runs (id, user_id, resume_id, created_at)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .run('match-run-fallback-stage', 'student-fallback-stage', 'resume-fallback-stage', createdAt);
+
+  const fallbackOnly = await listHrCandidates(env, { stage: 'ocr-fallback' });
+
+  assert.equal(fallbackOnly.filteredCount, 1);
+  assert.equal(fallbackOnly.uploadedCandidates[0].id, 'student-fallback-stage');
+  assert.equal(fallbackOnly.uploadedCandidates[0].textSource, 'pdf-text-fallback');
+});
+
 test('HR candidates API forwards query params to server-side filters', async () => {
   const candidatesApi = await readFile(new URL('../functions/api/hr/candidates.js', import.meta.url), 'utf8');
 
