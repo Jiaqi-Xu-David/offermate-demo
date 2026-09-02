@@ -1051,6 +1051,15 @@ Experience: Used Ashby and Jobvite to track candidate progress, and updated inte
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes Workable, Recruitee, and Breezy HR platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Mina
+Experience: Maintained candidate stages in Workable, Recruitee, and Breezy HR while coordinating interview scheduling.`);
+  const parsed = parseJobDescription('Need experience with Workable, Recruitee, or BreezyHR to manage inbound candidates, recruiter coordination, and hiring pipeline updates.');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
