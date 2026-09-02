@@ -2208,6 +2208,10 @@ test('filters the HR review queue by search text and review stage', () => {
     [openAiOcrCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'AI OCR 提取' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR Extraction' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
   );
@@ -2217,6 +2221,10 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR fallback' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR 保底' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
@@ -2230,6 +2238,10 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'needs review' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '人工复核' }).map((candidate) => candidate.id),
+    ['wang-ziang', uploadOnlyCandidate.id],
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR Warning' }).map((candidate) => candidate.id),
@@ -2306,11 +2318,19 @@ test('filters the HR review queue by search text and review stage', () => {
     [openAiOcrCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'AI OCR 提取' }).map((candidate) => candidate.id),
+    [openAiOcrCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'OpenAI OCR Extraction' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 文本提取保底' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'OCR 保底' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
@@ -2327,6 +2347,10 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'needs review' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '人工复核' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
