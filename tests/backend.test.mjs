@@ -787,6 +787,21 @@ test('keeps concise English resumes with location and start-availability heading
   );
 });
 
+test('keeps concise English resumes with current-address and phone-no headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Current Address: Munich\nPhone No.: +49 151 23456789\nEmail ID: lina@example.com\nKey Skills: Excel, Recruiting',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nPhone No: +86 13800000000\nEmail ID: lina@example.com\nNotice: Immediate',
+    ),
+    false,
+  );
+});
+
 test('rejects empty, very short, and oversized extracted resume text', () => {
   assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
   assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
