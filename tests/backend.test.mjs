@@ -802,6 +802,21 @@ test('keeps concise English resumes with current-address and phone-no headings o
   );
 });
 
+test('keeps concise English resumes with contact-number, mail-id, and CTC headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nContact Number: +49 151 23456789\nMail ID: lina@example.com\nCurrent CTC: 12 LPA\nSkills: Excel, Recruiting',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Profile Details\nContact Number: +86 13800000000\nMail ID: lina@example.com\nExpected CTC: 15 LPA\nAvailable to Join: Immediate',
+    ),
+    false,
+  );
+});
+
 test('rejects empty, very short, and oversized extracted resume text', () => {
   assert.throws(() => validateResumeText(''), /至少需要 40 个字符/);
   assert.throws(() => validateResumeText('短简历'), /至少需要 40 个字符/);
