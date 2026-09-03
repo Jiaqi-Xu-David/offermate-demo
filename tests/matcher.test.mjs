@@ -2200,6 +2200,14 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.ok(nativePdfEnglishAliasQueryIds.includes(nativePdfCandidate.id));
   assert.ok(!nativePdfEnglishAliasQueryIds.includes(openAiOcrCandidate.id));
   assert.ok(!nativePdfEnglishAliasQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfChineseAliasQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: '原生 PDF 提取' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfChineseAliasQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfChineseAliasQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfChineseAliasQueryIds.includes(uploadOnlyCandidate.id));
+  const nativePdfResumeAliasQueryIds = filterHrCandidatesForReview(candidates, JOBS, { query: 'Native PDF Resume' }).map((candidate) => candidate.id);
+  assert.ok(nativePdfResumeAliasQueryIds.includes(nativePdfCandidate.id));
+  assert.ok(!nativePdfResumeAliasQueryIds.includes(openAiOcrCandidate.id));
+  assert.ok(!nativePdfResumeAliasQueryIds.includes(uploadOnlyCandidate.id));
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'lin-search@example.com' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
@@ -2237,6 +2245,10 @@ test('filters the HR review queue by search text and review stage', () => {
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'PDF 保底提取' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'ocr-fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
@@ -2251,6 +2263,10 @@ test('filters the HR review queue by search text and review stage', () => {
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: '人工复核' }).map((candidate) => candidate.id),
     ['wang-ziang', uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR 复核' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { query: 'OCR Warning' }).map((candidate) => candidate.id),
@@ -2323,6 +2339,14 @@ test('filters the HR review queue by search text and review stage', () => {
     nativePdfStageIds,
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: '原生 PDF 提取' }).map((candidate) => candidate.id),
+    nativePdfStageIds,
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'Native PDF Resume' }).map((candidate) => candidate.id),
+    nativePdfStageIds,
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'OpenAI OCR 提取' }).map((candidate) => candidate.id),
     [openAiOcrCandidate.id],
   );
@@ -2343,6 +2367,10 @@ test('filters the HR review queue by search text and review stage', () => {
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 保底提取' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF Text Fallback' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
@@ -2360,6 +2388,10 @@ test('filters the HR review queue by search text and review stage', () => {
   );
   assert.deepEqual(
     filterHrCandidatesForReview(candidates, JOBS, { stage: '人工复核' }).map((candidate) => candidate.id),
+    [uploadOnlyCandidate.id],
+  );
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { stage: 'OCR 复核' }).map((candidate) => candidate.id),
     [uploadOnlyCandidate.id],
   );
   assert.deepEqual(
