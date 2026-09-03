@@ -1060,6 +1060,15 @@ Experience: Maintained candidate stages in Workable, Recruitee, and Breezy HR wh
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes JazzHR, Teamtailor, and Avature platform aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Lora
+Experience: Used Jazz HR and Team Tailor to manage candidate stages, and updated recruiter workflows in Avature.`);
+  const parsed = parseJobDescription('Need familiarity with JazzHR, Teamtailor, or Avature to maintain hiring pipelines, recruiter coordination, and ATS updates.');
+
+  assert.ok(profile.skills.includes('招聘'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
