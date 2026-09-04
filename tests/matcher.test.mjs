@@ -1069,6 +1069,15 @@ Experience: Used Jazz HR and Team Tailor to manage candidate stages, and updated
   assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '招聘'));
 });
 
+test('recognizes BambooHR and HiBob as HR operations aliases in resumes and JDs', () => {
+  const profile = parseResumeText(`Name: Lina
+Experience: Maintained onboarding records in BambooHR and synced people data in HiBob while supporting HR operations.`);
+  const parsed = parseJobDescription('Need familiarity with BambooHR or HiBob to support onboarding workflows, people data maintenance, and HR operations coordination.');
+
+  assert.ok(profile.skills.includes('人事'));
+  assert.ok(parsed.hardSkillRequirements.some((item) => item.name === '人事'));
+});
+
 test('recognizes common media-suite aliases in resumes and JDs', () => {
   const profile = parseResumeText(`个人简历
 姓名：周映
