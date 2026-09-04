@@ -787,6 +787,21 @@ test('keeps concise English resumes with location and start-availability heading
   );
 });
 
+test('keeps concise resumes with WhatsApp and preferred-location headings on the PDF path', () => {
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Name: Lina\nWhatsApp: +49 151 23456789\nSkills: Excel, Recruiting',
+    ),
+    false,
+  );
+  assert.equal(
+    shouldUseOcrTextExtraction(
+      'Current Employer: Campus Club\nPreferred Location: Shanghai\nLanguages: English, Mandarin\nSkills: SQL',
+    ),
+    false,
+  );
+});
+
 test('keeps concise English resumes with current-address and phone-no headings on the PDF path', () => {
   assert.equal(
     shouldUseOcrTextExtraction(
