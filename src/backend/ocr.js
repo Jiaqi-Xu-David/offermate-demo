@@ -57,7 +57,7 @@ function normalizeOcrText(text) {
     .replace(/\u00AD/g, '')
     .replace(/[\u00A0\u2007\u202F]/g, ' ')
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
-    .replace(/\r/g, '\n')
+    .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')

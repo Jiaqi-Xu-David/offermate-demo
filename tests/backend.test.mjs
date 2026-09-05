@@ -2305,3 +2305,13 @@ test('keeps db/schema.sql and the runtime schema in sync', async () => {
     assert.deepEqual([...localColumns].sort(), [...columns].sort(), `columns drifted for ${table}`);
   }
 });
+
+
+test('preserves OCR paragraph spacing when normalizing Windows line endings', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Name: Lina\r\nSkills: Excel\r\n\r\nExperience: Reporting' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
+});
