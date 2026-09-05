@@ -2625,3 +2625,19 @@ test('job detail page never falls back to another job on failure', async () => {
   assert.ok(!appJs.includes('loadAdminJobs'));
   assert.ok(!appJs.includes("source === 'admin'"));
 });
+
+
+test('accepts displayed manual-review labels as HR stage filters', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'warning', textSource: 'openai-ocr', extractionWarning: 'Check OCR text' },
+  ];
+  for (const stage of ['人工审核', '待人工复核', 'manual screening', 'review required']) {
+    assert.deepEqual(
+      filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id),
+      ['fallback', 'warning'],
+      stage,
+    );
+  }
+});
