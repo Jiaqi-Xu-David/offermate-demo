@@ -2315,3 +2315,13 @@ test('preserves OCR paragraph spacing when normalizing Windows line endings', as
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
 });
+
+
+test('strips Chinese page totals without punctuation while preserving resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '第 1 页 共 2 页\n姓名：林禾\n项目：完成第 1 页 共 2 页的排版\n第2页共2页' }) },
+  );
+  assert.equal(text, '姓名：林禾\n项目：完成第 1 页 共 2 页的排版');
+});
