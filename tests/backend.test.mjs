@@ -2325,3 +2325,12 @@ test('strips Chinese page totals without punctuation while preserving resume con
   );
   assert.equal(text, '姓名：林禾\n项目：完成第 1 页 共 2 页的排版');
 });
+
+test('normalizes Unicode line and paragraph separators in extracted text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Name: Lina\u2028Skills: Excel\u2029Experience: Reporting' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
+});
