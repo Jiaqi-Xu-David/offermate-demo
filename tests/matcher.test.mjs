@@ -2654,3 +2654,12 @@ test('distinguishes Lark experience from Slack requirements', () => {
   }
   assert.ok(parseResumeText('技能：Slack').skills.includes('Slack'));
 });
+
+test('recognizes Postman API testing skills in resumes and job descriptions', () => {
+  for (const name of ['Postman', 'postman', 'Post man']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 进行 API 接口测试`).skills.includes('Postman'));
+    const job = analyzeJobDescription({ title: '测试工程师', city: '上海', description: `使用 ${name} 维护 API 接口测试` });
+    assert.ok(job.tags.includes('Postman'));
+  }
+  assert.ok(!parseResumeText('技能：Postmanship').skills.includes('Postman'));
+});
