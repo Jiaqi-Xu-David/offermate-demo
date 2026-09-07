@@ -410,7 +410,8 @@ test('recognizes OCR-spaced and Chinese collaboration tool aliases in resumes an
   assert.ok(profile.skills.includes('Notion'));
   assert.ok(profile.skills.includes('Jira'));
   assert.ok(profile.skills.includes('Confluence'));
-  assert.ok(profile.skills.includes('Slack'));
+  assert.ok(profile.skills.includes('Lark'));
+  assert.ok(!profile.skills.includes('Slack'));
   assert.ok(job.tags.includes('Figma'));
   assert.ok(job.tags.includes('Notion'));
   assert.ok(job.tags.includes('Jira'));
@@ -2640,4 +2641,16 @@ test('accepts displayed manual-review labels as HR stage filters', () => {
       stage,
     );
   }
+});
+
+test('distinguishes Lark experience from Slack requirements', () => {
+  for (const name of ['飞书', 'Lark']) {
+    const profile = parseResumeText(`技能：${name}`);
+    assert.ok(profile.skills.includes('Lark'));
+    assert.ok(!profile.skills.includes('Slack'));
+    const job = analyzeJobDescription({ title: "运营实习生", city: "上海", description: `岗位要求：熟练使用${name}` });
+    assert.ok(job.tags.includes('Lark'));
+    assert.ok(!job.tags.includes('Slack'));
+  }
+  assert.ok(parseResumeText('技能：Slack').skills.includes('Slack'));
 });
