@@ -2663,3 +2663,14 @@ test('recognizes Postman API testing skills in resumes and job descriptions', ()
   }
   assert.ok(!parseResumeText('技能：Postmanship').skills.includes('Postman'));
 });
+
+
+test('recognizes GitHub Actions automation experience in resumes and jobs', () => {
+  for (const name of ['GitHub Actions', 'github actions', 'Git Hub Actions']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建持续集成流水线`).skills.includes('GitHub Actions'));
+    const job = analyzeJobDescription({ title: '开发工程师', city: '上海', description: `要求使用 ${name} 构建持续集成流水线` });
+    assert.ok(job.tags.includes('GitHub Actions'));
+  }
+  assert.ok(!parseResumeText('技能：GitHub 仓库管理').skills.includes('GitHub Actions'));
+  assert.ok(!parseResumeText('技能：GitHub ActionsExtra').skills.includes('GitHub Actions'));
+});

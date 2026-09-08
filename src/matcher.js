@@ -64,6 +64,7 @@ const SKILL_DICTIONARY = [
   '深度学习',
   'PyTorch',
   'GitHub',
+  'GitHub Actions',
   '推荐算法',
   '数学建模',
   'JavaScript',
@@ -362,6 +363,7 @@ const KEYWORD_ALIASES = {
   Lightroom: ['Lightroom', 'lightroom', 'Adobe Lightroom', 'adobe lightroom', 'Light room', 'light room'],
   'Final Cut Pro': ['Final Cut', 'final cut', 'Final Cut Pro', 'final cut pro', 'FCP', 'fcp'],
   GitHub: ['Github', 'github', 'Git Hub', 'git hub'],
+  'GitHub Actions': ['github actions', 'Git Hub Actions', 'git hub actions'],
   Office: [
     'Office',
     'OFFICE',
