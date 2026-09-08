@@ -2674,3 +2674,17 @@ test('recognizes GitHub Actions automation experience in resumes and jobs', () =
   assert.ok(!parseResumeText('技能：GitHub 仓库管理').skills.includes('GitHub Actions'));
   assert.ok(!parseResumeText('技能：GitHub ActionsExtra').skills.includes('GitHub Actions'));
 });
+
+
+test('accepts applied and unapplied HR stage filter labels', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [JOBS[0].id] },
+    { ...CANDIDATES[0], id: 'unapplied', submittedJobIds: [] },
+  ];
+  for (const stage of ['applied', ' Applied ']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['applied']);
+  }
+  for (const stage of ['unapplied', 'not applied', 'not_applied']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['unapplied']);
+  }
+});
