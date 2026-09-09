@@ -2688,3 +2688,13 @@ test('accepts applied and unapplied HR stage filter labels', () => {
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['unapplied']);
   }
 });
+
+
+test('recognizes Playwright testing skills in resumes and jobs', () => {
+  for (const name of ['Playwright', 'playwright', 'Play wright']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 编写端到端测试`).skills.includes('Playwright'));
+    const job = analyzeJobDescription({ title: '测试工程师', city: '上海', description: `要求使用 ${name} 编写端到端测试` });
+    assert.ok(job.tags.includes('Playwright'));
+  }
+  assert.ok(!parseResumeText('技能：PlaywrightExtra').skills.includes('Playwright'));
+});
