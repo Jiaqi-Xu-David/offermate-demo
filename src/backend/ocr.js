@@ -12,6 +12,7 @@ function isPageMarkerLine(line) {
   const normalized = cleanText(line).replace(/\s+/g, ' ');
   if (!normalized) return false;
   return [
+    /^seite\s+\d+(?:\s*(?:von|\/)\s*\d+)?$/i,
     /^第\s*\d+\s*页\s*共\s*\d+\s*页$/i,
     /^第\s*\d+\s*页(?:\s*[\/／]\s*共?\s*\d+\s*页?)?$/i,
     /^第\s*\d+\s*\/\s*\d+\s*页$/i,

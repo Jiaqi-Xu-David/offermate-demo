@@ -2344,3 +2344,12 @@ test('preserves page boundaries from form-feed separated resume text', async () 
   );
   assert.equal(text, 'Name: Lina\n\nSkills: Excel\n\nExperience: Reporting');
 });
+
+test('strips standalone German page markers while preserving inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Seite 1 von 3\nName: Lina\nSEITE 2 / 3\nProjekt: Seite 1 von 3 gestaltet\nSeite 3' }) },
+  );
+  assert.equal(text, 'Name: Lina\nProjekt: Seite 1 von 3 gestaltet');
+});
