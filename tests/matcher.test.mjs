@@ -2708,3 +2708,13 @@ test('recognizes Selenium testing skills without matching longer words', () => {
   assert.ok(!parseResumeText('技能：SeleniumExtra').skills.includes('Selenium'));
   assert.ok(!analyzeJobDescription({ title: '测试工程师', city: '上海', description: '使用 SeleniumExtra 编写测试' }).tags.includes('Selenium'));
 });
+
+test('accepts not submitted HR filters without including submitted candidates', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'submitted', submittedJobIds: [JOBS[0].id] },
+    { ...CANDIDATES[0], id: 'pending', submittedJobIds: [] },
+  ];
+  for (const stage of ['not submitted', ' NOT_SUBMITTED ', 'not-submitted']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['pending']);
+  }
+});

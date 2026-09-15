@@ -2330,6 +2330,7 @@ function normalizeHrCandidateStage(stage) {
     '已提交': 'submitted',
     '已投递': 'submitted',
     unsubmitted: 'unsubmitted',
+    'not-submitted': 'unsubmitted',
     unapplied: 'unsubmitted',
     'not-applied': 'unsubmitted',
     '未提交': 'unsubmitted',
