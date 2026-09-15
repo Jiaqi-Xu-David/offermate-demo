@@ -2698,3 +2698,13 @@ test('recognizes Playwright testing skills in resumes and jobs', () => {
   }
   assert.ok(!parseResumeText('技能：PlaywrightExtra').skills.includes('Playwright'));
 });
+
+test('recognizes Selenium testing skills without matching longer words', () => {
+  for (const name of ['Selenium', 'selenium', 'Sele nium']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 编写自动化测试`).skills.includes('Selenium'));
+    const job = analyzeJobDescription({ title: '测试工程师', city: '上海', description: `要求使用 ${name} 编写自动化测试` });
+    assert.ok(job.tags.includes('Selenium'));
+  }
+  assert.ok(!parseResumeText('技能：SeleniumExtra').skills.includes('Selenium'));
+  assert.ok(!analyzeJobDescription({ title: '测试工程师', city: '上海', description: '使用 SeleniumExtra 编写测试' }).tags.includes('Selenium'));
+});
