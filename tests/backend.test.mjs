@@ -2353,3 +2353,12 @@ test('strips standalone German page markers while preserving inline references',
   );
   assert.equal(text, 'Name: Lina\nProjekt: Seite 1 von 3 gestaltet');
 });
+
+test('strips French page totals without deleting inline resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Page 1 sur 3\nName: Lina\nPAGE 2 SUR 3\nProject: Page 1 sur 3 redesigned' }) },
+  );
+  assert.equal(text, 'Name: Lina\nProject: Page 1 sur 3 redesigned');
+});
