@@ -2727,3 +2727,13 @@ test('accepts not submitted HR filters without including submitted candidates', 
   assert.ok(!parseResumeText('技能：DockerExtra').skills.includes('Docker'));
   assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: '使用 DockerExtra' }).tags.includes('Docker'));
 });
+
+test('accepts Chinese application status labels in HR filters', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [JOBS[0].id] },
+    { ...CANDIDATES[0], id: 'pending', submittedJobIds: [] },
+  ];
+  for (const [stage, expected] of [['已申请', 'applied'], ['未申请', 'pending']]) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), [expected]);
+  }
+});
