@@ -2718,3 +2718,12 @@ test('accepts not submitted HR filters without including submitted candidates', 
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['pending']);
   }
 });
+
+ test('recognizes Docker container skills in resumes and jobs', () => {
+  for (const name of ['Docker', 'docker', 'Dock er']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 部署容器`).skills.includes('Docker'));
+    assert.ok(analyzeJobDescription({ title: '开发工程师', city: '上海', description: `要求使用 ${name} 部署容器` }).tags.includes('Docker'));
+  }
+  assert.ok(!parseResumeText('技能：DockerExtra').skills.includes('Docker'));
+  assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: '使用 DockerExtra' }).tags.includes('Docker'));
+});
