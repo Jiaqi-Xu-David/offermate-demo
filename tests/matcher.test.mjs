@@ -2737,3 +2737,14 @@ test('accepts Chinese application status labels in HR filters', () => {
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), [expected]);
   }
 });
+
+ test('recognizes Kubernetes deployment skills in resumes and jobs', () => {
+  for (const name of ['Kubernetes', 'kubernetes', 'K8s', 'Kuber netes']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 管理容器集群`).skills.includes('Kubernetes'));
+    assert.ok(analyzeJobDescription({ title: '开发工程师', city: '上海', description: `要求使用 ${name} 管理容器集群` }).tags.includes('Kubernetes'));
+  }
+  for (const name of ['KubernetesExtra', 'K8sExtra']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Kubernetes'));
+    assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Kubernetes'));
+  }
+});
