@@ -2362,3 +2362,12 @@ test('strips French page totals without deleting inline resume content', async (
   );
   assert.equal(text, 'Name: Lina\nProject: Page 1 sur 3 redesigned');
 });
+
+test('strips standalone Spanish page totals without deleting inline resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Página 1 de 2\nName: Lina\nPAGINA 2 DE 2\nProject: Página 1 de 2 redesigned' }) },
+  );
+  assert.equal(text, 'Name: Lina\nProject: Página 1 de 2 redesigned');
+});
