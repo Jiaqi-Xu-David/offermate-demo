@@ -2748,3 +2748,13 @@ test('accepts Chinese application status labels in HR filters', () => {
     assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Kubernetes'));
   }
 });
+
+test('accepts recruiter queue labels for pending assignment', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'submitted', submittedJobIds: [JOBS[0].id] },
+    { ...CANDIDATES[0], id: 'pending', submittedJobIds: [] },
+  ];
+  for (const stage of ['待投递', '待申请']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['pending']);
+  }
+});

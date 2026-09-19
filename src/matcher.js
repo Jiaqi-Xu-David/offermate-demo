@@ -2344,6 +2344,8 @@ function normalizeHrCandidateStage(stage) {
     'upload-only': 'unsubmitted',
     'uploaded-only': 'unsubmitted',
     '待分流': 'unsubmitted',
+    '待投递': 'unsubmitted',
+    '待申请': 'unsubmitted',
     'high-potential-unsubmitted': 'high-potential-unsubmitted',
     'high-potential': 'high-potential-unsubmitted',
     'high-potential-upload-only': 'high-potential-unsubmitted',
