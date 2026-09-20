@@ -2371,3 +2371,12 @@ test('strips standalone Spanish page totals without deleting inline resume conte
   );
   assert.equal(text, 'Name: Lina\nProject: Página 1 de 2 redesigned');
 });
+
+test('normalizes Unicode next-line characters before removing OCR page markers', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Name: Lina\u0085Page 1 of 2\u0085Skills: Excel\u0085\u0085Experience: Reporting' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
+});
