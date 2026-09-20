@@ -2769,3 +2769,14 @@ test('accepts recruiter queue labels for pending assignment', () => {
     assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Terraform'));
   }
 });
+
+test('accepts pending review labels without including clean extractions', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'clean', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'warning', textSource: 'openai-ocr', extractionWarning: 'Verify extracted text' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: '' },
+  ];
+  for (const stage of ['待复核', '待审核', 'pending review', ' PENDING_REVIEW ']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['warning', 'fallback']);
+  }
+});
