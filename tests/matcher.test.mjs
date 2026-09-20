@@ -2758,3 +2758,14 @@ test('accepts recruiter queue labels for pending assignment', () => {
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['pending']);
   }
 });
+
+ test('recognizes Terraform infrastructure skills in resumes and jobs', () => {
+  for (const name of ['Terraform', 'terraform', 'Terra form']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 管理基础设施`).skills.includes('Terraform'));
+    assert.ok(analyzeJobDescription({ title: '开发工程师', city: '上海', description: `要求使用 ${name} 管理基础设施` }).tags.includes('Terraform'));
+  }
+  for (const name of ['TerraformExtra', 'MyTerraform']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Terraform'));
+    assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Terraform'));
+  }
+});
