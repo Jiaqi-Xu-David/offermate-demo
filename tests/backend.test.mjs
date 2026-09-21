@@ -2380,3 +2380,13 @@ test('normalizes Unicode next-line characters before removing OCR page markers',
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
 });
+
+
+test('strips Italian page totals while preserving inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Pagina 1 di 3\nName: Lina\nPAGINA 2 DI 3\nProject: Pagina 1 di 3 redesigned\nPagina 3 / 3' }) },
+  );
+  assert.equal(text, 'Name: Lina\nProject: Pagina 1 di 3 redesigned');
+});
