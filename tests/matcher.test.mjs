@@ -2323,6 +2323,12 @@ test('filters the HR review queue by search text and review stage', () => {
     filterHrCandidatesForReview(candidates, JOBS, { stage: 'high-potential-unsubmitted' }).map((candidate) => candidate.id),
     [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
   );
+  for (const stage of ['高潜未申请', '高潜待申请', 'high potential not applied', ' HIGH_POTENTIAL_NOT_APPLIED ']) {
+    assert.deepEqual(
+      filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id),
+      [nativePdfCandidate.id, openAiOcrCandidate.id, uploadOnlyCandidate.id],
+    );
+  }
   assert.ok(filterHrCandidatesForReview(candidates, JOBS, { stage: 'strong' }).length > 0);
   const nativePdfStageIds = filterHrCandidatesForReview(candidates, JOBS, { stage: 'native-pdf' }).map((candidate) => candidate.id);
   assert.ok(nativePdfStageIds.includes(nativePdfCandidate.id));
