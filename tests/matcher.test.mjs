@@ -2780,3 +2780,15 @@ test('accepts pending review labels without including clean extractions', () => 
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['warning', 'fallback']);
   }
 });
+
+
+test('recognizes Jenkins automation skills with word boundaries', () => {
+  for (const name of ['Jenkins', 'jenkins', 'Jen kins']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建持续集成流水线`).skills.includes('Jenkins'));
+    assert.ok(analyzeJobDescription({ title: '开发工程师', city: '上海', description: `要求使用 ${name} 构建持续集成流水线` }).tags.includes('Jenkins'));
+  }
+  for (const name of ['JenkinsExtra', 'MyJenkins']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Jenkins'));
+    assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Jenkins'));
+  }
+});
