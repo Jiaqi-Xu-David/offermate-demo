@@ -2390,3 +2390,11 @@ test('strips Italian page totals while preserving inline references', async () =
   );
   assert.equal(text, 'Name: Lina\nProject: Pagina 1 di 3 redesigned');
 });
+
+test('uses default session lifetime for blank configuration values', () => {
+  for (const value of ['', '   ', '\t\n']) {
+    assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: value }), 60 * 60 * 24 * 7);
+    assert.equal(getSessionMaxAgeSeconds({ OFFERMATE_SESSION_MAX_AGE_SECONDS: value }), 60 * 60 * 24 * 7);
+  }
+  assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: '0' }), 60 * 60);
+});

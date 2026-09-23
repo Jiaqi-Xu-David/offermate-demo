@@ -58,6 +58,7 @@ function normalizeCookieMaxAge(maxAgeSeconds) {
 
 export function getSessionMaxAgeSeconds(env = {}) {
   const configured = env.SESSION_MAX_AGE_SECONDS ?? env.OFFERMATE_SESSION_MAX_AGE_SECONDS;
+  if (String(configured ?? '').trim() === '') return DEFAULT_SESSION_MAX_AGE_SECONDS;
   const parsed = Number(configured);
   if (!Number.isFinite(parsed)) return DEFAULT_SESSION_MAX_AGE_SECONDS;
   return Math.min(MAX_SESSION_MAX_AGE_SECONDS, Math.max(60 * 60, Math.floor(parsed)));
