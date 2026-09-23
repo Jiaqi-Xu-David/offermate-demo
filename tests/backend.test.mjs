@@ -2398,3 +2398,12 @@ test('uses default session lifetime for blank configuration values', () => {
   }
   assert.equal(getSessionMaxAgeSeconds({ SESSION_MAX_AGE_SECONDS: '0' }), 60 * 60);
 });
+
+test('strips fullwidth page numbers without normalizing resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '第１页共３页\nName: Lina\nPage ２ of ３\n项目：２０２６ 数据分析\n第３页／共３页\nProject: Page １ of ３ redesigned' }) },
+  );
+  assert.equal(text, 'Name: Lina\n项目：２０２６ 数据分析\nProject: Page １ of ３ redesigned');
+});
