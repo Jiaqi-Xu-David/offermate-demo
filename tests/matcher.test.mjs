@@ -2798,3 +2798,15 @@ test('recognizes Jenkins automation skills with word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '开发工程师', city: '上海', description: name }).tags.includes('Jenkins'));
   }
 });
+
+
+test('recognizes Redis cache skills without matching longer words', () => {
+  for (const name of ['Redis', 'redis', 'Re dis']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 管理缓存`).skills.includes('Redis'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 管理缓存` }).tags.includes('Redis'));
+  }
+  for (const name of ['RedisExtra', 'MyRedis']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Redis'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Redis'));
+  }
+});
