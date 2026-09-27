@@ -2810,3 +2810,14 @@ test('recognizes Redis cache skills without matching longer words', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Redis'));
   }
 });
+
+test('recognizes GraphQL API skills without matching longer words', () => {
+  for (const name of ['GraphQL', 'graphql', 'Graph QL']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发接口`).skills.includes('GraphQL'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 开发接口` }).tags.includes('GraphQL'));
+  }
+  for (const name of ['GraphQLExtra', 'MyGraphQL']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('GraphQL'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('GraphQL'));
+  }
+});
