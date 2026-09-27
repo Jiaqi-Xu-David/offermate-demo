@@ -2407,3 +2407,12 @@ test('strips fullwidth page numbers without normalizing resume content', async (
   );
   assert.equal(text, 'Name: Lina\n项目：２０２６ 数据分析\nProject: Page １ of ３ redesigned');
 });
+
+test('strips fullwidth slash page totals while preserving inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Page １／３\nName: Lina\nPg. ２／３\nSeite ３／３\nProject: Page １／３ redesigned' }) },
+  );
+  assert.equal(text, 'Name: Lina\nProject: Page １／３ redesigned');
+});

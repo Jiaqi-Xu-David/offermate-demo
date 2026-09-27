@@ -10,6 +10,7 @@ function cleanText(value) {
 
 function isPageMarkerLine(line) {
   const normalized = cleanText(line)
+    .replace(/／/g, '/')
     .replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - 0xFF10))
     .replace(/\s+/g, ' ');
   if (!normalized) return false;
