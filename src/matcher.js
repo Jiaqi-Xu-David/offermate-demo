@@ -2368,6 +2368,8 @@ function normalizeHrCandidateStage(stage) {
     'strong-match': 'strong',
     'high-match': 'strong',
     '高匹配': 'strong',
+    '强匹配': 'strong',
+    '高匹配候选人': 'strong',
     'native-pdf': 'native-pdf',
     'native-pdf-text': 'native-pdf',
     'native-pdf-text-extraction': 'native-pdf',

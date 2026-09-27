@@ -2821,3 +2821,11 @@ test('recognizes GraphQL API skills without matching longer words', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('GraphQL'));
   }
 });
+
+test('accepts strong candidate filter labels without broadening results', () => {
+  const expected = filterHrCandidatesForReview(CANDIDATES, JOBS, { stage: 'strong' }).map((candidate) => candidate.id);
+  assert.ok(expected.length > 0 && expected.length < CANDIDATES.length);
+  for (const stage of ['强匹配', '高匹配候选人', 'high match', ' HIGH_MATCH ']) {
+    assert.deepEqual(filterHrCandidatesForReview(CANDIDATES, JOBS, { stage }).map((candidate) => candidate.id), expected);
+  }
+});
