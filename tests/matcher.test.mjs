@@ -2829,3 +2829,15 @@ test('accepts strong candidate filter labels without broadening results', () => 
     assert.deepEqual(filterHrCandidatesForReview(CANDIDATES, JOBS, { stage }).map((candidate) => candidate.id), expected);
   }
 });
+
+
+test('recognizes MongoDB database skills with word boundaries', () => {
+  for (const name of ['MongoDB', 'mongodb', 'Mongo DB']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 存储文档数据`).skills.includes('MongoDB'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 存储文档数据` }).tags.includes('MongoDB'));
+  }
+  for (const name of ['MongoDBExtra', 'MyMongoDB']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('MongoDB'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('MongoDB'));
+  }
+});
