@@ -2841,3 +2841,16 @@ test('recognizes MongoDB database skills with word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('MongoDB'));
   }
 });
+
+
+test('accepts displayed PDF extraction labels in HR stage filters', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: '' },
+  ];
+  for (const stage of ['PDF 文本提取', 'pdf_text_extraction', 'PDF文本提取']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['native']);
+  }
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 文本提取保底' }).map((candidate) => candidate.id), ['fallback']);
+});

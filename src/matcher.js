@@ -2379,6 +2379,8 @@ function normalizeHrCandidateStage(stage) {
     'native-pdf-resume': 'native-pdf',
     'pdf-text': 'native-pdf',
     'pdf-text-extraction': 'native-pdf',
+    'pdf-文本提取': 'native-pdf',
+    'pdf文本提取': 'native-pdf',
     '原生-pdf-提取': 'native-pdf',
     '原生-pdf-文本提取': 'native-pdf',
     '原生pdf': 'native-pdf',
