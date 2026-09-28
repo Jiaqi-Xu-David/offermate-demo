@@ -2416,3 +2416,13 @@ test('strips fullwidth slash page totals while preserving inline references', as
   );
   assert.equal(text, 'Name: Lina\nProject: Page １／３ redesigned');
 });
+
+
+test('strips traditional Chinese page markers while preserving resume text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '第１頁共３頁\nName: Lina\n頁碼：２／３\n第３頁\n專案：網頁開發\n作品：第１頁共３頁' }) },
+  );
+  assert.equal(text, 'Name: Lina\n專案：網頁開發\n作品：第１頁共３頁');
+});
