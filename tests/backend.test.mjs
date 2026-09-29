@@ -2426,3 +2426,12 @@ test('strips traditional Chinese page markers while preserving resume text', asy
   );
   assert.equal(text, 'Name: Lina\n專案：網頁開發\n作品：第１頁共３頁');
 });
+
+test('defaults blank direct cookie lifetimes while preserving explicit zero expiry', () => {
+  for (const value of ['', '   ', '\t\n', null]) {
+    assert.match(createSessionCookie('token', 'https://example.com', value), /; Max-Age=604800;/);
+  }
+  for (const value of [0, '0']) {
+    assert.match(createSessionCookie('token', 'https://example.com', value), /; Max-Age=0;/);
+  }
+});

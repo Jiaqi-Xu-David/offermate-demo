@@ -51,6 +51,7 @@ function buildCookieExpiry(maxAgeSeconds) {
 }
 
 function normalizeCookieMaxAge(maxAgeSeconds) {
+  if (String(maxAgeSeconds ?? '').trim() === '') return DEFAULT_SESSION_MAX_AGE_SECONDS;
   const parsed = Number(maxAgeSeconds);
   if (!Number.isFinite(parsed)) return DEFAULT_SESSION_MAX_AGE_SECONDS;
   return Math.min(MAX_SESSION_MAX_AGE_SECONDS, Math.max(0, Math.floor(parsed)));
