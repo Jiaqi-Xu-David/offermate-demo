@@ -2854,3 +2854,14 @@ test('accepts displayed PDF extraction labels in HR stage filters', () => {
   }
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage: 'PDF 文本提取保底' }).map((candidate) => candidate.id), ['fallback']);
 });
+
+test('recognizes FastAPI skills in resumes and jobs with word boundaries', () => {
+  for (const name of ['FastAPI', 'fastapi', 'Fast API']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发接口`).skills.includes('FastAPI'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 开发接口` }).tags.includes('FastAPI'));
+  }
+  for (const name of ['FastAPIExtra', 'MyFastAPI']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('FastAPI'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('FastAPI'));
+  }
+});
