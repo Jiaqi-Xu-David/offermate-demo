@@ -2435,3 +2435,12 @@ test('defaults blank direct cookie lifetimes while preserving explicit zero expi
     assert.match(createSessionCookie('token', 'https://example.com', value), /; Max-Age=0;/);
   }
 });
+
+test('preserves vertical-tab line boundaries when cleaning OCR output', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Name: Lina\u000bPage 1 of 2\u000bSkills: Excel\u000b\u000bExperience: Reporting' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
+});
