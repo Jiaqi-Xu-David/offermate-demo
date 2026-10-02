@@ -2865,3 +2865,15 @@ test('recognizes FastAPI skills in resumes and jobs with word boundaries', () =>
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('FastAPI'));
   }
 });
+
+
+test('recognizes Django skills in resumes and jobs with word boundaries', () => {
+  for (const name of ['Django', 'django', 'Djan go']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发后端`).skills.includes('Django'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 开发后端` }).tags.includes('Django'));
+  }
+  for (const name of ['DjangoExtra', 'MyDjango']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Django'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Django'));
+  }
+});
