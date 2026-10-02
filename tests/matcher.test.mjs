@@ -2877,3 +2877,15 @@ test('recognizes Django skills in resumes and jobs with word boundaries', () => 
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Django'));
   }
 });
+
+
+test('accepts Chinese OCR extraction filters without including native PDF candidates', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['OCR 提取', 'OCR提取', 'OCR 识别', 'OCR识别', ' OCR_提取 ']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['ocr']);
+  }
+});
