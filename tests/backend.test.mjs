@@ -2444,3 +2444,13 @@ test('preserves vertical-tab line boundaries when cleaning OCR output', async ()
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\n\nExperience: Reporting');
 });
+
+
+test('strips German abbreviated page totals while preserving inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'S. 1 von 3\nName: Lina\nS. ２／３\nSkills: Excel\nS. 3 / 3\nProject: S. 1 von 3 redesigned\nS. Müller' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: S. 1 von 3 redesigned\nS. Müller');
+});

@@ -17,6 +17,7 @@ function isPageMarkerLine(line) {
     .replace(/\s+/g, ' ');
   if (!normalized) return false;
   return [
+    /^s\.\s*\d+\s*(?:von|\/)\s*\d+$/i,
     /^seite\s+\d+(?:\s*(?:von|\/)\s*\d+)?$/i,
     /^p[aá]gina\s+\d+(?:\s*(?:de|di|\/)\s*\d+)?$/i,
     /^第\s*\d+\s*页\s*共\s*\d+\s*页$/i,
