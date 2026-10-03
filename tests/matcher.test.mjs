@@ -2889,3 +2889,15 @@ test('accepts Chinese OCR extraction filters without including native PDF candid
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['ocr']);
   }
 });
+
+
+test('recognizes SQLite skills in resumes and jobs with word boundaries', () => {
+  for (const name of ['SQLite', 'sqlite', 'SQL ite']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 存储本地数据`).skills.includes('SQLite'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 存储本地数据` }).tags.includes('SQLite'));
+  }
+  for (const name of ['SQLiteExtra', 'MySQLite']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('SQLite'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('SQLite'));
+  }
+});
