@@ -2371,6 +2371,7 @@ function normalizeHrCandidateStage(stage) {
     '高潜未提交': 'high-potential-unsubmitted',
     '高潜未申请': 'high-potential-unsubmitted',
     '高潜待申请': 'high-potential-unsubmitted',
+    '高潜待投递': 'high-potential-unsubmitted',
     'high-potential-not-applied': 'high-potential-unsubmitted',
     strong: 'strong',
     'strong-match': 'strong',
