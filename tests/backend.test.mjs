@@ -2464,3 +2464,13 @@ test('strips Dutch page totals while preserving inline resume references', async
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pagina 1 van 3 redesigned');
 });
+
+
+test('strips colon-delimited page markers while retaining inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Page: 1 of 4\nName: Lina\nPage No.: ２／４\nSkills: Excel\nPAGE：3\nPg.: 4 / 4\nProject: Page: 1 of 4 redesigned\nPage: analytics dashboard' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Page: 1 of 4 redesigned\nPage: analytics dashboard');
+});
