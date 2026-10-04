@@ -2901,3 +2901,15 @@ test('recognizes SQLite skills in resumes and jobs with word boundaries', () => 
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('SQLite'));
   }
 });
+
+
+test('recognizes PostgreSQL and Postgres skills with word boundaries', () => {
+  for (const name of ['PostgreSQL', 'postgresql', 'Postgres', 'Postgre SQL']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 存储数据`).skills.includes('PostgreSQL'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 存储数据` }).tags.includes('PostgreSQL'));
+  }
+  for (const name of ['PostgreSQLExtra', 'MyPostgres']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('PostgreSQL'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('PostgreSQL'));
+  }
+});
