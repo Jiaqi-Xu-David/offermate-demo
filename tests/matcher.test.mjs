@@ -2913,3 +2913,15 @@ test('recognizes PostgreSQL and Postgres skills with word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('PostgreSQL'));
   }
 });
+
+
+test('accepts compact Chinese OCR review labels without broadening results', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['OCR回退', 'OCR复核', 'OCR保底', ' ocr回退 ', 'OCR 回退', 'OCR_复核']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
+  }
+});
