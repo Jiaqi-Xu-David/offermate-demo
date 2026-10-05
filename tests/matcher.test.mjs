@@ -2937,3 +2937,15 @@ test('recognizes Elasticsearch skills with OCR spacing and word boundaries', () 
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Elasticsearch'));
   }
 });
+
+
+test('accepts compact native PDF labels without returning OCR candidates', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['原生PDF提取', '原生PDF文本提取', '原生PDF文本', ' 原生pdf提取 ', '原生 PDF 提取', '原生_PDF_文本提取']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['native']);
+  }
+});
