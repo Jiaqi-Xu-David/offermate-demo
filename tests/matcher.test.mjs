@@ -2925,3 +2925,15 @@ test('accepts compact Chinese OCR review labels without broadening results', () 
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
   }
 });
+
+
+test('recognizes Elasticsearch skills with OCR spacing and word boundaries', () => {
+  for (const name of ['Elasticsearch', 'elasticsearch', 'Elastic search']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 建立搜索服务`).skills.includes('Elasticsearch'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 建立搜索服务` }).tags.includes('Elasticsearch'));
+  }
+  for (const name of ['ElasticsearchExtra', 'MyElasticsearch']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Elasticsearch'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Elasticsearch'));
+  }
+});
