@@ -2474,3 +2474,13 @@ test('strips colon-delimited page markers while retaining inline references', as
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Page: 1 of 4 redesigned\nPage: analytics dashboard');
 });
+
+
+test('strips Spanish abbreviated page totals while preserving inline references', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Pág. 1 de 3\nName: Lina\nPAG. ２／３\nSkills: Excel\nPág. 3\nProject: Pág. 1 de 3 redesigned\nPág. web' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pág. 1 de 3 redesigned\nPág. web');
+});
