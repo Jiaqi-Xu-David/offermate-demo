@@ -2484,3 +2484,13 @@ test('strips Spanish abbreviated page totals while preserving inline references'
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pág. 1 de 3 redesigned\nPág. web');
 });
+
+
+test('strips Italian abbreviated page totals while preserving resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Pag. 1 di 3\nName: Lina\nPAG. ２ di ３\nSkills: Excel\nProject: Pag. 1 di 3 redesigned\nPag. web' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pag. 1 di 3 redesigned\nPag. web');
+});
