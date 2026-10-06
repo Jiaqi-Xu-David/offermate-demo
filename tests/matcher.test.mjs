@@ -2949,3 +2949,15 @@ test('accepts compact native PDF labels without returning OCR candidates', () =>
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['native']);
   }
 });
+
+
+test('recognizes Kafka messaging skills with spacing and word boundaries', () => {
+  for (const name of ['Kafka', 'Apache Kafka', 'kafka', 'Kaf ka']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 处理消息`).skills.includes('Kafka'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 处理消息` }).tags.includes('Kafka'));
+  }
+  for (const name of ['KafkaExtra', 'MyKafka']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Kafka'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Kafka'));
+  }
+});
