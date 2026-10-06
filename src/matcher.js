@@ -2440,6 +2440,8 @@ function normalizeHrCandidateStage(stage) {
     'ocr保底': 'ocr-fallback',
     '需复核': 'ocr-fallback',
     'pdf-保底提取': 'ocr-fallback',
+    'pdf保底提取': 'ocr-fallback',
+    'pdf文本提取保底': 'ocr-fallback',
     'pdf-文本提取保底': 'ocr-fallback',
   };
   return aliasMap[normalized] ?? 'all';

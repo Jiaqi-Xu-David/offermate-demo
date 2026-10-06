@@ -2961,3 +2961,15 @@ test('recognizes Kafka messaging skills with spacing and word boundaries', () =>
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Kafka'));
   }
 });
+
+
+test('accepts compact PDF fallback labels without broadening review results', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['PDF保底提取', 'PDF文本提取保底', ' pdf保底提取 ', 'PDF 保底提取', 'PDF_文本提取保底']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
+  }
+});
