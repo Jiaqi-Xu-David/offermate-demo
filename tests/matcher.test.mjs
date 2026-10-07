@@ -2985,3 +2985,14 @@ test('recognizes RabbitMQ skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('RabbitMQ'));
   }
 });
+
+test('accepts compact AI OCR extraction labels without broadening results', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['OpenAIOCR提取', 'OpenAI OCR提取', 'AIOCR提取', 'AI OCR提取', ' OpenAIOCR提取 ', 'OpenAI OCR 提取', 'AI_OCR_提取']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['ocr']);
+  }
+});
