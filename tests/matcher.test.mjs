@@ -2973,3 +2973,15 @@ test('accepts compact PDF fallback labels without broadening review results', ()
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
   }
 });
+
+
+test('recognizes RabbitMQ skills with spacing and word boundaries', () => {
+  for (const name of ['RabbitMQ', 'rabbitmq', 'Rabbit MQ']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 处理消息`).skills.includes('RabbitMQ'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 处理消息` }).tags.includes('RabbitMQ'));
+  }
+  for (const name of ['RabbitMQExtra', 'MyRabbitMQ']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('RabbitMQ'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('RabbitMQ'));
+  }
+});
