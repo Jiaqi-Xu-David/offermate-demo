@@ -2996,3 +2996,14 @@ test('accepts compact AI OCR extraction labels without broadening results', () =
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['ocr']);
   }
 });
+
+test('recognizes Rust skills with spacing and word boundaries', () => {
+  for (const name of ['Rust', 'rust', 'Ru st']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 处理消息`).skills.includes('Rust'));
+    assert.ok(analyzeJobDescription({ title: '后端工程师', city: '上海', description: `要求使用 ${name} 处理消息` }).tags.includes('Rust'));
+  }
+  for (const name of ['RustExtra', 'MyRust']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Rust'));
+    assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Rust'));
+  }
+});
