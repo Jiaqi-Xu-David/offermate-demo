@@ -3007,3 +3007,14 @@ test('recognizes Rust skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '后端工程师', city: '上海', description: name }).tags.includes('Rust'));
   }
 });
+
+test('accepts alternate PDF text fallback labels without broadening review results', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'native', textSource: 'pdf-text', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'ocr', textSource: 'openai-ocr', extractionWarning: '' },
+    { ...CANDIDATES[0], id: 'fallback', textSource: 'pdf-text-fallback', extractionWarning: 'Needs review' },
+  ];
+  for (const stage of ['PDF 文本保底提取', 'PDF文本保底提取', 'pdf_文本保底提取']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
+  }
+});

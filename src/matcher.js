@@ -2425,6 +2425,8 @@ function normalizeHrCandidateStage(stage) {
     'ocr-fallback': 'ocr-fallback',
     'pdf-text-fallback': 'ocr-fallback',
     'pdf-fallback': 'ocr-fallback',
+    'pdf-文本保底提取': 'ocr-fallback',
+    'pdf文本保底提取': 'ocr-fallback',
     'pdf-fallback-review': 'ocr-fallback',
     'ocr-warning': 'ocr-fallback',
     'ocr-review': 'ocr-fallback',
