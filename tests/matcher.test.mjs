@@ -3018,3 +3018,14 @@ test('accepts alternate PDF text fallback labels without broadening review resul
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { stage }).map((candidate) => candidate.id), ['fallback']);
   }
 });
+
+test('recognizes Kotlin skills with spacing and word boundaries', () => {
+  for (const name of ['Kotlin', 'kotlin', 'Kot lin']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发安卓应用`).skills.includes('Kotlin'));
+    assert.ok(analyzeJobDescription({ title: '安卓工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Kotlin'));
+  }
+  for (const name of ['KotlinExtra', 'MyKotlin']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Kotlin'));
+    assert.ok(!analyzeJobDescription({ title: '安卓工程师', city: '上海', description: name }).tags.includes('Kotlin'));
+  }
+});
