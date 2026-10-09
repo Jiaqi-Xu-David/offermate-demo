@@ -17,6 +17,7 @@ function isPageMarkerLine(line) {
     .replace(/\s+/g, ' ');
   if (!normalized) return false;
   return [
+    /^\d+\s+of\s+\d+$/i,
     /^p[aá]g\.\s*\d+(?:\s*(?:de|di|\/)\s*\d+)?$/i,
     /^p\.\s*\d+\s*sur\s*\d+$/i,
     /^s\.\s*\d+\s*(?:von|\/)\s*\d+$/i,

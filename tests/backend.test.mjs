@@ -2513,3 +2513,11 @@ test('strips French abbreviated page totals while preserving inline references',
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: p. 1 sur 3 redesigned\np. web');
 });
 
+test('strips bare English page totals while preserving inline quantities', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '1 of 3\nName: Lina\n２ OF ３\nSkills: Excel\n3 of 3\nLed 1 of 3 teams\n1 of 3 projects delivered' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nLed 1 of 3 teams\n1 of 3 projects delivered');
+});
