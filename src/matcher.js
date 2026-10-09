@@ -2507,6 +2507,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       insight.routingRecommendation,
       ...getHrCandidateExtractionSearchTerms(candidate),
       candidate.extractionWarning,
+      profile.parserWarning,
       ...(profile.skills ?? []),
       ...(profile.languages ?? []),
       ...(profile.softSkills ?? []),

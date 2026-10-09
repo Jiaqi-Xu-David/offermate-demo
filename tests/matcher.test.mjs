@@ -3029,3 +3029,14 @@ test('recognizes Kotlin skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '安卓工程师', city: '上海', description: name }).tags.includes('Kotlin'));
   }
 });
+
+test('finds candidates by structured parser warnings without matching clean profiles', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'warning', profile: { ...CANDIDATES[0].profile, parserWarning: 'Structured parser quota exhausted' } },
+    { ...CANDIDATES[0], id: 'clean', profile: { ...CANDIDATES[0].profile, parserWarning: '' } },
+  ];
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: '  PARSER QUOTA  ' }).map((candidate) => candidate.id),
+    ['warning'],
+  );
+});
