@@ -3040,3 +3040,14 @@ test('finds candidates by structured parser warnings without matching clean prof
     ['warning'],
   );
 });
+
+test('recognizes Swift skills with spacing and word boundaries', () => {
+  for (const name of ['Swift', 'swift', 'Swi ft']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发 iOS 应用`).skills.includes('Swift'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 开发 iOS 应用` }).tags.includes('Swift'));
+  }
+  for (const name of ['SwiftExtra', 'MySwift']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Swift'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Swift'));
+  }
+});
