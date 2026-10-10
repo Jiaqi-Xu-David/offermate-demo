@@ -2521,3 +2521,12 @@ test('strips bare English page totals while preserving inline quantities', async
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nLed 1 of 3 teams\n1 of 3 projects delivered');
 });
+
+test('strips bracketed page totals while retaining bracketed resume content', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '[Page 1 of 3]\nName: Lina\n[２／３]\nSkills: Excel\n[3 of 3]\n[Project Management]\nProject: [Page 1 of 3] redesigned\n[Page 1 of 3)' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n[Project Management]\nProject: [Page 1 of 3] redesigned\n[Page 1 of 3)');
+});

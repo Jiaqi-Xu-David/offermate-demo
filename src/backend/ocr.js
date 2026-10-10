@@ -10,6 +10,7 @@ function cleanText(value) {
 
 function isPageMarkerLine(line) {
   const normalized = cleanText(line)
+    .replace(/^\[\s*(.*?)\s*\]$/, '$1')
     .replace(/頁/g, '页')
     .replace(/碼/g, '码')
     .replace(/／/g, '/')
