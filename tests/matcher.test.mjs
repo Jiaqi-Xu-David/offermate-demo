@@ -3051,3 +3051,14 @@ test('recognizes Swift skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Swift'));
   }
 });
+
+test('normalizes whitespace in HR search queries and candidate text', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'match', profile: { ...CANDIDATES[0].profile, headline: 'Quantum\n  Analytics specialist' } },
+    { ...CANDIDATES[0], id: 'other', profile: { ...CANDIDATES[0].profile, headline: 'Unrelated specialist' } },
+  ];
+  for (const query of ['quantum analytics', ' QUANTUM\t ANALYTICS ', 'Quantum\nAnalytics']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['match']);
+  }
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '  \t\n ' }).map((candidate) => candidate.id), ['match', 'other']);
+});

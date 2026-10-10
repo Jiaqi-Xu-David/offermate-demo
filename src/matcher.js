@@ -2462,7 +2462,7 @@ function normalizeHrCandidateStage(stage) {
 }
 
 export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filters = {}) {
-  const query = String(filters.query ?? '').trim().toLocaleLowerCase('zh-CN');
+  const query = String(filters.query ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('zh-CN');
   const stage = normalizeHrCandidateStage(filters.stage);
 
   return candidates.filter((candidate) => {
@@ -2522,6 +2522,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     ]
       .filter(Boolean)
       .join(' ')
+      .replace(/\s+/g, ' ')
       .toLocaleLowerCase('zh-CN');
     return searchable.includes(query);
   });
