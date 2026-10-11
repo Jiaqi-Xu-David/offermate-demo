@@ -2521,6 +2521,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...suggestedCompanies,
       ...fitHighlights,
       profile.rawResume,
+      candidate.rawText,
     ]
       .filter(Boolean)
       .join(' ')

@@ -3073,3 +3073,14 @@ test('recognizes Dart skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Dart'));
   }
 });
+
+test('finds candidates by extracted raw text when structured resume text is absent', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'match', rawText: 'Built Quasar\n observability pipelines', profile: { ...CANDIDATES[0].profile, rawResume: '' } },
+    { ...CANDIDATES[0], id: 'other', rawText: 'Unrelated project', profile: { ...CANDIDATES[0].profile, rawResume: '' } },
+  ];
+  assert.deepEqual(
+    filterHrCandidatesForReview(candidates, JOBS, { query: 'QUASAR observability' }).map((candidate) => candidate.id),
+    ['match'],
+  );
+});
