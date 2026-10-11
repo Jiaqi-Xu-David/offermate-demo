@@ -3062,3 +3062,14 @@ test('normalizes whitespace in HR search queries and candidate text', () => {
   }
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '  \t\n ' }).map((candidate) => candidate.id), ['match', 'other']);
 });
+
+test('recognizes Dart skills with spacing and word boundaries', () => {
+  for (const name of ['Dart', 'dart', 'Da rt']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发 移动端 应用`).skills.includes('Dart'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 开发 移动端 应用` }).tags.includes('Dart'));
+  }
+  for (const name of ['DartExtra', 'MyDart']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Dart'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Dart'));
+  }
+});
