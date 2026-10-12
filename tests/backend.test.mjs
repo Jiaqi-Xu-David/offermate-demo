@@ -2540,3 +2540,13 @@ test('strips fullwidth bracketed page markers without removing resume content', 
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\n【项目经历】\nProject: 【第１页】 redesigned\n【Page 3 of 3］');
 });
+
+
+test('strips parenthesized page markers while preserving body text', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '(Page 1 of 3)\nName: Lina\n（２／３）\nSkills: Excel\n(Project Management)\nProject: (Page 1 of 3) redesigned\n(Page 3 of 3）' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\n(Project Management)\nProject: (Page 1 of 3) redesigned\n(Page 3 of 3）');
+});
