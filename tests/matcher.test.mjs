@@ -3095,3 +3095,14 @@ test('recognizes Flutter skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Flutter'));
   }
 });
+
+test('normalizes fullwidth characters in HR queries and candidate text', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'ascii', profile: { ...CANDIDATES[0].profile, headline: 'Quasar specialist' } },
+    { ...CANDIDATES[0], id: 'fullwidth', profile: { ...CANDIDATES[0].profile, headline: 'Ｑｕａｓａｒ specialist' } },
+    { ...CANDIDATES[0], id: 'other', profile: { ...CANDIDATES[0].profile, headline: 'Unrelated specialist' } },
+  ];
+  for (const query of ['quasar', 'ＱＵＡＳＡＲ']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['ascii', 'fullwidth']);
+  }
+});
