@@ -3084,3 +3084,14 @@ test('finds candidates by extracted raw text when structured resume text is abse
     ['match'],
   );
 });
+
+test('recognizes Flutter skills with spacing and word boundaries', () => {
+  for (const name of ['Flutter', 'flutter', 'Flut ter']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发 移动端 应用`).skills.includes('Flutter'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 开发 移动端 应用` }).tags.includes('Flutter'));
+  }
+  for (const name of ['FlutterExtra', 'MyFlutter']) {
+    assert.ok(!parseResumeText(`技能：${name}`).skills.includes('Flutter'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('Flutter'));
+  }
+});
