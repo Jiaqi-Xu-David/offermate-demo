@@ -3106,3 +3106,14 @@ test('normalizes fullwidth characters in HR queries and candidate text', () => {
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['ascii', 'fullwidth']);
   }
 });
+
+test('recognizes Angular skills with spacing and word boundaries', () => {
+  for (const name of ['Angular', 'angular', 'Angu lar']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Angular'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Angular'));
+  }
+  for (const name of ['AngularExtra', 'MyAngular']) {
+    assert.ok(!parseResumeText(name).skills.includes('Angular'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Angular'));
+  }
+});
