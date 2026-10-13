@@ -3117,3 +3117,13 @@ test('recognizes Angular skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Angular'));
   }
 });
+
+test('ignores invisible copy artifacts in HR queries and candidate text', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'match', profile: { ...CANDIDATES[0].profile, headline: 'Qua\u200bsar observability' } },
+    { ...CANDIDATES[0], id: 'other', profile: { ...CANDIDATES[0].profile, headline: 'Unrelated specialist' } },
+  ];
+  for (const query of ['Quasar', 'Qua\u200bsar', 'Qua\u00adsar', 'Qua\u2060sar', 'Qua\ufeffsar']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['match']);
+  }
+});
