@@ -2550,3 +2550,12 @@ test('strips parenthesized page markers while preserving body text', async () =>
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\n(Project Management)\nProject: (Page 1 of 3) redesigned\n(Page 3 of 3）');
 });
+
+test('strips Chinese page totals separated by punctuation', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: '第1页、共3页\nName: Lina\n第２頁；共３頁\nSkills: Excel\nProject: 第1页、共3页 revised\n第1页，共同开发项目' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: 第1页、共3页 revised\n第1页，共同开发项目');
+});

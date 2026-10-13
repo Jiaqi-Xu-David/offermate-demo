@@ -31,7 +31,7 @@ function isPageMarkerLine(line) {
     /^第\s*\d+\s*页\s*共\s*\d+\s*页$/i,
     /^第\s*\d+\s*页(?:\s*[\/／]\s*共?\s*\d+\s*页?)?$/i,
     /^第\s*\d+\s*\/\s*\d+\s*页$/i,
-    /^第\s*\d+\s*页\s*[,，]\s*共?\s*\d+\s*页?$/i,
+    /^第\s*\d+\s*页\s*[,，、;；]\s*共?\s*\d+\s*页?$/i,
     /^页码\s*[:：]?\s*\d+(?:\s*[\/／]\s*\d+)?$/i,
     /^page\s*(?:no\.?\s*)?[:：]?\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
     /^page\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
