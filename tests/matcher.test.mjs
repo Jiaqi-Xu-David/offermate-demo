@@ -3138,3 +3138,12 @@ test('recognizes Svelte skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Svelte'));
   }
 });
+
+test('finds candidates by structured resume name when account name differs', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'match', name: 'Account alias', profile: { ...CANDIDATES[0].profile, name: 'Quasar Applicant', rawResume: '' } },
+    { ...CANDIDATES[0], id: 'other', name: 'Other alias', profile: { ...CANDIDATES[0].profile, name: 'Other Applicant', rawResume: '' } },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'QUASAR applicant' }).map((candidate) => candidate.id), ['match']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'Account alias' }).map((candidate) => candidate.id), ['match']);
+});

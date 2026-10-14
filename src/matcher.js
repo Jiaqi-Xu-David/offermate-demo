@@ -2503,6 +2503,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
       candidate.name,
+      profile.name,
       candidate.email,
       candidate.school,
       candidate.major,
