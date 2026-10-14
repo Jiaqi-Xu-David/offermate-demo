@@ -3127,3 +3127,14 @@ test('ignores invisible copy artifacts in HR queries and candidate text', () => 
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['match']);
   }
 });
+
+test('recognizes Svelte skills with spacing and word boundaries', () => {
+  for (const name of ['Svelte', 'svelte', 'Svel te']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Svelte'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Svelte'));
+  }
+  for (const name of ['SvelteExtra', 'MySvelte']) {
+    assert.ok(!parseResumeText(name).skills.includes('Svelte'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Svelte'));
+  }
+});
