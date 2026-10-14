@@ -2559,3 +2559,12 @@ test('strips Chinese page totals separated by punctuation', async () => {
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: 第1页、共3页 revised\n第1页，共同开发项目');
 });
+
+test('strips standalone German Seite totals using von colon labels', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Seite: 1 von 3\nName: Lina\nSeite：２／３\nSkills: Excel\nProject: Seite: 1 von 3 revised\nSeite: Portfolio' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Seite: 1 von 3 revised\nSeite: Portfolio');
+});
