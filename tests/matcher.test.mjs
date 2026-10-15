@@ -3147,3 +3147,14 @@ test('finds candidates by structured resume name when account name differs', () 
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'QUASAR applicant' }).map((candidate) => candidate.id), ['match']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'Account alias' }).map((candidate) => candidate.id), ['match']);
 });
+
+test('recognizes Nuxt skills with spacing and word boundaries', () => {
+  for (const name of ['Nuxt', 'nuxt', 'Nu xt']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Nuxt'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Nuxt'));
+  }
+  for (const name of ['NuxtExtra', 'MyNuxt']) {
+    assert.ok(!parseResumeText(name).skills.includes('Nuxt'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Nuxt'));
+  }
+});
