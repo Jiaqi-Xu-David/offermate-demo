@@ -2521,6 +2521,9 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...getHrCandidateExtractionSearchTerms(candidate),
       candidate.extractionWarning,
       profile.parserWarning,
+      ...Object.entries(profile.skillEvidence ?? {}).map(([skill, evidence]) =>
+        [skill, evidence?.level].filter(Boolean).join(' '),
+      ),
       ...(profile.skills ?? []),
       ...(profile.languages ?? []),
       ...(profile.softSkills ?? []),

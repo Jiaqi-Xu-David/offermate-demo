@@ -3158,3 +3158,13 @@ test('recognizes Nuxt skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Nuxt'));
   }
 });
+
+test('finds candidates by structured skill proficiency evidence', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'match', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: { SQL: { count: 2, level: '熟练', sources: ['技能区'] } } } },
+    { ...CANDIDATES[0], id: 'other', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: { SQL: { count: 1, level: '了解', sources: [] } } } },
+    { ...CANDIDATES[0], id: 'missing', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: null } },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'sql 熟练' }).map((candidate) => candidate.id), ['match']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'SQL 了解' }).map((candidate) => candidate.id), ['other']);
+});
