@@ -27,7 +27,7 @@ function isPageMarkerLine(line) {
     /^p\.\s*\d+\s*sur\s*\d+$/i,
     /^s\.\s*\d+\s*(?:von|\/)\s*\d+$/i,
     /^seite(?:\s*[:：]\s*|\s+)\d+(?:\s*(?:von|\/)\s*\d+)?$/i,
-    /^p[aá]gina\s+\d+(?:\s*(?:de|di|van|\/)\s*\d+)?$/i,
+    /^p[aá]gina(?:\s*[:：]\s*|\s+)\d+(?:\s*(?:de|di|van|\/)\s*\d+)?$/i,
     /^第\s*\d+\s*页\s*共\s*\d+\s*页$/i,
     /^第\s*\d+\s*页(?:\s*[\/／]\s*共?\s*\d+\s*页?)?$/i,
     /^第\s*\d+\s*\/\s*\d+\s*页$/i,
