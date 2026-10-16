@@ -3179,3 +3179,13 @@ test('recognizes Astro skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Astro'));
   }
 });
+
+test('finds candidates by structured skill evidence sources', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'project', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: { SQL: { level: '熟练', sources: ['项目/经历'] } } } },
+    { ...CANDIDATES[0], id: 'skills', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: { SQL: { level: '熟练', sources: ['技能区'] } } } },
+    { ...CANDIDATES[0], id: 'missing', profile: { ...CANDIDATES[0].profile, rawResume: '', skillEvidence: { SQL: { level: '熟练' } } } },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '项目/经历' }).map((candidate) => candidate.id), ['project']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '技能区' }).map((candidate) => candidate.id), ['skills']);
+});
