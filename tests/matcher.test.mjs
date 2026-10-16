@@ -3168,3 +3168,14 @@ test('finds candidates by structured skill proficiency evidence', () => {
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'sql 熟练' }).map((candidate) => candidate.id), ['match']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'SQL 了解' }).map((candidate) => candidate.id), ['other']);
 });
+
+test('recognizes Astro skills with spacing and word boundaries', () => {
+  for (const name of ['Astro', 'astro', 'As tro']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Astro'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Astro'));
+  }
+  for (const name of ['AstroExtra', 'MyAstro']) {
+    assert.ok(!parseResumeText(name).skills.includes('Astro'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Astro'));
+  }
+});
