@@ -2577,3 +2577,12 @@ test('strips colon-labeled Pagina page totals while preserving prose', async () 
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Página: 1 de 3 revised\nPagina: Portfolio');
 });
+
+test('strips colon-labeled French abbreviated page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'p.: 1 sur 3\nName: Lina\np.：２ sur ３\nSkills: Excel\nProject: p.: 1 sur 3 revised\np.: Portfolio' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: p.: 1 sur 3 revised\np.: Portfolio');
+});

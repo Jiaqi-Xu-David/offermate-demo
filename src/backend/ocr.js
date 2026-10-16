@@ -24,7 +24,7 @@ function isPageMarkerLine(line) {
   return [
     /^\d+\s+of\s+\d+$/i,
     /^p[aá]g\.\s*\d+(?:\s*(?:de|di|\/)\s*\d+)?$/i,
-    /^p\.\s*\d+\s*sur\s*\d+$/i,
+    /^p\.\s*[:：]?\s*\d+\s*sur\s*\d+$/i,
     /^s\.\s*\d+\s*(?:von|\/)\s*\d+$/i,
     /^seite(?:\s*[:：]\s*|\s+)\d+(?:\s*(?:von|\/)\s*\d+)?$/i,
     /^p[aá]gina(?:\s*[:：]\s*|\s+)\d+(?:\s*(?:de|di|van|\/)\s*\d+)?$/i,
