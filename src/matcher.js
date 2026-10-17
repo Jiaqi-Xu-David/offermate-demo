@@ -2508,6 +2508,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
     const fitHighlights = buildCandidateFitHighlights(candidate, jobs).map((item) => item.label);
     const matchSummary = buildCandidateMatchSummary(candidate, jobs);
     const searchable = [
+      candidate.id,
       candidate.name,
       profile.name,
       candidate.email,

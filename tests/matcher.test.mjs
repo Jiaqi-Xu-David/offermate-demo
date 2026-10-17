@@ -3200,3 +3200,13 @@ test('recognizes Prisma skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Prisma'));
   }
 });
+
+test('finds HR candidates by record identifier', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applicant-quasar-2048' },
+    { ...CANDIDATES[0], id: 'applicant-nebula-4096' },
+    { ...CANDIDATES[0], id: undefined },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'APPLICANT-QUASAR-2048' }).map((candidate) => candidate.id), ['applicant-quasar-2048']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'applicant-missing-8192' }), []);
+});
