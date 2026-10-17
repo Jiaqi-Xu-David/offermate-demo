@@ -3189,3 +3189,14 @@ test('finds candidates by structured skill evidence sources', () => {
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '项目/经历' }).map((candidate) => candidate.id), ['project']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: '技能区' }).map((candidate) => candidate.id), ['skills']);
 });
+
+test('recognizes Prisma skills with spacing and word boundaries', () => {
+  for (const name of ['Prisma', 'prisma', 'Pris ma']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Prisma'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Prisma'));
+  }
+  for (const name of ['PrismaExtra', 'MyPrisma']) {
+    assert.ok(!parseResumeText(name).skills.includes('Prisma'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Prisma'));
+  }
+});
