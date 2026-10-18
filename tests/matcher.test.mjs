@@ -3210,3 +3210,14 @@ test('finds HR candidates by record identifier', () => {
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'APPLICANT-QUASAR-2048' }).map((candidate) => candidate.id), ['applicant-quasar-2048']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query: 'applicant-missing-8192' }), []);
 });
+
+test('recognizes Zod skills with spacing and word boundaries', () => {
+  for (const name of ['Zod', 'zod', 'Zo d']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Zod'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Zod'));
+  }
+  for (const name of ['ZodExtra', 'MyZod']) {
+    assert.ok(!parseResumeText(name).skills.includes('Zod'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Zod'));
+  }
+});
