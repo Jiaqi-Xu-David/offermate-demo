@@ -2534,6 +2534,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...(profile.skills ?? []),
       ...(profile.languages ?? []),
       ...(profile.softSkills ?? []),
+      ...submittedJobIds,
       ...submittedTitles,
       ...submittedCompanies,
       ...suggestedTitles,
