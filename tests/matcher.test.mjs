@@ -3231,3 +3231,14 @@ test('finds HR candidates by submitted job identifier without matching suggestio
   assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'REQUISITION-QUASAR-2048' }).map((candidate) => candidate.id), ['applied']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'requisition-absent-4096' }), []);
 });
+
+test('recognizes Vitest skills with spacing and word boundaries', () => {
+  for (const name of ['Vitest', 'vitest', 'Vi test']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Vitest'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Vitest'));
+  }
+  for (const name of ['VitestExtra', 'MyVitest']) {
+    assert.ok(!parseResumeText(name).skills.includes('Vitest'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Vitest'));
+  }
+});
