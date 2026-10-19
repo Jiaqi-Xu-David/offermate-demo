@@ -2365,7 +2365,7 @@ function getHrCandidateExtractionSearchTerms(candidate) {
     textSource === 'pdf-text-fallback' ? '需复核' : '',
     humanReadableLabel === '原生 PDF 文本' ? 'PDF 文本提取' : '',
   ];
-  if (candidate.extractionWarning) labels.push('OCR 回退', 'OCR Warning', 'manual review', 'needs review', 'review required', '需复核');
+  if (candidate.extractionWarning) labels.push('OCR 回退', 'OCR Warning', 'manual review', 'manual screening', 'needs review', 'review required', '需复核', '人工审核', '人工复核', '待人工复核', 'OCR 复核');
   return labels;
 }
 

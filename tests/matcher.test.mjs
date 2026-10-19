@@ -3242,3 +3242,13 @@ test('recognizes Vitest skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Vitest'));
   }
 });
+
+test('finds extraction warnings through all manual review search labels', () => {
+  const candidates = [
+    { ...CANDIDATES[0], id: 'warning', textSource: 'openai-ocr', extractionWarning: 'quality uncertain' },
+    { ...CANDIDATES[0], id: 'clean', textSource: 'openai-ocr', extractionWarning: '' },
+  ];
+  for (const query of ['人工审核', '人工复核', '待人工复核', 'manual screening', 'OCR 复核']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['warning']);
+  }
+});
