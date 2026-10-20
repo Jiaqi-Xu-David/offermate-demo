@@ -3252,3 +3252,14 @@ test('finds extraction warnings through all manual review search labels', () => 
     assert.deepEqual(filterHrCandidatesForReview(candidates, JOBS, { query }).map((candidate) => candidate.id), ['warning']);
   }
 });
+
+test('recognizes Jest skills with spacing and word boundaries', () => {
+  for (const name of ['Jest', 'jest', 'Je st']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Jest'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Jest'));
+  }
+  for (const name of ['JestExtra', 'MyJest']) {
+    assert.ok(!parseResumeText(name).skills.includes('Jest'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Jest'));
+  }
+});
