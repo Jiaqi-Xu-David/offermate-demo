@@ -2613,3 +2613,12 @@ test('strips colon-labeled Portuguese page totals while preserving prose', async
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Páginas: 1 de 3 revised\nPáginas: Portfolio');
 });
+
+test('strips plural English page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Pages: 1 of 3\nName: Lina\nPages：２／３\nSkills: Excel\nProject: Pages: 1 of 3 revised\nPages: Portfolio' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pages: 1 of 3 revised\nPages: Portfolio');
+});
