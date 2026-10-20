@@ -3263,3 +3263,13 @@ test('recognizes Jest skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Jest'));
   }
 });
+
+test('finds HR candidates by submitted job city without matching suggestions', () => {
+  const jobs = [{ ...JOBS[0], city: 'Quasar City' }];
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [jobs[0].id] },
+    { ...CANDIDATES[0], id: 'suggested', submittedJobIds: [] },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'QUASAR CITY' }).map((candidate) => candidate.id), ['applied']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], city: undefined }], { query: 'QUASAR CITY' }), []);
+});
