@@ -2622,3 +2622,12 @@ test('strips plural English page totals while preserving prose', async () => {
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pages: 1 of 3 revised\nPages: Portfolio');
 });
+
+test('strips plural German page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Seiten: 1 von 3\nName: Lina\nSeiten：２／３\nSkills: Excel\nProject: Seiten: 1 von 3 revised\nSeiten: Portfolio' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Seiten: 1 von 3 revised\nSeiten: Portfolio');
+});
