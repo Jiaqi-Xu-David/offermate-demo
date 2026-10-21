@@ -3284,3 +3284,13 @@ test('recognizes Cypress skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Cypress'));
   }
 });
+
+test('finds HR candidates by submitted job tags without matching suggestions', () => {
+  const jobs = [{ ...JOBS[0], tags: ['OtherPlatform4096', 'QuasarPlatform2048'] }];
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [jobs[0].id] },
+    { ...CANDIDATES[0], id: 'suggested', submittedJobIds: [] },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'QUASARPLATFORM2048' }).map((candidate) => candidate.id), ['applied']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], tags: undefined }], { query: 'QUASARPLATFORM2048' }), []);
+});
