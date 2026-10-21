@@ -3273,3 +3273,14 @@ test('finds HR candidates by submitted job city without matching suggestions', (
   assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'QUASAR CITY' }).map((candidate) => candidate.id), ['applied']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], city: undefined }], { query: 'QUASAR CITY' }), []);
 });
+
+test('recognizes Cypress skills with spacing and word boundaries', () => {
+  for (const name of ['Cypress', 'cypress', 'Cy press']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Cypress'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Cypress'));
+  }
+  for (const name of ['CypressExtra', 'MyCypress']) {
+    assert.ok(!parseResumeText(name).skills.includes('Cypress'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Cypress'));
+  }
+});
