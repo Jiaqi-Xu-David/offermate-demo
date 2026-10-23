@@ -3294,3 +3294,14 @@ test('finds HR candidates by submitted job tags without matching suggestions', (
   assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: 'QUASARPLATFORM2048' }).map((candidate) => candidate.id), ['applied']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], tags: undefined }], { query: 'QUASARPLATFORM2048' }), []);
 });
+
+test('recognizes Mocha skills with spacing and word boundaries', () => {
+  for (const name of ['Mocha', 'mocha', 'Mo cha']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Mocha'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Mocha'));
+  }
+  for (const name of ['MochaExtra', 'MyMocha']) {
+    assert.ok(!parseResumeText(name).skills.includes('Mocha'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Mocha'));
+  }
+});
