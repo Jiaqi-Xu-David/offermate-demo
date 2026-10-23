@@ -3305,3 +3305,13 @@ test('recognizes Mocha skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Mocha'));
   }
 });
+
+test('finds HR candidates by submitted job salary without matching suggestions', () => {
+  const jobs = [{ ...JOBS[0], salary: '37K-49K/月' }];
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [jobs[0].id] },
+    { ...CANDIDATES[0], id: 'suggested', submittedJobIds: [] },
+  ];
+  assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: '37K-49K/月' }).map((candidate) => candidate.id), ['applied']);
+  assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], salary: undefined }], { query: '37K-49K/月' }), []);
+});

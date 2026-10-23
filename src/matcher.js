@@ -2546,6 +2546,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...submittedTitles,
       ...submittedCompanies,
       ...submittedJobs.map((job) => job.city),
+      ...submittedJobs.map((job) => job.salary),
       ...submittedJobs.flatMap((job) => job.tags ?? []),
       ...suggestedTitles,
       ...suggestedCompanies,
