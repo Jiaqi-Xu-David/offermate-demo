@@ -2631,3 +2631,12 @@ test('strips plural German page totals while preserving prose', async () => {
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Seiten: 1 von 3 revised\nSeiten: Portfolio');
 });
+
+test('strips plural Italian page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Pagine: 1 di 3\nName: Lina\nPagine：２／３\nSkills: Excel\nProject: Pagine: 1 di 3 revised\nPagine: Portfolio' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Pagine: 1 di 3 revised\nPagine: Portfolio');
+});
