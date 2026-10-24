@@ -3315,3 +3315,14 @@ test('finds HR candidates by submitted job salary without matching suggestions',
   assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query: '37K-49K/月' }).map((candidate) => candidate.id), ['applied']);
   assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], salary: undefined }], { query: '37K-49K/月' }), []);
 });
+
+test('recognizes Puppeteer skills with spacing and word boundaries', () => {
+  for (const name of ['Puppeteer', 'puppeteer', 'Puppe teer']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 开发前端应用`).skills.includes('Puppeteer'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 开发应用` }).tags.includes('Puppeteer'));
+  }
+  for (const name of ['PuppeteerExtra', 'MyPuppeteer']) {
+    assert.ok(!parseResumeText(name).skills.includes('Puppeteer'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Puppeteer'));
+  }
+});
