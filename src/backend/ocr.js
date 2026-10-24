@@ -36,7 +36,7 @@ function isPageMarkerLine(line) {
     /^pages?\s*(?:no\.?\s*)?[:：]?\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
     /^page\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
     /^page\s*\d+\s*[,，-]\s*(?:of\s*)?\d+$/i,
-    /^pg\.?\s*[:：]?\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
+    /^pgs?\.?\s*[:：]?\s*\d+(?:\s*(?:out of|of|sur|\/)\s*\d+)?$/i,
     /^p(?:age)?[.:]?\s*\d+(?:\s*[\/／]\s*\d+)?$/i,
     /^\d+\s*[\/／]\s*\d+$/,
     /^[\-–—_~·•]+\s*\d+\s*[\-–—_~·•]+$/,
