@@ -3379,3 +3379,15 @@ test('recognizes Vite skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Vite'));
   }
 });
+
+test('finds HR candidates by submitted job nice-to-have criteria without matching suggestions', () => {
+  const jobs = [{ ...JOBS[0], niceToHave: ['bonus-quasar-2048', 'bonus-orbit-4096'] }];
+  const candidates = [
+    { ...CANDIDATES[0], id: 'applied', submittedJobIds: [jobs[0].id] },
+    { ...CANDIDATES[0], id: 'suggested', submittedJobIds: [] },
+  ];
+  for (const query of ['BONUS-QUASAR-2048', 'BONUS-ORBIT-4096']) {
+    assert.deepEqual(filterHrCandidatesForReview(candidates, jobs, { query }).map((candidate) => candidate.id), ['applied']);
+    assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], niceToHave: undefined }], { query }), []);
+  }
+});
