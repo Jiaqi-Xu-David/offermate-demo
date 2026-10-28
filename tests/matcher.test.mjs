@@ -3368,3 +3368,14 @@ test('recognizes Redux skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Redux'));
   }
 });
+
+test('recognizes Vite skills with spacing and word boundaries', () => {
+  for (const name of ['Vite', 'vite', 'Vi te']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Vite'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Vite'));
+  }
+  for (const name of ['ViteExtra', 'MyVite', 'invite']) {
+    assert.ok(!parseResumeText(name).skills.includes('Vite'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Vite'));
+  }
+});
