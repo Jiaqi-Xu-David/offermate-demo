@@ -2667,3 +2667,12 @@ test('strips Swedish page totals while preserving inline resume references', asy
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Sida: 1 av 3 revised\nSida: Portfolio\nPagina 1 av 3');
 });
+
+test('strips Norwegian page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Side 1 av 3\nSide: 1 av 3\nName: Lina\nSIDER：２／３\nSkills: Excel\nProject: Side 1 av 3 revised\nSide: Portfolio\nSide 1 of 3' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Side 1 av 3 revised\nSide: Portfolio\nSide 1 of 3');
+});
