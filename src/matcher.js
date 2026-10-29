@@ -2561,6 +2561,7 @@ export function filterHrCandidatesForReview(candidates = [], jobs = JOBS, filter
       ...submittedJobs.flatMap((job) => job.responsibilities ?? []),
       ...submittedJobs.flatMap((job) => job.tags ?? []),
       ...submittedJobs.flatMap((job) => job.niceToHave ?? []),
+      ...submittedJobs.flatMap((job) => job.languageRequirements ?? []),
       ...suggestedTitles,
       ...suggestedCompanies,
       ...fitHighlights,
