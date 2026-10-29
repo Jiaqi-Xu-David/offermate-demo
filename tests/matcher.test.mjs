@@ -3391,3 +3391,14 @@ test('finds HR candidates by submitted job nice-to-have criteria without matchin
     assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], niceToHave: undefined }], { query }), []);
   }
 });
+
+test('recognizes Webpack skills with spacing and word boundaries', () => {
+  for (const name of ['Webpack', 'webpack', 'Web pack']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Webpack'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Webpack'));
+  }
+  for (const name of ['WebpackExtra', 'MyWebpack']) {
+    assert.ok(!parseResumeText(name).skills.includes('Webpack'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Webpack'));
+  }
+});
