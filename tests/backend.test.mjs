@@ -2685,3 +2685,12 @@ test('strips Chinese page totals with explicit total labels while preserving pro
   );
   assert.equal(text, '姓名：李明\n技能：Excel\n项目：第1页 共计3页 已校对\n共计3页项目说明');
 });
+
+test('strips Danish page totals while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Side 1 af 3\nSide: 1 af 3\nName: Lina\nSIDER：２／３\nSkills: Excel\nProject: Side 1 af 3 revised\nSide: Portfolio\nSide 1 of 3' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Side 1 af 3 revised\nSide: Portfolio\nSide 1 of 3');
+});
