@@ -3414,3 +3414,14 @@ test('finds HR candidates by submitted job language requirements without matchin
     assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], languageRequirements: undefined }], { query }), []);
   }
 });
+
+test('recognizes ESLint skills with spacing and word boundaries', () => {
+  for (const name of ['ESLint', 'eslint', 'ES Lint']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('ESLint'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('ESLint'));
+  }
+  for (const name of ['ESLintExtra', 'MyESLint']) {
+    assert.ok(!parseResumeText(name).skills.includes('ESLint'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('ESLint'));
+  }
+});
