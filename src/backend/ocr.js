@@ -22,6 +22,7 @@ function isPageMarkerLine(line) {
     .replace(/\s+/g, ' ');
   if (!normalized) return false;
   return [
+    /^pages?\s*[:：]?\s*\d+\s*(?:out of|of|\/)\s*\d+[.．]$/i,
     /^sider?(?:\s*[:：]\s*|\s+)\d+\s*(?:av|af|\/)\s*\d+$/i,
     /^sid(?:a|or)(?:\s*[:：]\s*|\s+)\d+\s*(?:av|\/)\s*\d+$/i,
     /^\d+\s+of\s+\d+$/i,

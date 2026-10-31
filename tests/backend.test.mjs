@@ -2694,3 +2694,12 @@ test('strips Danish page totals while preserving prose', async () => {
   );
   assert.equal(text, 'Name: Lina\nSkills: Excel\nProject: Side 1 af 3 revised\nSide: Portfolio\nSide 1 of 3');
 });
+
+test('strips English page totals with terminal periods while preserving prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: 'Page 1 of 3.\nName: Lina\nPages：２／３．\nSkills: Excel\nReviewed Page 1 of 3.\nPage 1 of 3. Portfolio notes' }) },
+  );
+  assert.equal(text, 'Name: Lina\nSkills: Excel\nReviewed Page 1 of 3.\nPage 1 of 3. Portfolio notes');
+});
