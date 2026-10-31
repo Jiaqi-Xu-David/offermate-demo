@@ -3437,3 +3437,14 @@ test('finds HR candidates by submitted job soft skill requirements without match
     assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], softSkills: undefined }], { query }), []);
   }
 });
+
+test('recognizes Prettier skills with spacing and word boundaries', () => {
+  for (const name of ['Prettier', 'prettier', 'Pret tier']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Prettier'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Prettier'));
+  }
+  for (const name of ['PrettierExtra', 'MyPrettier']) {
+    assert.ok(!parseResumeText(name).skills.includes('Prettier'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Prettier'));
+  }
+});
