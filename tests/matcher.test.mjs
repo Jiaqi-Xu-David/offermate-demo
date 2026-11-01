@@ -3482,3 +3482,14 @@ test('recognizes Stylelint skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Stylelint'));
   }
 });
+
+test('recognizes Parcel skills with spacing and word boundaries', () => {
+  for (const name of ['Parcel', 'parcel', 'Par cel']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Parcel'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Parcel'));
+  }
+  for (const name of ['ParcelExtra', 'MyParcel']) {
+    assert.ok(!parseResumeText(name).skills.includes('Parcel'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Parcel'));
+  }
+});
