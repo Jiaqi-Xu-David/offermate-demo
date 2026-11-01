@@ -3460,3 +3460,14 @@ test('finds HR candidates by submitted job implicit requirements without matchin
     assert.deepEqual(filterHrCandidatesForReview(candidates, [{ ...jobs[0], implicitRequirements: undefined }], { query }), []);
   }
 });
+
+test('recognizes Rollup skills with spacing and word boundaries', () => {
+  for (const name of ['Rollup', 'rollup', 'Roll up']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Rollup'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Rollup'));
+  }
+  for (const name of ['RollupExtra', 'MyRollup']) {
+    assert.ok(!parseResumeText(name).skills.includes('Rollup'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Rollup'));
+  }
+});
