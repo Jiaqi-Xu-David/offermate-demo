@@ -2721,3 +2721,12 @@ test('strips Czech standalone page totals and preserves prose', async () => {
   );
   assert.equal(text, "Name: Lina\nReference: Strana 1 z 3");
 });
+
+test('strips Finnish standalone page totals and preserves prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: "Sivu 1 / 3\nName: Lina\nSivut：２／３\nReference: Sivu 1 / 3" }) },
+  );
+  assert.equal(text, "Name: Lina\nReference: Sivu 1 / 3");
+});
