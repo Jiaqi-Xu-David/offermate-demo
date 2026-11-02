@@ -2712,3 +2712,12 @@ test('strips Polish standalone page totals and preserves prose', async () => {
   );
   assert.equal(text, "Name: Lina\nSkills: Excel\nReference: Strona 1 z 3\nStrona 1 z 3 portfolio");
 });
+
+test('strips Czech standalone page totals and preserves prose', async () => {
+  const text = await extractResumeTextWithOpenAI(
+    { OPENAI_API_KEY: 'openai-test-key' },
+    { bytes: new Uint8Array([0x25]), fileName: 'resume.pdf', mimeType: 'application/pdf' },
+    { fetchImpl: async () => Response.json({ output_text: "Strana 1 z 3\nName: Lina\nStrany：２／３\nReference: Strana 1 z 3" }) },
+  );
+  assert.equal(text, "Name: Lina\nReference: Strana 1 z 3");
+});
