@@ -3504,3 +3504,14 @@ test('recognizes esbuild skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('esbuild'));
   }
 });
+
+test('recognizes Biome skills with spacing and word boundaries', () => {
+  for (const name of ['Biome', 'BIOME', 'Bio me']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Biome'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Biome'));
+  }
+  for (const name of ['BiomeExtra', 'MyBiome']) {
+    assert.ok(!parseResumeText(name).skills.includes('Biome'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Biome'));
+  }
+});
