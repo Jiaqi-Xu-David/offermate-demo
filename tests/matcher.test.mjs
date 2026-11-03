@@ -3493,3 +3493,14 @@ test('recognizes Parcel skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Parcel'));
   }
 });
+
+test('recognizes esbuild skills with spacing and word boundaries', () => {
+  for (const name of ['esbuild', 'ESBUILD', 'es build']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('esbuild'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('esbuild'));
+  }
+  for (const name of ['esbuildExtra', 'Myesbuild']) {
+    assert.ok(!parseResumeText(name).skills.includes('esbuild'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('esbuild'));
+  }
+});
