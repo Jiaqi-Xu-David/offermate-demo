@@ -3526,3 +3526,14 @@ test('recognizes pnpm skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('pnpm'));
   }
 });
+
+test('recognizes Turborepo skills with spacing and word boundaries', () => {
+  for (const name of ['Turborepo', 'turborepo', 'Turbo repo']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Turborepo'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Turborepo'));
+  }
+  for (const name of ['TurborepoExtra', 'MyTurborepo']) {
+    assert.ok(!parseResumeText(name).skills.includes('Turborepo'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Turborepo'));
+  }
+});
