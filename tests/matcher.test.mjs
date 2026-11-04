@@ -3548,3 +3548,14 @@ test('recognizes Rspack skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Rspack'));
   }
 });
+
+test('recognizes Babel skills with spacing and word boundaries', () => {
+  for (const name of ['Babel', 'babel', 'Ba bel']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建前端应用`).skills.includes('Babel'));
+    assert.ok(analyzeJobDescription({ title: '前端工程师', city: '上海', description: `要求使用 ${name} 构建应用` }).tags.includes('Babel'));
+  }
+  for (const name of ['BabelExtra', 'MyBabel']) {
+    assert.ok(!parseResumeText(name).skills.includes('Babel'));
+    assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Babel'));
+  }
+});
