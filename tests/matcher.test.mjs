@@ -3559,3 +3559,14 @@ test('recognizes Babel skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '前端工程师', city: '上海', description: name }).tags.includes('Babel'));
   }
 });
+
+test('recognizes XGBoost skills with spacing and word boundaries', () => {
+  for (const name of ['XGBoost', 'xgboost', 'XG Boost']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 训练预测模型`).skills.includes('XGBoost'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 训练预测模型` }).tags.includes('XGBoost'));
+  }
+  for (const name of ['XGBoostExtra', 'MyXGBoost']) {
+    assert.ok(!parseResumeText(name).skills.includes('XGBoost'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('XGBoost'));
+  }
+});
