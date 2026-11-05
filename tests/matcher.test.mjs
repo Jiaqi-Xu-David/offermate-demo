@@ -3581,3 +3581,14 @@ test('recognizes LightGBM skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('LightGBM'));
   }
 });
+
+test('recognizes CatBoost skills with spacing and word boundaries', () => {
+  for (const name of ['CatBoost', 'catboost', 'Cat Boost']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 训练预测模型`).skills.includes('CatBoost'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 训练预测模型` }).tags.includes('CatBoost'));
+  }
+  for (const name of ['CatBoostExtra', 'MyCatBoost']) {
+    assert.ok(!parseResumeText(name).skills.includes('CatBoost'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('CatBoost'));
+  }
+});
