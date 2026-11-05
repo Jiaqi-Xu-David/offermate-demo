@@ -3570,3 +3570,14 @@ test('recognizes XGBoost skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('XGBoost'));
   }
 });
+
+test('recognizes LightGBM skills with spacing and word boundaries', () => {
+  for (const name of ['LightGBM', 'lightgbm', 'Light GBM']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 训练预测模型`).skills.includes('LightGBM'));
+    assert.ok(analyzeJobDescription({ title: '算法工程师', city: '上海', description: `要求使用 ${name} 训练预测模型` }).tags.includes('LightGBM'));
+  }
+  for (const name of ['LightGBMExtra', 'MyLightGBM']) {
+    assert.ok(!parseResumeText(name).skills.includes('LightGBM'));
+    assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('LightGBM'));
+  }
+});
