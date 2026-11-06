@@ -3603,3 +3603,14 @@ test('recognizes MLflow skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', city: '上海', description: name }).tags.includes('MLflow'));
   }
 });
+
+test('recognizes Airflow skills with spacing and word boundaries', () => {
+  for (const name of ['Airflow', 'airflow', 'Air flow']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建数据平台`).skills.includes('Airflow'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', city: '上海', description: `要求使用 ${name} 构建数据平台` }).tags.includes('Airflow'));
+  }
+  for (const name of ['AirflowExtra', 'MyAirflow']) {
+    assert.ok(!parseResumeText(name).skills.includes('Airflow'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', city: '上海', description: name }).tags.includes('Airflow'));
+  }
+});
