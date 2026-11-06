@@ -3592,3 +3592,14 @@ test('recognizes CatBoost skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '算法工程师', city: '上海', description: name }).tags.includes('CatBoost'));
   }
 });
+
+test('recognizes MLflow skills with spacing and word boundaries', () => {
+  for (const name of ['MLflow', 'mlflow', 'ML flow']) {
+    assert.ok(parseResumeText(`技能：使用 ${name} 构建数据平台`).skills.includes('MLflow'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', city: '上海', description: `要求使用 ${name} 构建数据平台` }).tags.includes('MLflow'));
+  }
+  for (const name of ['MLflowExtra', 'MyMLflow']) {
+    assert.ok(!parseResumeText(name).skills.includes('MLflow'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', city: '上海', description: name }).tags.includes('MLflow'));
+  }
+});
