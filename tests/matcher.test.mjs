@@ -3647,3 +3647,14 @@ test('recognizes Matplotlib on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Matplotlib'));
   }
 });
+
+test('recognizes Polars on resumes and job descriptions', () => {
+  for (const name of ['Polars', 'Po lars']) {
+    assert.ok(parseResumeText(`使用 ${name} 处理列式数据`).skills.includes('Polars'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 处理列式数据` }).tags.includes('Polars'));
+  }
+  for (const name of ['MyPolars', 'PolarsExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Polars'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Polars'));
+  }
+});
