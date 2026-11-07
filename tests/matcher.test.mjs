@@ -3636,3 +3636,14 @@ test('recognizes SciPy on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('SciPy'));
   }
 });
+
+test('recognizes Matplotlib on resumes and job descriptions', () => {
+  for (const name of ['Matplotlib', 'Matplot lib']) {
+    assert.ok(parseResumeText(`使用 ${name} 绘制分析图表`).skills.includes('Matplotlib'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 绘制分析图表` }).tags.includes('Matplotlib'));
+  }
+  for (const name of ['MyMatplotlib', 'MatplotlibExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Matplotlib'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Matplotlib'));
+  }
+});
