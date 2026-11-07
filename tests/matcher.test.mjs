@@ -3625,3 +3625,14 @@ test('recognizes dbt skills with spacing and word boundaries', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', city: '上海', description: name }).tags.includes('dbt'));
   }
 });
+
+test('recognizes SciPy on resumes and job descriptions', () => {
+  for (const name of ['SciPy', 'Sci Py']) {
+    assert.ok(parseResumeText(`使用 ${name} 完成科学计算`).skills.includes('SciPy'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 完成科学计算` }).tags.includes('SciPy'));
+  }
+  for (const name of ['MySciPy', 'SciPyExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('SciPy'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('SciPy'));
+  }
+});
