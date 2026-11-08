@@ -3658,3 +3658,8 @@ test('recognizes Polars on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Polars'));
   }
 });
+
+test('masks initial account passwords', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="account-password" type="password" autocomplete="new-password" minlength="6" required'));
+});
