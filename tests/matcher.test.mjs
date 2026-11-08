@@ -3668,3 +3668,8 @@ test('announces resume file selection', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.includes('id="selected-file-name" role="status"'));
 });
+
+test('announces account management results', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="account-result" role="status"'));
+});
