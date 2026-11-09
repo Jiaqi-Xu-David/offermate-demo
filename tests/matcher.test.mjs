@@ -3695,3 +3695,14 @@ test('recognizes DuckDB on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('DuckDB'));
   }
 });
+
+test('recognizes Plotly on resumes and job descriptions', () => {
+  for (const name of ['Plotly', 'Plot ly']) {
+    assert.ok(parseResumeText(`使用 ${name} 制作交互式图表`).skills.includes('Plotly'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 制作交互式图表` }).tags.includes('Plotly'));
+  }
+  for (const name of ['MyPlotly', 'PlotlyExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Plotly'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Plotly'));
+  }
+});
