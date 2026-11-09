@@ -3684,3 +3684,14 @@ test('recognizes Seaborn on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Seaborn'));
   }
 });
+
+test('recognizes DuckDB on resumes and job descriptions', () => {
+  for (const name of ['DuckDB', 'Duck DB']) {
+    assert.ok(parseResumeText(`使用 ${name} 查询分析数据`).skills.includes('DuckDB'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 查询分析数据` }).tags.includes('DuckDB'));
+  }
+  for (const name of ['MyDuckDB', 'DuckDBExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('DuckDB'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('DuckDB'));
+  }
+});
