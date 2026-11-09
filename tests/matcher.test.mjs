@@ -3673,3 +3673,14 @@ test('announces account management results', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.includes('id="account-result" role="status"'));
 });
+
+test('recognizes Seaborn on resumes and job descriptions', () => {
+  for (const name of ['Seaborn', 'Sea born']) {
+    assert.ok(parseResumeText(`使用 ${name} 绘制统计图表`).skills.includes('Seaborn'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 绘制统计图表` }).tags.includes('Seaborn'));
+  }
+  for (const name of ['MySeaborn', 'SeabornExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Seaborn'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Seaborn'));
+  }
+});
