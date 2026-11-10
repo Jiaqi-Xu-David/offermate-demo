@@ -459,15 +459,15 @@
         </div>
         <label>
           岗位名称
-          <input id="admin-title" type="text" value="增长运营实习生">
+          <input id="admin-title" type="text" maxlength="120" required value="增长运营实习生">
         </label>
         <label>
           工作地点
-          <input id="admin-city" type="text" value="上海">
+          <input id="admin-city" type="text" maxlength="80" required value="上海">
         </label>
         <label>
           岗位描述
-          <textarea id="admin-description" rows="6">薪资：180-230元/天。负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。软技能要求跨部门沟通、项目推进；语言要求英语 CET-4。</textarea>
+          <textarea id="admin-description" rows="6" minlength="40" maxlength="30000" required>薪资：180-230元/天。负责用户增长活动复盘，使用 SQL 分析转化漏斗，完成用户分层和 A/B测试，沉淀数据看板。软技能要求跨部门沟通、项目推进；语言要求英语 CET-4。</textarea>
         </label>
         <p id="admin-result" role="status" class="admin-result">粘贴 JD 后，会自动抽取岗位能力标签并加入岗位池。</p>
         <button class="primary-button" type="submit">分析并添加</button>
