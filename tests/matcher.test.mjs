@@ -3717,3 +3717,14 @@ test('recognizes ClickHouse on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('ClickHouse'));
   }
 });
+
+test('recognizes Snowflake on resumes and job descriptions', () => {
+  for (const name of ['Snowflake', 'Snow flake']) {
+    assert.ok(parseResumeText(`使用 ${name} 查询分析数据`).skills.includes('Snowflake'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 查询分析数据` }).tags.includes('Snowflake'));
+  }
+  for (const name of ['MySnowflake', 'SnowflakeExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Snowflake'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Snowflake'));
+  }
+});
