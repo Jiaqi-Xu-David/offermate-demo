@@ -3706,3 +3706,14 @@ test('recognizes Plotly on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Plotly'));
   }
 });
+
+test('recognizes ClickHouse on resumes and job descriptions', () => {
+  for (const name of ['ClickHouse', 'Click House']) {
+    assert.ok(parseResumeText(`使用 ${name} 查询分析数据`).skills.includes('ClickHouse'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 查询分析数据` }).tags.includes('ClickHouse'));
+  }
+  for (const name of ['MyClickHouse', 'ClickHouseExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('ClickHouse'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('ClickHouse'));
+  }
+});
