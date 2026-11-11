@@ -3728,3 +3728,14 @@ test('recognizes Snowflake on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Snowflake'));
   }
 });
+
+test('recognizes Redshift on resumes and job descriptions', () => {
+  for (const name of ['Redshift', 'Red shift']) {
+    assert.ok(parseResumeText(`使用 ${name} 查询分析数据`).skills.includes('Redshift'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 查询分析数据` }).tags.includes('Redshift'));
+  }
+  for (const name of ['MyRedshift', 'RedshiftExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Redshift'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Redshift'));
+  }
+});
