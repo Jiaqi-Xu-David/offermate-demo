@@ -3739,3 +3739,14 @@ test('recognizes Redshift on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Redshift'));
   }
 });
+
+test('recognizes BigQuery on resumes and job descriptions', () => {
+  for (const name of ['BigQuery', 'Big Query']) {
+    assert.ok(parseResumeText(`使用 ${name} 查询分析数据`).skills.includes('BigQuery'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 查询分析数据` }).tags.includes('BigQuery'));
+  }
+  for (const name of ['MyBigQuery', 'BigQueryExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('BigQuery'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('BigQuery'));
+  }
+});
