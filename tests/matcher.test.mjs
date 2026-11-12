@@ -3761,3 +3761,14 @@ test('recognizes Databricks on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Databricks'));
   }
 });
+
+test('recognizes Grafana on resumes and job descriptions', () => {
+  for (const name of ['Grafana', 'Gra fana']) {
+    assert.ok(parseResumeText(`使用 ${name} 搭建监控面板`).skills.includes('Grafana'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 搭建监控面板` }).tags.includes('Grafana'));
+  }
+  for (const name of ['MyGrafana', 'GrafanaExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Grafana'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Grafana'));
+  }
+});
