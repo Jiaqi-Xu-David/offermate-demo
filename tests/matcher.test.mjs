@@ -3750,3 +3750,14 @@ test('recognizes BigQuery on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('BigQuery'));
   }
 });
+
+test('recognizes Databricks on resumes and job descriptions', () => {
+  for (const name of ['Databricks', 'Data bricks']) {
+    assert.ok(parseResumeText(`使用 ${name} 构建数据管道`).skills.includes('Databricks'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 构建数据管道` }).tags.includes('Databricks'));
+  }
+  for (const name of ['MyDatabricks', 'DatabricksExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Databricks'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Databricks'));
+  }
+});
