@@ -3794,3 +3794,14 @@ test('recognizes OpenTelemetry on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('OpenTelemetry'));
   }
 });
+
+test('recognizes Kibana on resumes and job descriptions', () => {
+  for (const name of ['Kibana', 'Ki bana']) {
+    assert.ok(parseResumeText(`使用 ${name} 分析应用日志`).skills.includes('Kibana'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 分析应用日志` }).tags.includes('Kibana'));
+  }
+  for (const name of ['MyKibana', 'KibanaExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Kibana'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Kibana'));
+  }
+});
