@@ -3783,3 +3783,14 @@ test('recognizes Prometheus on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Prometheus'));
   }
 });
+
+test('recognizes OpenTelemetry on resumes and job descriptions', () => {
+  for (const name of ['OpenTelemetry', 'OTel']) {
+    assert.ok(parseResumeText(`使用 ${name} 接入分布式链路追踪`).skills.includes('OpenTelemetry'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 接入分布式链路追踪` }).tags.includes('OpenTelemetry'));
+  }
+  for (const name of ['MyOpenTelemetry', 'OpenTelemetryExtra', 'hotel']) {
+    assert.ok(!parseResumeText(name).skills.includes('OpenTelemetry'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('OpenTelemetry'));
+  }
+});
