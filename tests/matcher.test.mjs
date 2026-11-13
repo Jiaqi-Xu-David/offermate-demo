@@ -3772,3 +3772,14 @@ test('recognizes Grafana on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Grafana'));
   }
 });
+
+test('recognizes Prometheus on resumes and job descriptions', () => {
+  for (const name of ['Prometheus', 'Prome theus']) {
+    assert.ok(parseResumeText(`使用 ${name} 采集服务指标`).skills.includes('Prometheus'));
+    assert.ok(analyzeJobDescription({ title: '数据工程师', description: `要求使用 ${name} 采集服务指标` }).tags.includes('Prometheus'));
+  }
+  for (const name of ['MyPrometheus', 'PrometheusExtra']) {
+    assert.ok(!parseResumeText(name).skills.includes('Prometheus'));
+    assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Prometheus'));
+  }
+});
