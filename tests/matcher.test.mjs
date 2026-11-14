@@ -3805,3 +3805,11 @@ test('recognizes Kibana on resumes and job descriptions', () => {
     assert.ok(!analyzeJobDescription({ title: '数据工程师', description: name }).tags.includes('Kibana'));
   }
 });
+
+test('recognizes Ansible on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Ansible', true], ['An sible', true], ['AnsibleExtra', false], ['MyAnsible', false]]) {
+    const description = `使用 ${name} 管理服务器配置`;
+    assert.equal(parseResumeText(description).skills.includes('Ansible'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Ansible'), expected);
+  }
+});
