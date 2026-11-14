@@ -3821,3 +3821,11 @@ test('recognizes Pulumi on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Pulumi'), expected);
   }
 });
+
+test('recognizes Istio on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Istio', true], ['Is tio', true], ['IstioExtra', false], ['MyIstio', false]]) {
+    const description = `使用 ${name} 管理服务网格`;
+    assert.equal(parseResumeText(description).skills.includes('Istio'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Istio'), expected);
+  }
+});
