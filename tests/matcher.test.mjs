@@ -3813,3 +3813,11 @@ test('recognizes Ansible on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Ansible'), expected);
   }
 });
+
+test('recognizes Pulumi on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Pulumi', true], ['Pu lumi', true], ['PulumiExtra', false], ['MyPulumi', false]]) {
+    const description = `使用 ${name} 配置云基础设施`;
+    assert.equal(parseResumeText(description).skills.includes('Pulumi'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Pulumi'), expected);
+  }
+});
