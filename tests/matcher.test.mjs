@@ -3829,3 +3829,11 @@ test('recognizes Istio on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Istio'), expected);
   }
 });
+
+test('recognizes Logstash on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Logstash', true], ['Log stash', true], ['MyLogstash', false], ['LogstashExtra', false]]) {
+    const description = `使用 ${name} 处理日志`;
+    assert.equal(parseResumeText(description).skills.includes('Logstash'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Logstash'), expected);
+  }
+});
