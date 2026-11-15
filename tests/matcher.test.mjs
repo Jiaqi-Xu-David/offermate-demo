@@ -3845,3 +3845,11 @@ test('recognizes Filebeat on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Filebeat'), expected);
   }
 });
+
+test('recognizes Fluentd on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Fluentd', true], ['Fluent d', true], ['MyFluentd', false], ['FluentdExtra', false]]) {
+    const description = `使用 ${name} 转发集群日志`;
+    assert.equal(parseResumeText(description).skills.includes('Fluentd'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Fluentd'), expected);
+  }
+});
