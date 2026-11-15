@@ -3837,3 +3837,11 @@ test('recognizes Logstash on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Logstash'), expected);
   }
 });
+
+test('recognizes Filebeat on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Filebeat', true], ['File beat', true], ['MyFilebeat', false], ['FilebeatExtra', false]]) {
+    const description = `使用 ${name} 采集应用日志`;
+    assert.equal(parseResumeText(description).skills.includes('Filebeat'), expected);
+    assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Filebeat'), expected);
+  }
+});
