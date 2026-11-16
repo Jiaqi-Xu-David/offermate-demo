@@ -3861,3 +3861,11 @@ test('recognizes Airbyte on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Airbyte'), expected);
   }
 });
+
+test('recognizes Debezium on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Debezium', true], ['Debe zium', true], ['MyDebezium', false], ['DebeziumExtra', false]]) {
+    const description = `使用 ${name} 捕获数据库变更`;
+    assert.equal(parseResumeText(description).skills.includes('Debezium'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Debezium'), expected);
+  }
+});
