@@ -3869,3 +3869,11 @@ test('recognizes Debezium on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Debezium'), expected);
   }
 });
+
+test('recognizes Trino on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Trino', true], ['Tri no', true], ['MyTrino', false], ['TrinoExtra', false]]) {
+    const description = `使用 ${name} 查询多个数据源`;
+    assert.equal(parseResumeText(description).skills.includes('Trino'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Trino'), expected);
+  }
+});
