@@ -3853,3 +3853,11 @@ test('recognizes Fluentd on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '平台工程师', description }).tags.includes('Fluentd'), expected);
   }
 });
+
+test('recognizes Airbyte on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Airbyte', true], ['Air byte', true], ['MyAirbyte', false], ['AirbyteExtra', false]]) {
+    const description = `使用 ${name} 同步数据源`;
+    assert.equal(parseResumeText(description).skills.includes('Airbyte'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Airbyte'), expected);
+  }
+});
