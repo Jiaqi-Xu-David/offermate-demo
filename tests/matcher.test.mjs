@@ -3893,3 +3893,11 @@ test('recognizes SQLAlchemy on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('SQLAlchemy'), expected);
   }
 });
+
+test('recognizes pytest on resumes and job descriptions', () => {
+  for (const [name, expected] of [['pytest', true], ['py test', true], ['Mypytest', false], ['pytestExtra', false]]) {
+    const description = `使用 ${name} 测试后端接口`;
+    assert.equal(parseResumeText(description).skills.includes('pytest'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('pytest'), expected);
+  }
+});
