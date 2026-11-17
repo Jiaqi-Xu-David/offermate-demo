@@ -3877,3 +3877,11 @@ test('recognizes Trino on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Trino'), expected);
   }
 });
+
+test('recognizes Pydantic on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Pydantic', true], ['Py dantic', true], ['MyPydantic', false], ['PydanticExtra', false]]) {
+    const description = `使用 ${name} 校验请求数据`;
+    assert.equal(parseResumeText(description).skills.includes('Pydantic'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Pydantic'), expected);
+  }
+});
