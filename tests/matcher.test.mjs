@@ -3885,3 +3885,11 @@ test('recognizes Pydantic on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Pydantic'), expected);
   }
 });
+
+test('recognizes SQLAlchemy on resumes and job descriptions', () => {
+  for (const [name, expected] of [['SQLAlchemy', true], ['SQL Alchemy', true], ['MySQLAlchemy', false], ['SQLAlchemyExtra', false]]) {
+    const description = `使用 ${name} 映射数据库模型`;
+    assert.equal(parseResumeText(description).skills.includes('SQLAlchemy'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('SQLAlchemy'), expected);
+  }
+});
