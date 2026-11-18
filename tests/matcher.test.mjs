@@ -3901,3 +3901,11 @@ test('recognizes pytest on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('pytest'), expected);
   }
 });
+
+test('recognizes Celery on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Celery', true], ['Cele ry', true], ['MyCelery', false], ['CeleryExtra', false]]) {
+    const description = `使用 ${name} 调度后台任务`;
+    assert.equal(parseResumeText(description).skills.includes('Celery'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Celery'), expected);
+  }
+});
