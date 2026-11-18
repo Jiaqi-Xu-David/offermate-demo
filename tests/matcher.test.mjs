@@ -3909,3 +3909,11 @@ test('recognizes Celery on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Celery'), expected);
   }
 });
+
+test('recognizes Redis Sentinel on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Redis Sentinel', true], ['Redis Senti nel', true], ['MyRedis Sentinel', false], ['Redis SentinelExtra', false]]) {
+    const description = `使用 ${name} 管理缓存高可用`;
+    assert.equal(parseResumeText(description).skills.includes('Redis Sentinel'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Redis Sentinel'), expected);
+  }
+});
