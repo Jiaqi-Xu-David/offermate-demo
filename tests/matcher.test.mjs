@@ -3917,3 +3917,11 @@ test('recognizes Redis Sentinel on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Redis Sentinel'), expected);
   }
 });
+
+test('recognizes APScheduler on resumes and job descriptions', () => {
+  for (const [name, expected] of [['APScheduler', true], ['AP Scheduler', true], ['MyAPScheduler', false], ['APSchedulerExtra', false]]) {
+    const description = `使用 ${name} 调度定时任务`;
+    assert.equal(parseResumeText(description).skills.includes('APScheduler'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('APScheduler'), expected);
+  }
+});
