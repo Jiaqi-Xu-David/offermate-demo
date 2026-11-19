@@ -3941,3 +3941,11 @@ test('recognizes MyBatis on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('MyBatis'), expected);
   }
 });
+
+test('recognizes JUnit on resumes and job descriptions', () => {
+  for (const [name, expected] of [['JUnit', true], ['J Unit', true], ['MyJUnit', false], ['JUnitExtra', false]]) {
+    const description = `使用 ${name} 测试后端业务逻辑`;
+    assert.equal(parseResumeText(description).skills.includes('JUnit'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('JUnit'), expected);
+  }
+});
