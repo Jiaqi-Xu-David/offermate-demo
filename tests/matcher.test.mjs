@@ -3925,3 +3925,11 @@ test('recognizes APScheduler on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('APScheduler'), expected);
   }
 });
+
+test('recognizes Hibernate on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Hibernate', true], ['Hiber nate', true], ['MyHibernate', false], ['HibernateExtra', false]]) {
+    const description = `使用 ${name} 映射持久化实体`;
+    assert.equal(parseResumeText(description).skills.includes('Hibernate'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Hibernate'), expected);
+  }
+});
