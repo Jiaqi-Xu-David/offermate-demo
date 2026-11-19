@@ -3933,3 +3933,11 @@ test('recognizes Hibernate on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Hibernate'), expected);
   }
 });
+
+test('recognizes MyBatis on resumes and job descriptions', () => {
+  for (const [name, expected] of [['MyBatis', true], ['My Batis', true], ['MyMyBatis', false], ['MyBatisExtra', false]]) {
+    const description = `使用 ${name} 编写数据库映射`;
+    assert.equal(parseResumeText(description).skills.includes('MyBatis'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('MyBatis'), expected);
+  }
+});
