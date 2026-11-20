@@ -3965,3 +3965,11 @@ test('recognizes Gradle on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Gradle'), expected);
   }
 });
+
+test('recognizes Mockito on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Mockito', true], ['mockito', true], ['Mock ito', true], ['MyMockito', false], ['MockitoExtra', false]]) {
+    const description = `使用 ${name} 编写模拟对象测试`;
+    assert.equal(parseResumeText(description).skills.includes('Mockito'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Mockito'), expected);
+  }
+});
