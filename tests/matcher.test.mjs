@@ -3949,3 +3949,11 @@ test('recognizes JUnit on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('JUnit'), expected);
   }
 });
+
+test('recognizes Maven on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Maven', true], ['maven', true], ['Ma ven', true], ['MyMaven', false], ['MavenExtra', false]]) {
+    const description = `使用 ${name} 管理项目依赖`;
+    assert.equal(parseResumeText(description).skills.includes('Maven'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Maven'), expected);
+  }
+});
