@@ -3957,3 +3957,11 @@ test('recognizes Maven on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Maven'), expected);
   }
 });
+
+test('recognizes Gradle on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Gradle', true], ['gradle', true], ['Gra dle', true], ['MyGradle', false], ['GradleExtra', false]]) {
+    const description = `使用 ${name} 构建项目`;
+    assert.equal(parseResumeText(description).skills.includes('Gradle'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Gradle'), expected);
+  }
+});
