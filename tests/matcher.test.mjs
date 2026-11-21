@@ -3973,3 +3973,12 @@ test('recognizes Mockito on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Mockito'), expected);
   }
 });
+
+
+test('recognizes TestNG on resumes and job descriptions', () => {
+  for (const [name, expected] of [['TestNG', true], ['testng', true], ['Test NG', true], ['MyTestNG', false], ['TestNGExtra', false]]) {
+    const description = `使用 ${name} 编写自动化测试`;
+    assert.equal(parseResumeText(description).skills.includes('TestNG'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('TestNG'), expected);
+  }
+});
