@@ -3990,3 +3990,11 @@ test('recognizes Quarkus on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Quarkus'), expected);
   }
 });
+
+test('recognizes Micronaut on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Micronaut', true], ['micronaut', true], ['Micro naut', true], ['MyMicronaut', false], ['MicronautExtra', false]]) {
+    const description = `使用 ${name} 构建微服务应用`;
+    assert.equal(parseResumeText(description).skills.includes('Micronaut'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Micronaut'), expected);
+  }
+});
