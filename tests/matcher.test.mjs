@@ -3982,3 +3982,11 @@ test('recognizes TestNG on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('TestNG'), expected);
   }
 });
+
+test('recognizes Quarkus on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Quarkus', true], ['quarkus', true], ['Quar kus', true], ['MyQuarkus', false], ['QuarkusExtra', false]]) {
+    const description = `使用 ${name} 开发云原生服务`;
+    assert.equal(parseResumeText(description).skills.includes('Quarkus'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Quarkus'), expected);
+  }
+});
