@@ -3998,3 +3998,11 @@ test('recognizes Micronaut on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Micronaut'), expected);
   }
 });
+
+test('recognizes Flyway on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Flyway', true], ['flyway', true], ['Fly way', true], ['MyFlyway', false], ['FlywayExtra', false]]) {
+    const description = `使用 ${name} 管理数据库迁移`;
+    assert.equal(parseResumeText(description).skills.includes('Flyway'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Flyway'), expected);
+  }
+});
