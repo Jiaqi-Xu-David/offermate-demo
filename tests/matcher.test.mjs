@@ -4006,3 +4006,11 @@ test('recognizes Flyway on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Flyway'), expected);
   }
 });
+
+test('recognizes Liquibase on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Liquibase', true], ['liquibase', true], ['Liqui base', true], ['MyLiquibase', false], ['LiquibaseExtra', false]]) {
+    const description = `使用 ${name} 管理数据库版本`;
+    assert.equal(parseResumeText(description).skills.includes('Liquibase'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Liquibase'), expected);
+  }
+});
