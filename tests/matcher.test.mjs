@@ -4014,3 +4014,11 @@ test('recognizes Liquibase on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Liquibase'), expected);
   }
 });
+
+test('recognizes MapStruct on resumes and job descriptions', () => {
+  for (const [name, expected] of [['MapStruct', true], ['mapstruct', true], ['Map Struct', true], ['MyMapStruct', false], ['MapStructExtra', false]]) {
+    const description = `使用 ${name} 实现对象映射`;
+    assert.equal(parseResumeText(description).skills.includes('MapStruct'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('MapStruct'), expected);
+  }
+});
