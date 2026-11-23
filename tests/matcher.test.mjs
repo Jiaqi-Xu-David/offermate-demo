@@ -4031,3 +4031,12 @@ test('recognizes Testcontainers on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Testcontainers'), expected);
   }
 });
+
+
+test('recognizes HikariCP on resumes and job descriptions', () => {
+  for (const [name, expected] of [['HikariCP', true], ['hikaricp', true], ['Hikari CP', true], ['MyHikariCP', false], ['HikariCPExtra', false]]) {
+    const description = `使用 ${name} 管理数据库连接池`;
+    assert.equal(parseResumeText(description).skills.includes('HikariCP'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('HikariCP'), expected);
+  }
+});
