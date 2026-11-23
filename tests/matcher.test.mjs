@@ -4040,3 +4040,12 @@ test('recognizes HikariCP on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('HikariCP'), expected);
   }
 });
+
+
+test('recognizes Resilience4j on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Resilience4j', true], ['resilience4j', true], ['Resilience 4j', true], ['MyResilience4j', false], ['Resilience4jExtra', false]]) {
+    const description = `使用 ${name} 实现服务熔断`;
+    assert.equal(parseResumeText(description).skills.includes('Resilience4j'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Resilience4j'), expected);
+  }
+});
