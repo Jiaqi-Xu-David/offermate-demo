@@ -4022,3 +4022,12 @@ test('recognizes MapStruct on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('MapStruct'), expected);
   }
 });
+
+
+test('recognizes Testcontainers on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Testcontainers', true], ['testcontainers', true], ['Test containers', true], ['MyTestcontainers', false], ['TestcontainersExtra', false]]) {
+    const description = `使用 ${name} 编写容器集成测试`;
+    assert.equal(parseResumeText(description).skills.includes('Testcontainers'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Testcontainers'), expected);
+  }
+});
