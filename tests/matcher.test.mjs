@@ -4057,3 +4057,11 @@ test('recognizes Lombok on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Lombok'), expected);
   }
 });
+
+test('recognizes jOOQ on resumes and job descriptions', () => {
+  for (const [name, expected] of [['jOOQ', true], ['jooq', true], ['j OOQ', true], ['MyjOOQ', false], ['jOOQExtra', false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责 Java 数据访问与后端开发。`;
+    assert.equal(parseResumeText(description).skills.includes('jOOQ'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('jOOQ'), expected);
+  }
+});
