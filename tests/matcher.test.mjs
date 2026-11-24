@@ -4049,3 +4049,11 @@ test('recognizes Resilience4j on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Resilience4j'), expected);
   }
 });
+
+test('recognizes Lombok on resumes and job descriptions', () => {
+  for (const [name, expected] of [['Lombok', true], ['lombok', true], ['Lom bok', true], ['MyLombok', false], ['LombokExtra', false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责 Java 数据访问与后端开发。`;
+    assert.equal(parseResumeText(description).skills.includes('Lombok'), expected);
+    assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('Lombok'), expected);
+  }
+});
