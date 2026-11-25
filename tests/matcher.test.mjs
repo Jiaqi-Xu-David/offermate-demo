@@ -4089,3 +4089,11 @@ test('recognizes DynamoDB on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('DynamoDB'), expected);
   }
 });
+
+test('recognizes Neo4j on resumes and job descriptions', () => {
+  for (const [name, expected] of [["Neo4j", true], ["neo4j", true], ["Neo 4j", true], ["MyNeo4j", false], ["Neo4jExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据存储与查询服务开发。`;
+    assert.equal(parseResumeText(description).skills.includes('Neo4j'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Neo4j'), expected);
+  }
+});
