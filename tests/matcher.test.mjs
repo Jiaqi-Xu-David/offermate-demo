@@ -4073,3 +4073,11 @@ test('recognizes JDBC on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: 'Java 后端工程师', description }).tags.includes('JDBC'), expected);
   }
 });
+
+test('recognizes OpenSearch on resumes and job descriptions', () => {
+  for (const [name, expected] of [["OpenSearch", true], ["opensearch", true], ["Open Search", true], ["MyOpenSearch", false], ["OpenSearchExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据存储与查询服务开发。`;
+    assert.equal(parseResumeText(description).skills.includes('OpenSearch'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('OpenSearch'), expected);
+  }
+});
