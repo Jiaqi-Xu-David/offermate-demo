@@ -4081,3 +4081,11 @@ test('recognizes OpenSearch on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('OpenSearch'), expected);
   }
 });
+
+test('recognizes DynamoDB on resumes and job descriptions', () => {
+  for (const [name, expected] of [["DynamoDB", true], ["dynamodb", true], ["Dynamo DB", true], ["MyDynamoDB", false], ["DynamoDBExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据存储与查询服务开发。`;
+    assert.equal(parseResumeText(description).skills.includes('DynamoDB'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('DynamoDB'), expected);
+  }
+});
