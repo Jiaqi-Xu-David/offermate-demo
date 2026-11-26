@@ -4105,3 +4105,11 @@ test('recognizes Cassandra on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Cassandra'), expected);
   }
 });
+
+test('recognizes Couchbase on resumes and job descriptions', () => {
+  for (const [name, expected] of [["Couchbase", true], ["couchbase", true], ["Couch base", true], ["MyCouchbase", false], ["CouchbaseExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据存储与查询服务开发。`;
+    assert.equal(parseResumeText(description).skills.includes('Couchbase'), expected);
+    assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('Couchbase'), expected);
+  }
+});
