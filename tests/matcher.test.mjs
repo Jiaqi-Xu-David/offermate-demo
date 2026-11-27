@@ -4137,3 +4137,11 @@ test('recognizes TiDB on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('TiDB'), expected);
   }
 });
+
+test('recognizes Vitess on resumes and job descriptions', () => {
+  for (const [name, expected] of [["Vitess", true], ["vitess", true], ["Vi tess", true], ["MyVitess", false], ["VitessExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据平台开发。`;
+    assert.equal(parseResumeText(description).skills.includes('Vitess'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Vitess'), expected);
+  }
+});
