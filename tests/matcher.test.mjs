@@ -4121,3 +4121,11 @@ test('recognizes TimescaleDB on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '后端工程师', description }).tags.includes('TimescaleDB'), expected);
   }
 });
+
+test('recognizes InfluxDB on resumes and job descriptions', () => {
+  for (const [name, expected] of [["InfluxDB", true], ["influxdb", true], ["Influx DB", true], ["MyInfluxDB", false], ["InfluxDBExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据平台开发。`;
+    assert.equal(parseResumeText(description).skills.includes('InfluxDB'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('InfluxDB'), expected);
+  }
+});
