@@ -4129,3 +4129,11 @@ test('recognizes InfluxDB on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('InfluxDB'), expected);
   }
 });
+
+test('recognizes TiDB on resumes and job descriptions', () => {
+  for (const [name, expected] of [["TiDB", true], ["tidb", true], ["Ti DB", true], ["MyTiDB", false], ["TiDBExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据平台开发。`;
+    assert.equal(parseResumeText(description).skills.includes('TiDB'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('TiDB'), expected);
+  }
+});
