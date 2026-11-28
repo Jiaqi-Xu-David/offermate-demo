@@ -4163,3 +4163,12 @@ test('recognizes ScyllaDB on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('ScyllaDB'), expected);
   }
 });
+
+
+test('recognizes YugabyteDB on resumes and job descriptions', () => {
+  for (const [name, expected] of [["YugabyteDB", true], ["yugabytedb", true], ["Yugabyte DB", true], ["MyYugabyteDB", false], ["YugabyteDBExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据平台开发。`;
+    assert.equal(parseResumeText(description).skills.includes('YugabyteDB'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('YugabyteDB'), expected);
+  }
+});
