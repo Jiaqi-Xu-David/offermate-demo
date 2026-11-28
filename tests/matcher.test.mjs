@@ -4145,3 +4145,12 @@ test('recognizes Vitess on resumes and job descriptions', () => {
     assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('Vitess'), expected);
   }
 });
+
+
+test('recognizes RocksDB on resumes and job descriptions', () => {
+  for (const [name, expected] of [["RocksDB", true], ["rocksdb", true], ["Rocks DB", true], ["MyRocksDB", false], ["RocksDBExtra", false]]) {
+    const description = `岗位要求：熟悉 ${name}，负责数据平台开发。`;
+    assert.equal(parseResumeText(description).skills.includes('RocksDB'), expected);
+    assert.equal(analyzeJobDescription({ title: '数据工程师', description }).tags.includes('RocksDB'), expected);
+  }
+});
